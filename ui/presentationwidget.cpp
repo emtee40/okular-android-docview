@@ -642,12 +642,26 @@ void PresentationWidget::wheelEvent( QWheelEvent * e )
     }
 }
 
+bool PresentationWidget::isActiveDrawingInputDevice( QMouseEvent * e ) const
+{
+//     qCritical() << "e-> source: " << e->source();
+//     qCritical() << "e-> type: " << e->type();
+    if ( e->source() == Qt::MouseEventNotSynthesized )  // A true mouse event
+    {
+        return Okular::Settings::mouseCanDraw();
+    }
+
+    // Otherwise: a synthesized touchscreen event
+    return Okular::Settings::touchscreenCanDraw();
+}
+
+
 void PresentationWidget::mousePressEvent( QMouseEvent * e )
 {
     if ( !m_isSetup )
         return;
 
-    if ( m_drawingEngine )
+    if ( m_drawingEngine && isActiveDrawingInputDevice( e ) )
     {
         QRect r = routeMouseDrawingEvent( e );
         if ( r.isValid() )
@@ -746,7 +760,7 @@ void PresentationWidget::mousePressEvent( QMouseEvent * e )
 
 void PresentationWidget::mouseReleaseEvent( QMouseEvent * e )
 {
-    if ( m_drawingEngine )
+    if ( m_drawingEngine && isActiveDrawingInputDevice( e ) )
     {
         routeMouseDrawingEvent( e );
         return;
@@ -793,7 +807,7 @@ void PresentationWidget::mouseMoveEvent( QMouseEvent * e )
     }
     else
     {
-        if ( m_drawingEngine && e->buttons() != Qt::NoButton )
+        if ( m_drawingEngine && e->buttons() != Qt::NoButton && isActiveDrawingInputDevice( e ) )
         {
             QRect r = routeMouseDrawingEvent( e );
             if ( r.isValid() )
@@ -941,6 +955,70 @@ void PresentationWidget::leaveEvent( QEvent * e )
         showTopBar( false );
     }
 }
+
+void PresentationWidget::tabletEvent( QTabletEvent * e )
+{
+
+    if ( e->type() == QEvent::TabletPress )
+    {
+        if ( m_drawingEngine && Okular::Settings::stylusCanDraw() )
+        {
+            QRect r = routeTabletDrawingEvent( e );
+            if ( r.isValid() )
+            {
+                m_drawingRect |= r.translated( m_frames[ m_frameIndex ]->geometry.topLeft() );
+                update( m_drawingRect );
+            }
+            e->accept();
+        }
+        else
+        {
+            e->ignore();
+        }
+        return;
+    }
+
+    if ( e->type() == QEvent::TabletRelease )
+    {
+        if ( m_drawingEngine && Okular::Settings::stylusCanDraw() )
+        {
+            routeTabletDrawingEvent( e );
+            e->accept();
+        }
+        else
+        {
+            e->ignore();
+        }
+        return;
+    }
+
+    if ( e->type() == QEvent::TabletMove )
+    {
+        if ( m_drawingEngine && e->buttons() != Qt::NoButton && Okular::Settings::stylusCanDraw() )
+        {
+            QRect r = routeTabletDrawingEvent( e );
+            if ( r.isValid() )
+            {
+                m_drawingRect |= r.translated( m_frames[ m_frameIndex ]->geometry.topLeft() );
+                update( m_drawingRect );
+            }
+        }
+        else
+        {
+            // show the bar if reaching top 2 pixels
+            if ( e->y() <= 1 )
+                showTopBar( true );
+            // handle "dragging the wheel" if clicking on its geometry
+            else if ( ( QApplication::mouseButtons() & Qt::LeftButton ) && m_overlayGeometry.contains( e->pos() ) )
+                overlayClick( e->pos() );
+        }
+        e->accept();
+        return;
+    }
+
+    e->ignore();
+}
+
 // </widget events>
 
 const void * PresentationWidget::getObjectRect( Okular::ObjectRect::ObjectType type, int x, int y, QRect * geometry ) const
@@ -1378,6 +1456,83 @@ QRect PresentationWidget::routeMouseDrawingEvent( QMouseEvent * e )
         // that - that gives continuous drawing
         slotChangeDrawingToolEngine( QDomElement() );
         slotChangeDrawingToolEngine( m_currentDrawingToolElement );
+
+        // schedule repaint
+        update();
+    }
+
+    return ret;
+}
+
+QRect PresentationWidget::routeTabletDrawingEvent( QTabletEvent * e )
+{
+    if ( m_frameIndex == -1 ) // Can't draw on the summary page
+        return QRect();
+
+    const QRect & geom = m_frames[ m_frameIndex ]->geometry;
+    const Okular::Page * page = m_frames[ m_frameIndex ]->page;
+
+    AnnotatorEngine::EventType eventType;
+    AnnotatorEngine::Button button;
+
+    // figure out the event type and button
+    AnnotatorEngine::decodeEvent( e, &eventType, &button );
+
+    static bool hasclicked = false;
+    if ( eventType == AnnotatorEngine::Press )
+        hasclicked = true;
+
+    double nX = ( (double)e->x() - (double)geom.left() ) / (double)geom.width();
+    double nY = ( (double)e->y() - (double)geom.top() ) / (double)geom.height();
+    QRect ret;
+    bool isInside = nX >= 0 && nX < 1 && nY >= 0 && nY < 1;
+
+    if ( hasclicked && !isInside ) {
+        // Fake a move to the last border pos
+        nX = qBound(0., nX, 1.);
+        nY = qBound(0., nY, 1.);
+        m_drawingEngine->event( AnnotatorEngine::Move, button, nX, nY, geom.width(), geom.height(), page );
+
+        // Fake a release in the following lines
+        eventType = AnnotatorEngine::Release;
+        isInside = true;
+    } else if ( !hasclicked && isInside )
+    {
+        // we're coming from the outside, pretend we started clicking at the closest border
+        if ( nX < ( 1 - nX ) && nX < nY && nX < ( 1 - nY ) )
+            nX = 0;
+        else if ( nY < ( 1 - nY ) && nY < nX && nY < ( 1 - nX ) )
+            nY = 0;
+        else if ( ( 1 - nX ) < nX && ( 1 - nX ) < nY && ( 1 - nX ) < ( 1 - nY ) )
+            nX = 1;
+        else
+            nY = 1;
+
+        hasclicked = true;
+        eventType = AnnotatorEngine::Press;
+    }
+
+    if ( hasclicked && isInside )
+    {
+        ret = m_drawingEngine->event( eventType, button, nX, nY, geom.width(), geom.height(), page );
+    }
+
+    if ( eventType == AnnotatorEngine::Release )
+    {
+        hasclicked = false;
+    }
+
+    if ( m_drawingEngine->creationCompleted() )
+    {
+        // add drawing to current page
+        m_frames[ m_frameIndex ]->drawings << m_drawingEngine->endSmoothPath();
+
+        // manually disable and re-enable the pencil mode, so we can do
+        // cleaning of the actual drawer and create a new one just after
+        // that - that gives continuous drawing
+        delete m_drawingEngine;
+        m_drawingRect = QRect();
+        m_drawingEngine = new SmoothPathEngine( m_currentDrawingToolElement );
 
         // schedule repaint
         update();

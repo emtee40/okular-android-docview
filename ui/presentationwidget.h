@@ -73,6 +73,7 @@ class PresentationWidget : public QWidget, public Okular::DocumentObserver
         void resizeEvent( QResizeEvent * e ) override;
         void leaveEvent( QEvent * e ) override;
         bool gestureEvent (QGestureEvent * e );
+        void tabletEvent( QTabletEvent * e ) override;
 
     private:
         const void * getObjectRect( Okular::ObjectRect::ObjectType type, int x, int y, QRect * geometry = nullptr ) const;
@@ -89,6 +90,7 @@ class PresentationWidget : public QWidget, public Okular::DocumentObserver
         const Okular::PageTransition defaultTransition() const;
         const Okular::PageTransition defaultTransition( int ) const;
         QRect routeMouseDrawingEvent( QMouseEvent * );
+        QRect routeTabletDrawingEvent( QTabletEvent * );
         void startAutoChangeTimer();
         void recalcGeometry();
         void repositionContent();
@@ -101,6 +103,8 @@ class PresentationWidget : public QWidget, public Okular::DocumentObserver
         // create actions that interact with this widget
         void setupActions();
         void setPlayPauseIcon();
+
+        bool isActiveDrawingInputDevice( QMouseEvent * e ) const;
 
         // cache stuff
         int m_width;

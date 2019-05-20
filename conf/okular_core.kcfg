@@ -100,5 +100,18 @@
     <choice name="Disabled" />
    </choices>
   </entry>
+
+  <entry key="MouseCanDraw" type="Bool" >
+   <default>true</default>
+  </entry>
+
+  <entry key="TouchscreenCanDraw" type="Bool" >
+   <default>true</default>
+  </entry>
+
+  <entry key="StylusCanDraw" type="Bool" >
+   <default>true</default>
+  </entry>
+
  </group>
 </kcfg>
