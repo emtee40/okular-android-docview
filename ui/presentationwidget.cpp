@@ -283,6 +283,9 @@ PresentationWidget::PresentationWidget( QWidget * parent, Okular::Document * doc
 
     // setFocus() so KCursor::setAutoHideCursor() goes into effect if it's enabled
     setFocus( Qt::OtherFocusReason );
+
+    // Catch TabletEnterProximity and TabletLeaveProximity events from the QApplication
+    qApp->installEventFilter( this );
 }
 
 PresentationWidget::~PresentationWidget()
@@ -312,6 +315,8 @@ PresentationWidget::~PresentationWidget()
 
     // delete frames
     qDeleteAll( m_frames );
+
+    qApp->removeEventFilter( this );
 }
 
 
@@ -529,6 +534,29 @@ void PresentationWidget::setPlayPauseIcon()
        playPauseAction->setIcon( QIcon::fromTheme( QStringLiteral("media-playback-start") ) );
        playPauseAction->setToolTip( i18nc( "For Presentation", "Play" ) );
     }
+}
+
+bool PresentationWidget::eventFilter (QObject *o, QEvent *e )
+{
+    if ( o == qApp )
+    {
+        if ( e->type() == QTabletEvent::TabletEnterProximity )
+        {
+            setCursor( QCursor( Qt::CrossCursor ) );
+        }
+        if ( e->type() == QTabletEvent::TabletLeaveProximity )
+        {
+            if ( Okular::Settings::slidesCursor() == Okular::Settings::EnumSlidesCursor::Visible )
+            {
+                setCursor( QCursor( Qt::ArrowCursor ) );
+            }
+            else
+            {
+                setCursor( QCursor( Qt::BlankCursor ) );
+            }
+        }
+    }
+    return false;
 }
 
 // <widget events>
@@ -795,6 +823,12 @@ void PresentationWidget::mouseMoveEvent( QMouseEvent * e )
     // update cursor and tooltip if hovering a link
     if ( !m_drawingEngine && Okular::Settings::slidesCursor() != Okular::Settings::EnumSlidesCursor::Hidden )
         testCursorOnLink( e->x(), e->y() );
+
+    // Explicitly show the cursor, it may have been hidden by a recent TabletLeaveProximity event
+    if ( e->source() == Qt::MouseEventNotSynthesized && Okular::Settings::slidesCursor() != Okular::Settings::EnumSlidesCursor::Hidden )
+    {
+        setCursor( QCursor( Qt::ArrowCursor ) );
+    }
 
     if ( !m_topBar->isHidden() )
     {
@@ -1454,8 +1488,9 @@ QRect PresentationWidget::routeMouseDrawingEvent( QMouseEvent * e )
         // manually disable and re-enable the pencil mode, so we can do
         // cleaning of the actual drawer and create a new one just after
         // that - that gives continuous drawing
-        slotChangeDrawingToolEngine( QDomElement() );
-        slotChangeDrawingToolEngine( m_currentDrawingToolElement );
+        delete m_drawingEngine;
+        m_drawingRect = QRect();
+        m_drawingEngine = new SmoothPathEngine( m_currentDrawingToolElement );
 
         // schedule repaint
         update();
