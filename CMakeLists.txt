@@ -364,6 +364,7 @@ if(BUILD_DESKTOP)
     conf/editannottooldialog.cpp
     conf/editdrawingtooldialog.cpp
     conf/widgetannottools.cpp
+	conf/certificatetools.cpp
     conf/widgetconfigurationtoolsbase.cpp
     conf/widgetdrawingtools.cpp
   )
