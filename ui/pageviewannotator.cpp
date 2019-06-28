@@ -1112,6 +1112,8 @@ void PageViewAnnotator::detachAnnotation()
         selectTool(-1);
         if (m_actionHandler)
             m_actionHandler->deselectAllAnnotationActions();
+    } else {
+        setSignatureMode(false);
     }
 }
 
