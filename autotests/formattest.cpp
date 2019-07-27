@@ -31,6 +31,8 @@ private slots:
     void testTimeFormat_data();
     void testSpecialFormat();
     void testSpecialFormat_data();
+    void testDateFormat();
+    void testDateFormat_data();
 private:
 
     Okular::Document *m_document;
@@ -58,7 +60,7 @@ void FormatTest::initTestCase()
                 if( fft )
                     m_formattedText = fft->text();
             });
-
+    
     const Okular::Page* page = m_document->page( 0 );
     for ( Okular::FormField *ff: page->formFields() )
     {
@@ -134,6 +136,33 @@ void FormatTest::testSpecialFormat_data()
     QTest::newRow( "field invalid telephone" ) << QStringLiteral( "telefone" ) << QStringLiteral( "12345678900" ) << false << QStringLiteral( "(123) 456-7890" );
     QTest::newRow( "field formmated SSN" ) << QStringLiteral( "CPF" ) << QStringLiteral( "123456789" ) << true << QStringLiteral( "123-45-6789" );
     QTest::newRow( "field invalid SSN" ) << QStringLiteral( "CPF" ) << QStringLiteral( "1234567890" ) << false << QStringLiteral( "123-45-6789" );
+}
+
+void FormatTest::testDateFormat()
+{
+    QFETCH( QString, fieldName );
+    QFETCH( QString, text );
+    QFETCH( QString, result );
+
+    Okular::FormFieldText *fft = reinterpret_cast< Okular::FormFieldText * >(  m_fields[ fieldName ] );
+    fft->setText( text );
+    m_document->processFormatAction( fft->additionalAction( Okular::FormField::FormatField ), fft );
+
+    QCOMPARE( m_formattedText, result ); 
+}
+
+void FormatTest::testDateFormat_data()
+{
+    QTest::addColumn< QString >( "fieldName" );
+    QTest::addColumn< QString >( "text" );
+    QTest::addColumn< QString >( "result" );
+    QLocale locale;
+
+    QTest::newRow( "date fill zeros" ) << QStringLiteral( "data5" ) << QStringLiteral( "1/1/1900" ) << QStringLiteral( "01/01/1900" );
+    QTest::newRow( "date fill zeros on day" ) << QStringLiteral( "data5" ) << QStringLiteral( "1/12/1900" ) << QStringLiteral( "01/12/1900" );
+    QTest::newRow( "date long name to short name" ) << QStringLiteral( "data10" ) << QStringLiteral( "1-January-1980" ) << QStringLiteral( "1-Jan-1980" );
+    QTest::newRow( "date with time change 0" ) << QStringLiteral( "data20" ) << QStringLiteral( "12/01/90 1:20 am" ) << QStringLiteral( "12/1/90 1:20 am" );
+    QTest::newRow( "date with time change to AM/PM" ) << QStringLiteral( "data20" ) << QStringLiteral( "12/01/90 23:20" ) << QStringLiteral( "12/1/90 11:20 pm" );
 }
 
 void FormatTest::cleanupTestCase()

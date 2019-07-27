@@ -1,5 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2018        Intevation GmbH <intevation@intevation.de>  *
+ *   Copyright (C) 2019        João Netto <joaonetto901@gmail.com>         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -246,4 +247,152 @@ function AFSpecial_Keystroke( psf )
             return;
         }
     }
-} 
+}
+
+/** AFDate_Format
+ *
+ * Formats event.value based on parameters.
+ *
+ * Parameter description based on Acrobat Help:
+ *
+ * cFormat is the String which should be used to format the date, is one of:
+ * "m/d", "m/d/yy", "mm/dd/yy", "mm/yy", "d-mmm", "d-mmm-yy", "dd-mmm-yy", "yy-mm-dd",
+ * "mmm-yy", "mmmm-yy", "mmm d, yyyy", "mmmm d, yyyy","m/d/yy h:MM tt", "m/d/yy HH:MM
+ */
+function AFDate_Format( cFormat )
+{
+    if ( !event.value )
+    {
+        return;
+    }
+
+    // Remove am/pm from string and save if it's PM to use later.
+    var isPM = false;
+    var cleanString = event.value.toLocaleLowerCase();
+    cleanString = cleanString.replace( util.printd( 'ap', new Date(2018, 5, 1, 1, 1, 1 ) ).toLocaleLowerCase(), '' );
+    var dummyPm = util.printd( 'ap', new Date(2018, 5, 1, 23, 1, 1 ) ).toLocaleLowerCase();
+    if( cleanString.search( dummyPm ) !== -1 )
+        isPM = true;
+    cleanString = cleanString.replace( dummyPm, '' );
+
+    // Initialize a date to today, it will fill the voids if needed
+    var date = new Date();
+    var formatTokens = cFormat.replace( 'tt', '' ).split( /\W/ );
+    var inputTokens = cleanString.split( /\W/ );
+
+    // Remove empty elements of the array
+    inputTokens = inputTokens.filter(Boolean);
+
+    var monthList = new Array();
+    // Get Month list localized full name
+    // We only care about month, random date
+    for( i = 0 ; i < 12 ; ++i )
+        monthList.push( util.printd( "mmm", new Date( 2018, i, 12) ).toLocaleLowerCase().substr( 0, 3 ) );
+
+    var invalidDate = false;
+    if( inputTokens.length < 2 )
+        invalidDate = true;
+
+    for( i = 0; i < inputTokens.length && i < formatTokens.length ; ++i )
+    {
+        var number = Number( inputTokens[i] );
+        // We check if is a number, only months can have names. If there are names, we check if it's valid.
+        if( isNaN( number ) && monthList.indexOf( inputTokens[i].substr( 0, 3 ).toLocaleLowerCase() ) === -1 )
+        {
+            invalidDate = true;
+            break;
+        }
+        switch( formatTokens[i][0] )
+        {
+            case 'd':
+            {
+                if( number > 31 || number < 1 )
+                    invalidDate = true;
+                date.setDate( number );
+                break;
+            }
+            case 'm':
+            {
+                // Months can have full or short names, we get the user month in the locale.
+                // We also subtract one because Dates in JavaScript takes from 0 to 11, 0 being January.
+                if( isNaN( number ) )
+                    number = monthList.indexOf( inputTokens[i].substr( 0, 3 ).toLocaleLowerCase() );
+                else
+                    number--;
+
+                if( number > 11 || number < 0 )
+                    invalidDate = true;
+                date.setMonth( number );
+                break;
+            }
+            case 'y':
+            {
+                // If only two digits, we assume it is the 90's
+                if( formatTokens[i].length === 2 )
+                    number = number + 1900;
+                if( number > 9999 )
+                    invalidDate = true;
+                date.setFullYear( number );
+                break;
+            }
+            case 'h':
+            {
+                // Checking if we have PM, since JavaScript dates work from 0 to 23.
+                if( isPM && number < 12 )
+                    number = number + 12;
+                if( number > 23 || number < 0 )
+                    invalidDate = true;
+                date.setHours( number );
+                break;
+            }
+            case 'M':
+            {
+                if( number > 60 || number < 0 )
+                    invalidDate = true;
+                date.setMinutes( number );
+                break;
+            }
+        }
+    }
+
+    if( invalidDate )
+    {
+        event.value = "";
+        return;
+    }
+
+    event.value = util.printd( cFormat, date );
+}
+
+/** AFDate_FormatEx
+ *
+ * Formats event.value based on parameters, is a extended version of AFDate_Format.
+ *
+ * Parameter description based on Acrobat Help:
+ *
+ * cFormat is the String which should be used to format the date, is one of:
+ * "m/d", "m/d/yy", "mm/dd/yy", "mm/yy", "d-mmm", "d-mmm-yy", "dd-mmm-yy", "yy-mm-dd",
+ * "mmm-yy", "mmmm-yy", "mmm d, yyyy", "mmmm d, yyyy","m/d/yy h:MM tt", "m/d/yy HH:MM
+ */
+function AFDate_FormatEx( cFormat )
+{
+    AFDate_Format( cFormat );
+}
+
+/** AFDate_Keystroke
+ *
+ * Checks if the string in event.value is valid. Not used.
+ */
+function AFDate_Keystroke( cFormat )
+{
+    return;
+}
+
+/** AFDate_KeystrokeEx
+ *
+ * Checks if the string in event.value is valid. Not used.
+ */
+function AFDate_KeystrokeEx( cFormat )
+{
+    AFDate_Keystroke( cFormat );
+}
