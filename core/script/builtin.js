@@ -246,4 +246,118 @@ function AFSpecial_Keystroke( psf )
             return;
         }
     }
+}
+
+/** AFPercent_Format
+ *
+ * Formats event.value based on parameters.
+ *
+ * Parameter description based on Acrobat Help:
+ *
+ * nDec is the number of places after the decimal point
+ * sepStyle is an integer denoting the style of the separator, which is one of:
+ * 0 - 1,234.56
+ * 1 - 1234.56
+ * 2 - 1.234,56
+ * 3 - 1234,56 
+ * 4 - 1'234.56
+*/
+function AFPercent_Format( nDec, sepStyle )
+{
+    if ( !event.value )
+    {
+        return;
+    }
+
+    var ret;
+    var localized = Number( event.target.value );
+
+    if( isNaN( localized ) )
+    {
+        event.value = 'NaN';
+        return;
+    }
+
+    localized = localized * 100;
+
+    localized = localized.toFixed( nDec );
+    
+    var locale = 'de-DE';
+    var useGrouping = true;
+
+    if ( sepStyle === 0 )
+    {
+        locale = 'en-US';
+    }
+    else if ( sepStyle === 1 )
+    {
+        locale = 'en-US'
+        useGrouping = false;
+    }
+    else if ( sepStyle === 3 )
+    {
+        useGrouping = false;
+    }
+
+    var decPart = localized.substr( localized.indexOf( /\D/ )-1, nDec );
+    var intPart = Math.trunc( localized );
+
+    if( useGrouping )
+    {
+       intPart = intPart.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')
+    }
+
+    if( locale === 'en-US' )
+    {
+        ret = intPart.toString().replace( /\./g, '.' ) + '.' + decPart;
+    }
+    else
+    {
+        ret = intPart.toString().replace( /,/g, (sepStyle === 4 ? '\'' : '.' ) ) + (sepStyle === 4 ? '.' : ',') + decPart;
+    }
+
+    ret = ret + ' %';
+
+    event.value = ret;
 } 
+
+/** AFPercent_Keystroke
+ *
+ * Checks if the String in event.value is valid.
+ *
+ * Parameter description based on Acrobat Help:
+ *
+ * nDec is the number of places after the decimal point
+ * sepStyle is an integer denoting the style of the separator, which is one of:
+ * 0 - 1,234.56
+ * 1 - 1234.56
+ * 2 - 1.234,56
+ * 3 - 1234,56 
+ * 4 - 1'234.56
+ *
+ * We only support numbers written in the form of 1234,56 or 1234.56, depending on what is sepStyle.
+ * If sepStyle >= 2, we use commas to separate and don't allow dots.
+ * If sepStyle <= 2, we use dots to separate and don't allow commas.
+*/
+function AFPercent_Keystroke( nDec, sepStyle )
+{
+    if ( !event.value )
+    {
+        return;
+    }
+
+    var number = event.target.value;
+
+   if( sepStyle >= 2 )
+    {
+        number = number.replace( '.', 'A' );
+        number = number.replace( ',', '.' );
+    }
+
+    if( isNaN( number ) ){
+        event.rc = false;
+        event.value = 'NaN';
+        return;
+    }
+    event.value = number;
+}

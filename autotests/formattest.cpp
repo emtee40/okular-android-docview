@@ -31,6 +31,8 @@ private slots:
     void testTimeFormat_data();
     void testSpecialFormat();
     void testSpecialFormat_data();
+    void testPercentFormat();
+    void testPercentFormat_data();
 private:
 
     Okular::Document *m_document;
@@ -135,6 +137,45 @@ void FormatTest::testSpecialFormat_data()
     QTest::newRow( "field formmated SSN" ) << QStringLiteral( "CPF" ) << QStringLiteral( "123456789" ) << true << QStringLiteral( "123-45-6789" );
     QTest::newRow( "field invalid SSN" ) << QStringLiteral( "CPF" ) << QStringLiteral( "1234567890" ) << false << QStringLiteral( "123-45-6789" );
 }
+
+void FormatTest::testPercentFormat()
+{
+    m_formattedText = QStringLiteral( "" );
+    QFETCH( QString, fieldName );
+    QFETCH( QString, text );
+    QFETCH( bool, edited );
+    QFETCH( QString, result );
+
+    Okular::FormFieldText *fft = reinterpret_cast< Okular::FormFieldText * >(  m_fields[ fieldName ] );
+    bool ok = false;
+    fft->setText( text );
+    m_document->processKeystrokeAction( fft->additionalAction( Okular::FormField::FieldModified ), fft, ok, true );
+    m_document->processFormatAction( fft->additionalAction( Okular::FormField::FormatField ), fft );
+    
+    QCOMPARE( ok, edited );
+    QCOMPARE( m_formattedText, result );
+}
+
+void FormatTest::testPercentFormat_data()
+{
+    QTest::addColumn< QString >( "fieldName" );
+    QTest::addColumn< QString >( "text" );
+    QTest::addColumn< bool >( "edited" );
+    QTest::addColumn< QString > ( "result" );
+
+    // The tests which have invalid edited, keep the same value as when it was formatted before.
+    QTest::newRow( "normal percent" ) << QStringLiteral( "pct1" ) << QStringLiteral( "1.20" ) << true << QStringLiteral( "120.00 %" );
+    QTest::newRow( "percent with comma thousands sep" ) << QStringLiteral( "pct1" ) << QStringLiteral( "1234.20" ) << true << QStringLiteral( "123,420.00 %" );
+    QTest::newRow( "invalid number" ) << QStringLiteral( "pct1" ) << QStringLiteral( "1234,20" ) << false << QStringLiteral( "" );
+    QTest::newRow( "normal percent 2" ) << QStringLiteral( "pct2" ) << QStringLiteral( "1.20" ) << true << QStringLiteral( "120.00 %" );
+    QTest::newRow( "percent without comma thousands sep" ) << QStringLiteral( "pct2" ) << QStringLiteral( "1234.20" ) << true << QStringLiteral( "123420.00 %" );
+    QTest::newRow( "percent with comma dot sep" ) << QStringLiteral( "pct3" ) << QStringLiteral( "1,20" ) << true << QStringLiteral( "120,00 %" );
+    QTest::newRow( "percent with comma dot sep and thousands dot sep" ) << QStringLiteral( "pct3" ) << QStringLiteral( "1234,20" ) << true << QStringLiteral( "123.420,00 %" );
+    QTest::newRow( "invalid number with dot sep" ) << QStringLiteral( "pct3" ) << QStringLiteral( "1234.20" ) << false << QStringLiteral( "" );
+    QTest::newRow( "normal percent 3" ) << QStringLiteral( "pct4" ) << QStringLiteral( "1,20" ) << true << QStringLiteral( "120,00 %" );
+    QTest::newRow( "normal percent 4 with \' as sep" ) << QStringLiteral( "pct4" ) << QStringLiteral( "1234,20" ) << true << QStringLiteral( "123420,00 %" );
+}
+
 
 void FormatTest::cleanupTestCase()
 {
