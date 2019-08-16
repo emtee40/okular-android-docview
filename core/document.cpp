@@ -2708,6 +2708,12 @@ bool Document::canConfigurePrinter() const
         return false;
 }
 
+void Document::sign()
+{
+    if (d->m_generator->canSign())
+        d->m_generator->sign();
+}
+
 DocumentInfo Document::documentInfo() const
 {
     QSet<DocumentInfo::Key> keys;
