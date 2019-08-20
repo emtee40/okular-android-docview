@@ -1855,6 +1855,12 @@ Okular::AnnotationProxy *PDFGenerator::annotationProxy() const
     return annotProxy;
 }
 
+void PDFGenerator::sign( const Okular::Annotation* pWhichAnnotation )
+{
+    Poppler::Annotation *popplerAnn = qvariant_cast< Poppler::Annotation * >( pWhichAnnotation->nativeId() );
+    pdfdoc->sign( popplerAnn );
+}
+
 #include "generator_pdf.moc"
 
 Q_LOGGING_CATEGORY(OkularPdfDebug, "org.kde.okular.generators.pdf", QtWarningMsg)
