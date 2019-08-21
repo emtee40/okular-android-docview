@@ -331,9 +331,7 @@ public:
 
     QList<Okular::Annotation *> end() override
     {
-        QStringList items;
-        items << "Cert1"
-              << "Cert2";
+            QStringList items = Okular::Settings::certificates();
 
             Okular::Annotation * ann = nullptr;
 
