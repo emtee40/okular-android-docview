@@ -128,6 +128,7 @@ class PartTest
         void testCrashTextEditDestroy();
         void testAnnotWindow();
         void testAdditionalActionTriggers();
+        void testTypewriterAnnotTool();
         void testJumpToPage();
         void testTabletProximityBehavior();
 
@@ -1792,6 +1793,46 @@ void PartTest::testAdditionalActionTriggers()
     verifyTargetStates( QStringLiteral( "pb" ), fields, false, false, false, __LINE__ );
     QTest::mouseRelease( part.m_pageView->viewport(), Qt::LeftButton, Qt::NoModifier, tfPos );
     verifyTargetStates( QStringLiteral( "pb" ), fields, false, false, false, __LINE__ );
+}
+
+void PartTest::testTypewriterAnnotTool()
+{
+  QScopedPointer<CloseDialogHelper> closeDialogHelper;
+  Okular::Part part(nullptr, nullptr, QVariantList());
+
+  part.openUrl(QUrl::fromLocalFile(QStringLiteral(KDESRCDIR "data/file1.pdf")));
+
+  part.widget()->show();
+  QVERIFY(QTest::qWaitForWindowExposed(part.widget()));
+
+  const int width = part.m_pageView->horizontalScrollBar()->maximum() +
+                    part.m_pageView->viewport()->width();
+  const int height = part.m_pageView->verticalScrollBar()->maximum() +
+                     part.m_pageView->viewport()->height();
+
+  part.m_document->setViewportPage(0);
+
+  QMetaObject::invokeMethod(part.m_pageView, "slotToggleAnnotator", Q_ARG( bool, true ));
+
+  QList<QToolButton *> toolbuttonList = part.m_pageView->findChildren<QToolButton *>();
+  // Check if the tooltip of 10th button is "Typewriter"
+  QToolButton* typewriterButton = toolbuttonList.at(9);
+  QCOMPARE( typewriterButton->toolTip(), QStringLiteral("Typewriter") );
+
+  typewriterButton->click();
+
+  QTest::mouseMove(part.m_pageView->viewport(), QPoint(width * 0.5, height * 0.2));
+  closeDialogHelper.reset(new CloseDialogHelper( QDialogButtonBox::Ok )); // this is the "add new note" dialog
+  QTest::mouseClick(part.m_pageView->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(width * 0.5, height * 0.2));
+
+  Annotation* annot = part.m_document->page(0)->annotations().first();
+  TextAnnotation* ta = static_cast<TextAnnotation*>( annot );
+  QVERIFY( annot );
+  QVERIFY( ta );
+  QCOMPARE( annot->subType(), Okular::Annotation::AText );
+  QCOMPARE( annot->style().color(), QColor(255,255,255,0) );
+  QCOMPARE( ta->textType(), Okular::TextAnnotation::InPlace );
+  QCOMPARE( ta->inplaceIntent(), Okular::TextAnnotation::TypeWriter );
 }
 
 void PartTest::testJumpToPage() {
