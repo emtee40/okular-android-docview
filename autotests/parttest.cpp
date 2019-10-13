@@ -56,6 +56,12 @@ public:
         QTimer::singleShot(0, this, &CloseDialogHelper::closeDialog);
     }
 
+    // Close a modal dialog, which may not be associated to any other widget
+    CloseDialogHelper(QDialogButtonBox::StandardButton b) : m_widget(nullptr), m_button(b), m_clicked(false)
+    {
+        QTimer::singleShot(0, this, &CloseDialogHelper::closeDialog);
+    }
+
     ~CloseDialogHelper()
     {
         QVERIFY(m_clicked);
@@ -64,7 +70,7 @@ public:
 private slots:
     void closeDialog()
     {
-        QDialog *dialog = m_widget->findChild<QDialog*>();
+        QWidget *dialog = ( m_widget ) ? m_widget->findChild<QDialog*>() : qApp->activeModalWidget();
         if (!dialog) {
             QTimer::singleShot(0, this, &CloseDialogHelper::closeDialog);
             return;
@@ -1797,7 +1803,6 @@ void PartTest::testAdditionalActionTriggers()
 
 void PartTest::testTypewriterAnnotTool()
 {
-  QScopedPointer<CloseDialogHelper> closeDialogHelper;
   Okular::Part part(nullptr, nullptr, QVariantList());
 
   part.openUrl(QUrl::fromLocalFile(QStringLiteral(KDESRCDIR "data/file1.pdf")));
@@ -1822,7 +1827,10 @@ void PartTest::testTypewriterAnnotTool()
   typewriterButton->click();
 
   QTest::mouseMove(part.m_pageView->viewport(), QPoint(width * 0.5, height * 0.2));
-  closeDialogHelper.reset(new CloseDialogHelper( QDialogButtonBox::Ok )); // this is the "add new note" dialog
+
+  QTest::qWait(1000);  // Wait for the "add new note" dialog to appear
+  CloseDialogHelper closeDialogHelper( QDialogButtonBox::Ok );
+
   QTest::mouseClick(part.m_pageView->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(width * 0.5, height * 0.2));
 
   Annotation* annot = part.m_document->page(0)->annotations().first();
