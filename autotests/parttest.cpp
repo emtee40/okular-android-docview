@@ -1826,8 +1826,6 @@ void PartTest::testTypewriterAnnotTool()
 
   typewriterButton->click();
 
-  QTest::mouseMove(part.m_pageView->viewport(), QPoint(width * 0.5, height * 0.2));
-
   QTest::qWait(1000);  // Wait for the "add new note" dialog to appear
   CloseDialogHelper closeDialogHelper( QDialogButtonBox::Ok );
 
