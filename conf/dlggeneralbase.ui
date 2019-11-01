@@ -273,6 +273,13 @@
          </widget>
         </item>
         <item>
+         <widget class="QCheckBox" name="kcfg_ShellRestoreOpenDocuments">
+          <property name="text">
+           <string>Restore open documents on launch</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QCheckBox" name="kcfg_ObeyDRM">
           <property name="text">
            <string>&amp;Obey DRM limitations</string>

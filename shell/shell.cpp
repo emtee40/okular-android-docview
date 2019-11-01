@@ -49,6 +49,7 @@
 #include <KLocalizedString>
 #include <KSharedConfig>
 #include <KIO/Global>
+#include <KConfigGui>
 #ifdef WITH_KACTIVITIES
 #include <KActivities/ResourceInstance>
 #endif
@@ -57,6 +58,7 @@
 #include "kdocumentviewer.h"
 #include "../interfaces/viewerinterface.h"
 #include "shellutils.h"
+#include "settings_core.h"
 
 static const char *shouldShowMenuBarComingFromFullScreen = "shouldShowMenuBarComingFromFullScreen";
 static const char *shouldShowToolBarComingFromFullScreen = "shouldShowToolBarComingFromFullScreen";
@@ -198,6 +200,18 @@ void Shell::showOpenRecentMenu()
 
 Shell::~Shell()
 {
+    // Save session information if using the "restore open documents" feature
+    // TODO: find a better way of getting the config file path
+    Okular::SettingsCore::instance( QStandardPaths::writableLocation(QStandardPaths::ConfigLocation) + QLatin1Char('/') + QStringLiteral("okularpartrc") );
+    if (Okular::SettingsCore::shellRestoreOpenDocuments())
+    {
+        KConfigGui::setSessionConfig(QStringLiteral("okular"), QStringLiteral("okular"));
+        KConfig *config = KConfigGui::sessionConfig();
+        saveGlobalProperties(config);
+        savePropertiesInternal(config, 1);
+        config->sync();
+    }
+
     if( !m_tabs.empty() )
     {
         writeSettings();

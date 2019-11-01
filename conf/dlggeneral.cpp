@@ -31,6 +31,7 @@ DlgGeneral::DlgGeneral( QWidget * parent, Okular::EmbedMode embedMode )
         m_dlg->kcfg_WatchFile->setVisible( false );
         m_dlg->kcfg_rtlReadingDirection->setVisible(false);
     }
+    m_dlg->kcfg_ShellRestoreOpenDocuments->setVisible( embedMode == Okular::NativeShellMode );
     m_dlg->kcfg_ShellOpenFileInTabs->setVisible( embedMode == Okular::NativeShellMode );
 }
 

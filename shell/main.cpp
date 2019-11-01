@@ -21,6 +21,7 @@
 #include <QApplication>
 #include <QtGlobal>
 #include <KAboutData>
+#include <KConfigGui>
 #include <KCrash>
 #include <KMessageBox>
 #include <QCommandLineParser>
@@ -28,6 +29,7 @@
 #include "aboutdata.h"
 #include "okular_main.h"
 #include "shellutils.h"
+#include "settings_core.h"
 
 int main(int argc, char** argv)
 {
@@ -68,17 +70,24 @@ int main(int argc, char** argv)
     parser.process(app);
     aboutData.processCommandLine(&parser);
 
-    // see if we are starting with session management
-    if (app.isSessionRestored())
+    QStringList paths;
+    for ( int i = 0; i < parser.positionalArguments().count(); ++i )
+        paths << parser.positionalArguments().at(i);
+
+    if (!app.isSessionRestored()) {
+        KConfigGui::setSessionConfig(QStringLiteral("okular"), QStringLiteral("okular"));
+    }
+
+    // see if we are restoring a saved session, but only if there are no CLI flags
+    // TODO: find a better way of getting the config file path
+    Okular::SettingsCore::instance( QStandardPaths::writableLocation(QStandardPaths::ConfigLocation) + QLatin1Char('/') + QStringLiteral("okularpartrc") );
+    if (app.isSessionRestored() || (Okular::SettingsCore::shellRestoreOpenDocuments() && paths.size() == 0 && parser.optionNames().size() == 0))
     {
         kRestoreMainWindows<Shell>();
     }
     else
     {
-        // no session.. just start up normally
-        QStringList paths;
-        for ( int i = 0; i < parser.positionalArguments().count(); ++i )
-            paths << parser.positionalArguments().at(i);
+        // not restoring a session.. just start up normally
         Okular::Status status = Okular::main(paths, ShellUtils::serializeOptions(parser));
         switch (status)
         {

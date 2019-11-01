@@ -58,6 +58,9 @@
   </entry>
  </group>
  <group name="Core General" >
+  <entry key="ShellRestoreOpenDocuments" type="Bool" >
+   <default>true</default>
+  </entry>
   <entry key="ObeyDRM" type="Bool" >
    <default>true</default>
   </entry>
