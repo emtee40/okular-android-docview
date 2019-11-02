@@ -16,6 +16,7 @@
   <name xml:lang="fi">Okular</name>
   <name xml:lang="fr">Okular</name>
   <name xml:lang="gl">Okular</name>
+  <name xml:lang="ia">Okular</name>
   <name xml:lang="id">Okular</name>
   <name xml:lang="it">Okular</name>
   <name xml:lang="ko">Okular</name>
@@ -252,7 +253,6 @@
       <caption xml:lang="ca">Lectura de manuals a l'Okular</caption>
       <caption xml:lang="ca-valencia">Lectura de manuals a l'Okular</caption>
       <caption xml:lang="de">Lesen eines Handbuchs in Okular</caption>
-      <caption xml:lang="el">Ανάγνωση οδηγού χρήσης στο Okular</caption>
       <caption xml:lang="en-GB">Reading manual in Okular</caption>
       <caption xml:lang="es">Lectura del manual en Okular</caption>
       <caption xml:lang="eu">Eskuliburua Okularren irakurtzea</caption>
