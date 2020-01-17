@@ -36,6 +36,7 @@
 
 #include <KAboutData>
 #include <KConfigDialog>
+#include <KConfigDialogManager>
 #include <KLocalizedString>
 #include <KMessageBox>
 
@@ -50,9 +51,16 @@
 #include <core/sourcereference.h>
 #include <core/textpage.h>
 #include <core/utils.h>
+#include <core/signatureutils.h>
 
 #include "pdfsettings.h"
 #include "ui_pdfsettingswidget.h"
+
+#include "certificatetools.h"
+#include "ui_certsettingswidget.h"
+#include "certsettings.h"
+
+#include <config-okular-poppler.h>
 
 #include <poppler-media.h>
 #include <poppler-version.h>
@@ -61,6 +69,7 @@
 #include "debug_pdf.h"
 #include "formfields.h"
 #include "popplerembeddedfile.h"
+#include "pdfsignatureutils.h"
 
 Q_DECLARE_METATYPE(Poppler::Annotation *)
 Q_DECLARE_METATYPE(Poppler::FontInfo)
@@ -545,6 +554,7 @@ PDFGenerator::PDFGenerator(QObject *parent, const QVariantList &args)
     , docEmbeddedFilesDirty(true)
     , nextFontPage(0)
     , annotProxy(nullptr)
+    , certStore( nullptr )
 {
     setFeature(Threaded);
     setFeature(TextExtraction);
@@ -1469,6 +1479,17 @@ void PDFGenerator::addPages(KConfigDialog *dlg)
     QWidget *w = new QWidget(dlg);
     pdfsw.setupUi(w);
     dlg->addPage(w, PDFSettings::self(), i18n("PDF"), QStringLiteral("application-pdf"), i18n("PDF Backend Configuration"));
+
+    Ui_DlgSignaturesBase certsw;
+    QWidget* w2 = new QWidget(dlg);
+    certsw.setupUi(w2);
+
+    CertificateTools * kcfg_CertTools = new CertificateTools( certsw.certificatesGroup );
+    certsw.certificatesPlaceholder->addWidget( kcfg_CertTools );
+    kcfg_CertTools->setObjectName( QStringLiteral("kcfg_Certificates") );
+    KConfigDialogManager::changedMap()->insert( QStringLiteral("CertificateTools"), SIGNAL(changed()) );
+
+    dlg->addPage(w2, CertificateSettings::self(), i18n("Certificates"), QStringLiteral("application-pkcs7-signature"), i18n("Digital Signature Certificates") );
 }
 
 bool PDFGenerator::setDocumentRenderHints()
@@ -1884,6 +1905,33 @@ bool PDFGenerator::sign( const Okular::Annotation* pWhichAnnotation, const QStri
 #endif
 
     return true;
+}
+
+namespace {
+  struct CertificateStoreImpl : public Okular::CertificateStore
+  {
+      virtual QList<Okular::CertificateInfo*> getSigningCertificates() const
+      {
+          QVector<Poppler::CertificateInfo*> certs = Poppler::getAvailableSigningCertificates();
+          QList<Okular::CertificateInfo*> vReturnCerts;
+          for (auto cert : certs)
+              vReturnCerts.append(new PopplerCertificateInfo(*cert));
+
+          return vReturnCerts;
+      }
+  };
+}
+
+Okular::CertificateStore* PDFGenerator::getCertStore()
+{
+#ifdef HAVE_POPPLER_SIGNING
+    if( !certStore )
+        certStore = new CertificateStoreImpl();
+
+    return certStore;
+#else
+    return nullptr;
+#endif
 }
 
 #include "generator_pdf.moc"
