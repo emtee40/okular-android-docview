@@ -339,7 +339,7 @@ class PickPointEngine2 : public PickPointEngine
 
             QStringList items;
             for( auto cert : certs )
-                items.append(cert->subjectInfo( Okular::CertificateInfo::EntityInfoKey::CommonName ));
+                items.append(cert->nickName());
 
             bool resok = false;
             QString cert = QInputDialog::getItem(nullptr, i18n( "Select certificate to sign with" ), i18n( "Certificates:" ), items, 0, false, &resok);
@@ -362,7 +362,7 @@ class PickPointEngine2 : public PickPointEngine
                     ann = wa;
 
                     wa->setBoundingRectangle(rect);
-                    wa->setCertificateCN( cert );
+                    wa->setCertificateNick( cert );
                     wa->setPassword( pass );
                 }
             }
