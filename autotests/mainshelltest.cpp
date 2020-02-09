@@ -26,6 +26,7 @@
 #include "../part/presentationwidget.h"
 #include "../settings.h"
 #include "../shell/okular_main.h"
+#include "../shell/okulartabwidget.h"
 #include "../shell/shell.h"
 #include "../shell/shellutils.h"
 #include "closedialoghelper.h"
