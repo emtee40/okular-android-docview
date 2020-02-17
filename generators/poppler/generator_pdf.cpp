@@ -697,6 +697,15 @@ Okular::Document::OpenResult PDFGenerator::init(QVector<Okular::Page *> &pagesVe
         return Okular::Document::OpenError;
     }
 
+    switch (PDFSettings::popplerRenderBackend()) {
+    case PDFSettings::EnumPopplerRenderBackend::Splash:
+        pdfdoc->setRenderBackend(Poppler::Document::SplashBackend);
+        break;
+
+    case PDFSettings::EnumPopplerRenderBackend::QPainter:
+        pdfdoc->setRenderBackend(Poppler::Document::QPainterBackend);
+    }
+
     if (pdfdoc->isLocked()) {
         pdfdoc->unlock(password.toLatin1(), password.toLatin1());
 

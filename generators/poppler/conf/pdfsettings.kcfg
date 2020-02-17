@@ -16,6 +16,13 @@
                 <choice name="Shape" />
             </choices>
         </entry>
+        <entry key="PopplerRenderBackend" type="Enum" >
+            <default>Splash</default>
+            <choices>
+                <choice name="Splash" />
+                <choice name="QPainter" />
+            </choices>
+        </entry>
         <entry key="OverprintPreviewEnabled" type="Bool">
             <default>false</default>
         </entry>
