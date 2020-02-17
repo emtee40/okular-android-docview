@@ -837,9 +837,9 @@ PageViewAnnotator::~PageViewAnnotator()
     delete m_engine;
 }
 
-void PageViewAnnotator::setSignatureMode(bool sigMode)
+void PageViewAnnotator::setSignatureMode(bool enabled)
 {
-    m_signatureMode = sigMode;
+    m_signatureMode = enabled;
 }
 
 bool PageViewAnnotator::signatureMode() const
