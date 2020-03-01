@@ -58,7 +58,8 @@ Q_SIGNALS:
     void urlHandler(const QUrl &url); // NOLINT(readability-inconsistent-declaration-parameter-name)
 
 private Q_SLOTS:
-    void init();
+    void initTestCase(); // Will be called before the first test function is executed
+    void init();         // Will be called before each test function is executed
 
     void testZoomWithCrop();
     void testReload();
@@ -111,6 +112,8 @@ private Q_SLOTS:
 
 private:
     void simulateMouseSelection(double startX, double startY, double endX, double endY, QWidget *target);
+
+    QTemporaryDir homeDir;
 };
 
 class PartThatHijacksQueryClose : public Okular::Part
@@ -147,6 +150,32 @@ bool PartTest::openDocument(Okular::Part *part, const QString &filePath)
 {
     part->openDocument(filePath);
     return part->m_document->isOpened();
+}
+
+void PartTest::initTestCase()
+{
+    // Force consistent locale
+    QLocale locale(QStringLiteral("en_US.UTF-8"));
+    if (locale == QLocale::c()) { // This is the way to check if the above worked
+        locale = QLocale(QLocale::English, QLocale::UnitedStates);
+    }
+
+    QLocale::setDefault(locale);
+    qputenv("LC_ALL", "en_US.UTF-8"); // For UNIX, third-party libraries
+
+    // Ensure consistent configs/caches
+    Q_ASSERT(homeDir.isValid());
+    QByteArray homePath = QFile::encodeName(homeDir.path());
+    qDebug() << homePath;
+    qputenv("USERPROFILE", homePath);
+    qputenv("HOME", homePath);
+    qputenv("XDG_DATA_HOME", homePath + "/.local");
+    qputenv("XDG_CONFIG_HOME", homePath + "/.kde-unit-test/xdg/config");
+
+    // Disable fancy debug output
+    qunsetenv("QT_MESSAGE_PATTERN");
+
+    Okular::Settings::instance(QStringLiteral("okularparttest"));
 }
 
 void PartTest::init()
@@ -2279,43 +2308,5 @@ void PartTest::testFieldFormatting()
 
 } // namespace Okular
 
-int main(int argc, char *argv[])
-{
-    // Force consistent locale
-    QLocale locale(QStringLiteral("en_US.UTF-8"));
-    if (locale == QLocale::c()) { // This is the way to check if the above worked
-        locale = QLocale(QLocale::English, QLocale::UnitedStates);
-    }
-
-    QLocale::setDefault(locale);
-    qputenv("LC_ALL", "en_US.UTF-8"); // For UNIX, third-party libraries
-
-    // Ensure consistent configs/caches
-    QTemporaryDir homeDir; // QTemporaryDir automatically cleans up when it goes out of scope
-    Q_ASSERT(homeDir.isValid());
-    QByteArray homePath = QFile::encodeName(homeDir.path());
-    qDebug() << homePath;
-    qputenv("USERPROFILE", homePath);
-    qputenv("HOME", homePath);
-    qputenv("XDG_DATA_HOME", homePath + "/.local");
-    qputenv("XDG_CONFIG_HOME", homePath + "/.kde-unit-test/xdg/config");
-
-    // Disable fancy debug output
-    qunsetenv("QT_MESSAGE_PATTERN");
-
-    Okular::Settings::instance(QStringLiteral("okularparttest"));
-
-    QApplication app(argc, argv);
-    app.setApplicationName(QStringLiteral("okularparttest"));
-    app.setOrganizationDomain(QStringLiteral("kde.org"));
-    app.setQuitOnLastWindowClosed(false);
-
-    qRegisterMetaType<QUrl>(); /*as done by kapplication*/
-    qRegisterMetaType<QList<QUrl>>();
-
-    Okular::PartTest test;
-
-    return QTest::qExec(&test, argc, argv);
-}
-
+QTEST_MAIN(Okular::PartTest)
 #include "parttest.moc"
