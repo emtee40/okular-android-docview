@@ -32,12 +32,12 @@ private Q_SLOTS:
     void testListSingleEdit();
     void testListMultiEdit();
 
+private:
     // helper methods
     void verifyRadioButtonStates(bool state1, bool state2, bool state3);
     void setRadioButtonStates(bool state1, bool state2, bool state3);
     void verifyTextForm(Okular::FormFieldText *form);
 
-private:
     Okular::Document *m_document;
     QList<Okular::FormFieldButton *> m_radioButtonForms;
     QList<Okular::FormFieldButton *> m_checkBoxForms;
