@@ -226,6 +226,8 @@ private:
     // Update speed of animated smooth scroll transitions
     void updateSmoothScrollAnimationSpeed();
 
+    void holdZoomCenter(ZoomMode newZm, QPointF zoomCenter, float newZoom = 0.0);
+
     // don't want to expose classes in here
     class PageViewPrivate *d;
 
