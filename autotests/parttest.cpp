@@ -102,6 +102,7 @@ class PartTest
         void testMouseModeMenu();
         void testFullScreenRequest();
         void testZoomInFacingPages();
+        void testBug418531();
 
     private:
         void simulateMouseSelection(double startX, double startY, double endX, double endY, QWidget *target);
@@ -2035,6 +2036,47 @@ void PartTest::testZoomInFacingPages()
     QVERIFY(QMetaObject::invokeMethod(part.m_pageView, "slotZoomIn"));
     QVERIFY(QMetaObject::invokeMethod(part.m_pageView, "slotZoomIn"));
     QTRY_COMPARE(zoomSelectAction->currentText(), QStringLiteral("66%"));
+}
+
+void PartTest::testBug418531()
+{
+    QVariantList dummyArgs;
+    Okular::Part part(nullptr, nullptr, dummyArgs);
+    QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/file1.pdf")));
+    part.widget()->show();
+    part.widget()->resize(800, 600);
+    QVERIFY(QTest::qWaitForWindowExposed(part.widget()));
+
+    part.m_document->setViewportPage(0);
+
+    // Find the popup annotation
+    QAction * popupAction = part.actionCollection()->action( QStringLiteral("annotation_popup_note") );
+    QVERIFY( popupAction );
+
+    popupAction->trigger();
+
+    qDebug() << Okular::Settings::mouseMode();
+
+    int mouseX = 50;
+    int mouseY = 50;
+
+    int wait = 1000;
+
+    QTest::qWait(wait);
+    QTest::mouseMove(part.m_pageView->viewport(), QPoint(mouseX, mouseY));
+    QTest::qWait(wait);
+    QTest::mouseClick(part.m_pageView->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(mouseX, mouseY));
+    QCOMPARE( part.m_document->page( 0 )->annotations().size(), 1);
+
+    // Close the popup
+    QTest::qWait(wait);
+    QTest::keyClick(QApplication::focusWidget(), Qt::Key_Escape);
+    QTest::qWait(wait);
+    // Deselect the annotation
+    QTest::keyClick(QApplication::focusWidget(), Qt::Key_Escape);
+    QTest::qWait(wait);
+
+    QTRY_COMPARE(part.m_pageView->cursor().shape(), Qt::OpenHandCursor);
 }
 
 } // namespace Okular
