@@ -82,6 +82,9 @@ Shell::Shell(const QString &serializedOptions)
     setXMLFile(QStringLiteral("shell.rc"));
     m_fileformatsscanned = false;
     m_showMenuBarAction = nullptr;
+
+    qRegisterMetaType< QMimeType > ( "QMimeType" );
+
     // this routine will find and load our Part.  it finds the Part by
     // name which is a bad idea usually.. but it's alright in this
     // case since our Part is made for this Shell
@@ -668,32 +671,30 @@ void Shell::openNewTab(const QUrl &url, const QString &serializedOptions)
         }
     }
 
-    // Tabs are hidden when there's only one, so show it
-    if (m_tabs.size() == 1) {
-        m_tabWidget->tabBar()->show();
-        m_nextTabAction->setEnabled(true);
-        m_prevTabAction->setEnabled(true);
-    }
-
     const int newIndex = m_tabs.size();
 
-    // Make new part
-    m_tabs.append(m_partFactory->create<KParts::ReadWritePart>(this));
-    connectPart(m_tabs[newIndex].part);
-
-    // Update GUI
-    KParts::ReadWritePart *const part = m_tabs[newIndex].part;
-    m_tabWidget->addTab(part->widget(), url.fileName());
+    KParts::ReadWritePart* const part = m_partFactory->create<KParts::ReadWritePart>(this);
+    connectPart( part );
 
     applyOptionsToPart(part, serializedOptions);
 
-    setActiveTab(m_tabs.size() - 1);
-
     if (part->openUrl(url)) {
+        // Update GUI
+        m_tabWidget->addTab( part->widget(), url.fileName() );
+
+        // Tabs are hidden when there's only one, so show it
+        if (m_tabs.size() == 1) {
+            m_tabWidget->tabBar()->show();
+            m_nextTabAction->setEnabled(true);
+            m_prevTabAction->setEnabled(true);
+        }
+
+        m_tabs.append(m_partFactory->create<KParts::ReadWritePart>(this));
+        setActiveTab( newIndex );
         m_recent->addUrl(url);
     } else {
         setActiveTab(previousActiveTab);
-        closeTab(m_tabs.size() - 1);
+
         m_recent->removeUrl(url);
     }
 }
@@ -715,14 +716,14 @@ void Shell::applyOptionsToPart(QObject *part, const QString &serializedOptions)
 void Shell::connectPart(QObject *part)
 {
     // We're abusing the fact we know the part is our part here
-    connect(this, SIGNAL(moveSplitter(int)), part, SLOT(moveSplitter(int)));                     // clazy:exclude=old-style-connect
-    connect(part, SIGNAL(enablePrintAction(bool)), this, SLOT(setPrintEnabled(bool)));           // clazy:exclude=old-style-connect
-    connect(part, SIGNAL(enableCloseAction(bool)), this, SLOT(setCloseEnabled(bool)));           // clazy:exclude=old-style-connect
-    connect(part, SIGNAL(mimeTypeChanged(QMimeType)), this, SLOT(setTabIcon(QMimeType)));        // clazy:exclude=old-style-connect
-    connect(part, SIGNAL(urlsDropped(QList<QUrl>)), this, SLOT(handleDroppedUrls(QList<QUrl>))); // clazy:exclude=old-style-connect
+    connect(this, SIGNAL(moveSplitter(int)), part, SLOT(moveSplitter(int)));                                       // clazy:exclude=old-style-connect
+    connect(part, SIGNAL(enablePrintAction(bool)), this, SLOT(setPrintEnabled(bool)));                             // clazy:exclude=old-style-connect
+    connect(part, SIGNAL(enableCloseAction(bool)), this, SLOT(setCloseEnabled(bool)));                             // clazy:exclude=old-style-connect
+    connect(part, SIGNAL(mimeTypeChanged(QMimeType)), this, SLOT(setTabIcon(QMimeType)), Qt::QueuedConnection);    // clazy:exclude=old-style-connect
+    connect(part, SIGNAL(urlsDropped(QList<QUrl>)), this, SLOT(handleDroppedUrls(QList<QUrl>)));                   // clazy:exclude=old-style-connect
     // clang-format off
     // Otherwise the QSize,QSize gets turned into QSize, QSize that is not normalized signals and is slightly slower
-    connect(part, SIGNAL(fitWindowToPage(QSize,QSize)), this, SLOT(slotFitWindowToPage(QSize,QSize)));   // clazy:exclude=old-style-connect
+    connect(part, SIGNAL(fitWindowToPage(QSize,QSize)), this, SLOT(slotFitWindowToPage(QSize,QSize)));             // clazy:exclude=old-style-connect
     // clang-format on
 }
 
