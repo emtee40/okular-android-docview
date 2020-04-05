@@ -335,7 +335,7 @@ class PickPointEngine2 : public PickPointEngine
             Okular::Annotation * ann = nullptr;
 
             Okular::CertificateStore* certStore = m_document->getCertStore();
-            QList<Okular::CertificateInfo*> certs = certStore->getSigningCertificates();
+            const QList<Okular::CertificateInfo*>& certs = certStore->getSigningCertificates();
 
             QStringList items;
             for( auto cert : certs )
@@ -884,8 +884,8 @@ QRect PageViewAnnotator::performRouteMouseOrTabletEvent(const AnnotatorEngine::E
 
     if (signatureMode() && eventType == AnnotatorEngine::Press) {
         QDomElement elem;
-        elem.setTagName("engine");
-        elem.setAttribute("block", 1);
+        elem.setTagName(QStringLiteral("engine"));
+        elem.setAttribute(QStringLiteral("block"), 1);
         m_engine = new PickPointEngine2(elem, m_document);
     }
 
