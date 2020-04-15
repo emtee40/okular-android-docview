@@ -675,7 +675,6 @@ void Shell::openNewTab(const QUrl &url, const QString &serializedOptions)
 
     KParts::ReadWritePart* const part = m_partFactory->create<KParts::ReadWritePart>(this);
     connectPart( part );
-
     applyOptionsToPart(part, serializedOptions);
 
     if (part->openUrl(url)) {
