@@ -280,10 +280,13 @@ void Shell::openUrl(const QUrl &url, const QString &serializedOptions)
 
                     m_activityResource->setUri(url);
 #endif
-                    m_recent->addUrl(url);
-                } else {
-                    m_recent->removeUrl(url);
-                    closeTab(activeTab);
+                    m_recent->addUrl( url );
+                    setTabIcon( 0, activePart );
+                }
+                else
+                {
+                    m_recent->removeUrl( url );
+                    closeTab( activeTab );
                 }
             }
         }
@@ -690,11 +693,13 @@ void Shell::openNewTab(const QUrl &url, const QString &serializedOptions)
 
         m_tabs.append(m_partFactory->create<KParts::ReadWritePart>(this));
         setActiveTab( newIndex );
-        m_recent->addUrl(url);
-    } else {
-        setActiveTab(previousActiveTab);
-
-        m_recent->removeUrl(url);
+        m_recent->addUrl( url );
+        setTabIcon( newIndex, part );
+    }
+    else
+    {
+        setActiveTab( previousActiveTab );
+        m_recent->removeUrl( url );
     }
 }
 
@@ -718,7 +723,7 @@ void Shell::connectPart(QObject *part)
     connect(this, SIGNAL(moveSplitter(int)), part, SLOT(moveSplitter(int)));                                       // clazy:exclude=old-style-connect
     connect(part, SIGNAL(enablePrintAction(bool)), this, SLOT(setPrintEnabled(bool)));                             // clazy:exclude=old-style-connect
     connect(part, SIGNAL(enableCloseAction(bool)), this, SLOT(setCloseEnabled(bool)));                             // clazy:exclude=old-style-connect
-    connect(part, SIGNAL(mimeTypeChanged(QMimeType)), this, SLOT(setTabIcon(QMimeType)), Qt::QueuedConnection);    // clazy:exclude=old-style-connect
+    connect(part, SIGNAL(mimeTypeChanged(QMimeType)), this, SLOT(setTabIcon(QMimeType)));                          // clazy:exclude=old-style-connect
     connect(part, SIGNAL(urlsDropped(QList<QUrl>)), this, SLOT(handleDroppedUrls(QList<QUrl>)));                   // clazy:exclude=old-style-connect
     // clang-format off
     // Otherwise the QSize,QSize gets turned into QSize, QSize that is not normalized signals and is slightly slower
@@ -788,13 +793,19 @@ void Shell::undoCloseTab()
     openUrl(lastTabUrl);
 }
 
-void Shell::setTabIcon(const QMimeType &mimeType)
+void Shell::setTabMime( const QMimeType& mimeType )
 {
-    int i = findTabIndex(sender());
-    if (i != -1) {
-        m_tabWidget->setTabIcon(i, QIcon::fromTheme(mimeType.iconName()));
-    }
+    m_tabMimes.insert( sender(), mimeType );
 }
+
+void Shell::setTabIcon( int tabIndex, const QObject *part )
+{
+    if ( m_tabMimes.contains( part ) )
+    {
+        QMimeType mimeType = m_tabMimes.take( part  );
+        m_tabWidget->setTabIcon( tabIndex, QIcon::fromTheme(mimeType.iconName())  ); 
+    }
+}   
 
 int Shell::findTabIndex(QObject *sender) const
 {

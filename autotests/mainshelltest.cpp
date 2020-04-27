@@ -634,8 +634,8 @@ void MainShellTest::testOpenInvalidFiles()
 
     QList<QUrl> recentFiles = shell->m_recent->urls();
 
-    QTRY_VERIFY_WITH_TIMEOUT( ! shell->m_tabWidget->tabIcon(0).isNull(), 100 );
-    QTRY_VERIFY_WITH_TIMEOUT( ! shell->m_tabWidget->tabIcon(1).isNull(), 100 );
+    QTRY_VERIFY( ! shell->m_tabWidget->tabIcon(0).isNull() );
+    QTRY_VERIFY( ! shell->m_tabWidget->tabIcon(1).isNull() );
 
     QVERIFY(!shell->m_tabWidget->tabIcon(0).isNull());
     QVERIFY(!shell->m_tabWidget->tabIcon(1).isNull());

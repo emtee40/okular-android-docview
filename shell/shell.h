@@ -17,6 +17,7 @@
 #define _OKULAR_SHELL_H_
 
 #include <QAction>
+#include <QHash>
 #include <QList>
 #include <QMimeDatabase>
 #include <QMimeType>
@@ -127,7 +128,8 @@ private Q_SLOTS:
     void print();
     void setPrintEnabled(bool enabled);
     void setCloseEnabled(bool enabled);
-    void setTabIcon(const QMimeType &mimeType);
+    void setTabMime(const QMimeType &mimeType);
+    void setTabIcon(int tabIndex, const QObject *part);
     void handleDroppedUrls(const QList<QUrl> &urls);
 
     // Tab event handlers
@@ -190,8 +192,9 @@ private:
     KActivities::ResourceInstance *m_activityResource;
 #endif
     bool m_isValid;
+
+    QHash< const QObject*, QMimeType > m_tabMimes;
 };
 
 #endif
 
-// vim:ts=2:sw=2:tw=78:et
