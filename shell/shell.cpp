@@ -281,7 +281,7 @@ void Shell::openUrl(const QUrl &url, const QString &serializedOptions)
                     m_activityResource->setUri(url);
 #endif
                     m_recent->addUrl( url );
-                    setTabIcon( 0, activePart );
+                    setTabIcon( activeTab, activePart );
                 }
                 else
                 {
