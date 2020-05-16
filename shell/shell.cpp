@@ -281,7 +281,7 @@ void Shell::openUrl(const QUrl &url, const QString &serializedOptions)
                     m_activityResource->setUri(url);
 #endif
                     m_recent->addUrl( url );
-                    setTabIcon( activeTab, activePart );
+                    setTabIcon( activePart );
                 }
                 else
                 {
@@ -694,7 +694,7 @@ void Shell::openNewTab(const QUrl &url, const QString &serializedOptions)
         m_tabs.append(m_partFactory->create<KParts::ReadWritePart>(this));
         setActiveTab( newIndex );
         m_recent->addUrl( url );
-        setTabIcon( newIndex, part );
+        setTabIcon( part );
     }
     else
     {
@@ -798,16 +798,17 @@ void Shell::setTabMime( const QMimeType& mimeType )
     m_tabMimes.insert( sender(), mimeType );
 }
 
-void Shell::setTabIcon( int tabIndex, const QObject *part )
+void Shell::setTabIcon( const QObject *part )
 {
     if ( m_tabMimes.contains( part ) )
     {
         QMimeType mimeType = m_tabMimes.take( part  );
+        const int tabIndex = findTabIndex( part );
         m_tabWidget->setTabIcon( tabIndex, QIcon::fromTheme(mimeType.iconName())  ); 
     }
 }   
 
-int Shell::findTabIndex(QObject *sender) const
+int Shell::findTabIndex( const QObject* sender ) const
 {
     for (int i = 0; i < m_tabs.size(); ++i) {
         if (m_tabs[i].part == sender) {

@@ -129,7 +129,7 @@ private Q_SLOTS:
     void setPrintEnabled(bool enabled);
     void setCloseEnabled(bool enabled);
     void setTabMime(const QMimeType &mimeType);
-    void setTabIcon(int tabIndex, const QObject *part);
+    void setTabIcon(const QObject *part);
     void handleDroppedUrls(const QList<QUrl> &urls);
 
     // Tab event handlers
@@ -152,7 +152,7 @@ private:
     void openNewTab(const QUrl &url, const QString &serializedOptions);
     void applyOptionsToPart(QObject *part, const QString &serializedOptions);
     void connectPart(QObject *part);
-    int findTabIndex(QObject *sender) const;
+    int findTabIndex(const QObject *sender) const;
     int findTabIndex(const QUrl &url) const;
 
 private:
