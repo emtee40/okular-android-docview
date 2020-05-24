@@ -267,7 +267,6 @@ Q_OBJECT
         void slotRotateClockwise();
         void slotRotateCounterClockwise();
         void slotRotateOriginal();
-        void slotPageSizes( int );
         void slotTrimMarginsToggled( bool );
         void slotTrimToSelectionToggled( bool );
         void slotToggleForms();

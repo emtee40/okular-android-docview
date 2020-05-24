@@ -215,7 +215,6 @@ public:
     QAction * aRotateClockwise;
     QAction * aRotateCounterClockwise;
     QAction * aRotateOriginal;
-    KSelectAction * aPageSizes;
     KActionMenu * aTrimMode;
     KToggleAction * aTrimMargins;
     QAction * aMouseNormal;
@@ -368,7 +367,6 @@ PageView::PageView( QWidget *parent, Okular::Document *document )
     d->aRotateClockwise = nullptr;
     d->aRotateCounterClockwise = nullptr;
     d->aRotateOriginal = nullptr;
-    d->aPageSizes = nullptr;
     d->aTrimMode = nullptr;
     d->aTrimMargins = nullptr;
     d->aTrimToSelection = nullptr;
@@ -389,7 +387,6 @@ PageView::PageView( QWidget *parent, Okular::Document *document )
     d->aSpeakStop = nullptr;
     d->aSpeakPauseResume = nullptr;
     d->actionCollection = nullptr;
-    d->aPageSizes=nullptr;
     d->setting_viewCols = Okular::Settings::viewColumns();
     d->rtl_Mode = Okular::Settings::rtlReadingDirection();
     d->mouseModeActionGroup = nullptr;
@@ -566,13 +563,6 @@ void PageView::setupViewerActions( KActionCollection * ac )
     ac->addAction( QStringLiteral("view_orientation_original"), d->aRotateOriginal );
     d->aRotateOriginal->setEnabled( false );
     connect( d->aRotateOriginal, &QAction::triggered, this, &PageView::slotRotateOriginal );
-
-    d->aPageSizes = new KSelectAction(i18n("&Page Size"), this);
-    ac->addAction(QStringLiteral("view_pagesizes"), d->aPageSizes);
-    d->aPageSizes->setEnabled( false );
-
-    connect( d->aPageSizes , QOverload<int>::of(&KSelectAction::triggered),
-         this, &PageView::slotPageSizes );
 
     // Trim View actions
     d->aTrimMode = new KActionMenu(i18n( "&Trim View" ), this );
@@ -1234,23 +1224,6 @@ void PageView::notifySetup( const QVector< Okular::Page * > & pageSet, int setup
 
 void PageView::updateActionState( bool haspages, bool documentChanged, bool hasformwidgets )
 {
-    if ( d->aPageSizes )
-    { // may be null if dummy mode is on
-        bool pageSizes = d->document->supportsPageSizes();
-        d->aPageSizes->setEnabled( pageSizes );
-        // set the new page sizes:
-        // - if the generator supports them
-        // - if the document changed
-        if ( pageSizes && documentChanged )
-        {
-            QStringList items;
-            const QList<Okular::PageSize> sizes = d->document->pageSizes();
-            for ( const Okular::PageSize &p : sizes )
-                items.append( p.name() );
-            d->aPageSizes->setItems( items );
-        }
-    }
-
     if ( d->aTrimMargins )
         d->aTrimMargins->setEnabled( haspages );
 
@@ -5434,14 +5407,6 @@ void PageView::slotRotateCounterClockwise()
 void PageView::slotRotateOriginal()
 {
     d->document->setRotation( 0 );
-}
-
-void PageView::slotPageSizes( int newsize )
-{
-    if ( newsize < 0 || newsize >= d->document->pageSizes().count() )
-        return;
-
-    d->document->setPageSize( d->document->pageSizes().at( newsize ) );
 }
 
 // Enforce mutual-exclusion between trim modes
