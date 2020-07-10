@@ -55,3 +55,13 @@ build_clazy_clang_tidy:
     # Fix the poppler header, remove when debian:unstable ships poppler 0.82 or later
     - sed -i "N;N;N;N; s#class MediaRendition\;\nclass MovieAnnotation\;\nclass ScreenAnnotation;#class MediaRendition\;#g"  /usr/include/poppler/qt5/poppler-link.h
     - run-clang-tidy
+
+clang_format:
+  stage: build
+  image: debian:testing
+  before_script:
+  - apt-get update
+  - apt-get install --yes --no-install-recommends git clang-format-10
+  script:
+    - find . \( -name "*.cpp" -or -name "*.h"  -or -name "*.c"  -or -name "*.cc" \) -exec clang-format-10 -i {} \;
+    - git diff --exit-code
