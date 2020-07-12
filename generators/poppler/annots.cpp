@@ -388,7 +388,8 @@ Okular::Annotation *createAnnotationFromPopplerAnnotation(Poppler::Annotation *a
             }
         }
 
-        // TODO clone style
+        annotation->style().setColor(ann->style().color());
+
         // TODO clone window
         // TODO clone revisions
         if (tieToOkularAnn) {
