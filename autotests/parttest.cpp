@@ -15,6 +15,7 @@
 #include <QtTest>
 
 #include "../core/annotations.h"
+#include "../core/document_p.h"
 #include "../core/form.h"
 #include "../core/page.h"
 #include "../part/pageview.h"
@@ -58,6 +59,8 @@ signals:
     void urlHandler(const QUrl &url); // NOLINT(readability-inconsistent-declaration-parameter-name)
 
 private slots:
+    void cleanup();
+
     void testReload();
     void testCanceledReload();
     void testTOCReload();
@@ -103,9 +106,12 @@ private slots:
     void testMouseModeMenu();
     void testFullScreenRequest();
     void testZoomInFacingPages();
+    void testCtrlZoomKeepsMousePosition_data();
+    void testCtrlZoomKeepsMousePosition();
 
 private:
     void simulateMouseSelection(double startX, double startY, double endX, double endY, QWidget *target);
+    void waitForDelayTimer(Okular::Part *part);
 };
 
 class PartThatHijacksQueryClose : public Okular::Part
@@ -141,6 +147,25 @@ bool PartTest::openDocument(Okular::Part *part, const QString &filePath)
 {
     part->openDocument(filePath);
     return part->m_document->isOpened();
+}
+
+void PartTest::cleanup()
+{
+    Okular::Settings::self()->setDefaults();
+
+    const QDir d(QStringLiteral(KDESRCDIR "data"));
+    const QFileInfoList dataFiles = d.entryInfoList(QDir::Files);
+    // Clean docdatas
+    QList<QUrl> urls;
+    for (const QFileInfo &dataFile : dataFiles) {
+        urls << QUrl::fromUserInput(QStringLiteral("file://") + dataFile.absoluteFilePath());
+    }
+
+    for (const QUrl &url : qAsConst(urls)) {
+        QFileInfo fileReadTest(url.toLocalFile());
+        const QString docDataPath = Okular::DocumentPrivate::docDataFileName(url, fileReadTest.size());
+        QFile::remove(docDataPath);
+    }
 }
 
 // Test that Okular doesn't crash after a successful reload
@@ -1583,9 +1608,7 @@ void PartTest::testAnnotWindow()
     part.m_document->addPageAnnotation(0, annot2);
     QVERIFY(part.m_document->page(0)->annotations().size() == 2);
 
-    QTimer *delayResizeEventTimer = part.m_pageView->findChildren<QTimer *>("delayResizeEventTimer").at(0);
-    QVERIFY(delayResizeEventTimer->isActive());
-    QTest::qWait(delayResizeEventTimer->interval() * 2);
+    waitForDelayTimer(&part);
 
     // wait for pixmap
     QTRY_VERIFY(part.m_document->page(0)->hasPixmap(part.m_pageView));
@@ -1665,9 +1688,7 @@ void PartTest::testAdditionalActionTriggers()
     part.widget()->show();
     QVERIFY(QTest::qWaitForWindowExposed(part.widget()));
 
-    QTimer *delayResizeEventTimer = part.m_pageView->findChildren<QTimer *>("delayResizeEventTimer").at(0);
-    QVERIFY(delayResizeEventTimer->isActive());
-    QTest::qWait(delayResizeEventTimer->interval() * 2);
+    waitForDelayTimer(&part);
 
     part.m_document->setViewportPage(0);
 
@@ -2031,6 +2052,95 @@ void PartTest::testZoomInFacingPages()
     QVERIFY(QMetaObject::invokeMethod(part.m_pageView, "slotZoomIn"));
     QVERIFY(QMetaObject::invokeMethod(part.m_pageView, "slotZoomIn"));
     QTRY_COMPARE(zoomSelectAction->currentText(), QStringLiteral("66%"));
+}
+
+void PartTest::waitForDelayTimer(Okular::Part *part)
+{
+    QTimer *delayResizeEventTimer = part->m_pageView->findChildren<QTimer *>("delayResizeEventTimer").at(0);
+    QTRY_VERIFY(delayResizeEventTimer->isActive());
+    QTest::qWait(delayResizeEventTimer->interval() * 2);
+    QVERIFY(!delayResizeEventTimer->isActive());
+}
+
+void PartTest::testCtrlZoomKeepsMousePosition_data()
+{
+    // we're only testing Y because x is too close to the width and the zooming math would "fail" since it reaches the border of the page
+    QTest::addColumn<int>("testY");
+
+    QTest::newRow("25") << 25;
+    QTest::newRow("50") << 50;
+    QTest::newRow("75") << 75;
+}
+
+void PartTest::testCtrlZoomKeepsMousePosition()
+{
+#if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
+    QVariantList dummyArgs;
+    Okular::Part part(nullptr, nullptr, dummyArgs);
+    QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/file1.pdf")));
+    part.widget()->resize(600, 400);
+    part.widget()->show();
+    QVERIFY(QTest::qWaitForWindowExposed(part.widget()));
+    KSelectAction *zoomSelectAction = part.m_pageView->findChild<KSelectAction *>(QStringLiteral("zoom_to"));
+    QAction *zoomInAction = part.actionCollection()->action(QStringLiteral("view_zoom_in"));
+    QAction *zoomOutAction = part.actionCollection()->action(QStringLiteral("view_zoom_out"));
+
+    QTRY_VERIFY(part.m_document->page(0)->hasPixmap(part.m_pageView));
+
+    waitForDelayTimer(&part);
+
+    while (zoomSelectAction->currentText() != "12%") {
+        QVERIFY(QMetaObject::invokeMethod(part.m_pageView, "slotZoomOut"));
+    }
+
+    while (zoomSelectAction->currentText() != "75%") {
+        QVERIFY(QMetaObject::invokeMethod(part.m_pageView, "slotZoomIn"));
+    }
+
+    const double viewportNormalizedY75 = part.m_document->viewport().rePos.normalizedY;
+    const double viewportNormalizedX75 = part.m_document->viewport().rePos.normalizedX;
+
+    // Zooming in an out using the qactions doesn't change the center of the viewport
+    zoomOutAction->trigger();
+    zoomInAction->trigger();
+    QTRY_COMPARE(part.m_document->viewport().rePos.normalizedY, viewportNormalizedY75);
+    QTRY_COMPARE(part.m_document->viewport().rePos.normalizedX, viewportNormalizedX75);
+
+    // Zooming in an out using the qactions doesn't change the center of the viewport
+    zoomInAction->trigger();
+    zoomOutAction->trigger();
+    QTRY_COMPARE(part.m_document->viewport().rePos.normalizedY, viewportNormalizedY75);
+    QTRY_COMPARE(part.m_document->viewport().rePos.normalizedX, viewportNormalizedX75);
+
+    QFETCH(int, testY);
+    const QPoint zoomPos = {part.m_pageView->viewport()->width() / 2, testY};
+    QTest::mouseMove(part.m_pageView->viewport(), zoomPos);
+
+    waitForDelayTimer(&part);
+
+    auto wheelDown = new QWheelEvent(zoomPos, {}, {}, {0, 150}, Qt::NoButton, Qt::ControlModifier, Qt::NoScrollPhase, false);
+    QCoreApplication::postEvent(part.m_pageView->viewport(), wheelDown);
+    QTRY_COMPARE(zoomSelectAction->currentText(), QStringLiteral("100%"));
+
+    // Now for some math
+    const double pageHeight = part.m_document->page(0)->height();
+    const double halfViewportHeight = part.m_pageView->viewport()->size().height() / 2.0;
+    // find which y coordinate the mouse position represented at 75%
+    const double mouseOverY75 = pageHeight * viewportNormalizedY75 + (-halfViewportHeight + zoomPos.y()) / .75;
+    // find which y coordinate the mouse position represented at 75%
+    const double movesOverY100 = pageHeight * part.m_document->viewport().rePos.normalizedY + (-halfViewportHeight + zoomPos.y());
+
+    const double pageWidth = part.m_document->page(0)->width();
+    const double halfViewportWidth = part.m_pageView->viewport()->size().width() / 2.0;
+    // find which x coordinate the mouse position represented at 75%
+    const double mouseOverX75 = pageWidth * viewportNormalizedX75 + (-halfViewportWidth + zoomPos.x()) / .75;
+    // find which y coordinate the mouse position represented at 75%
+    const double movesOverX100 = pageWidth * part.m_document->viewport().rePos.normalizedX + (-halfViewportWidth + zoomPos.x());
+
+    // Make sure the positions are "the same", give some wiggle room because float precision is never great
+    QVERIFY(std::abs(movesOverY100 - mouseOverY75) < 1.5);
+    QVERIFY(std::abs(movesOverX100 - mouseOverX75) < 1.5);
+#endif
 }
 
 } // namespace Okular
