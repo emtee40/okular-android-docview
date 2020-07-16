@@ -2081,6 +2081,16 @@ void PageView::tabletEvent(QTabletEvent *e)
         return;
     }
 
+    // also ignore when this falls in an annotation window area
+    // that ensures it is later handled as a mouse event
+    for (AnnotWindow *aw : qAsConst(d->m_annowindows)) {
+        const QRect &r = aw->frameGeometry();
+        if (e->pos().x() < r.right() && e->pos().x() > r.left() && e->pos().y() > r.top() && e->pos().y() < r.bottom()) {
+            e->ignore();
+            return;
+        }
+    }
+
     // Determine pen state
     bool penReleased = false;
     if (e->type() == QEvent::TabletPress) {
