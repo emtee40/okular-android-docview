@@ -258,6 +258,8 @@ public:
     bool rtl_Mode;
     // Keep track of whether tablet pen is currently pressed down
     bool penDown;
+    // Know when to defer tablet events to annotation pop-up windows
+    bool deferToAnnotation;
 
     // Keep track of mouse over link object
     const Okular::ObjectRect *mouseOverLinkObject;
@@ -383,6 +385,7 @@ PageView::PageView(QWidget *parent, Okular::Document *document)
     d->mouseModeActionGroup = nullptr;
     d->aMouseModeMenu = nullptr;
     d->penDown = false;
+    d->deferToAnnotation = false;
     d->aMouseMagnifier = nullptr;
     d->aFitWindowToPage = nullptr;
     d->trimBoundingBox = Okular::NormalizedRect(); // Null box
@@ -2084,11 +2087,21 @@ void PageView::tabletEvent(QTabletEvent *e)
     // also ignore when this falls in an annotation window area
     // that ensures it is later handled as a mouse event
     for (AnnotWindow *aw : qAsConst(d->m_annowindows)) {
-        const QRect &r = aw->frameGeometry();
-        if (e->pos().x() < r.right() && e->pos().x() > r.left() && e->pos().y() > r.top() && e->pos().y() < r.bottom()) {
-            e->ignore();
-            return;
+        if (aw->frameGeometry().contains(e->pos())) {
+            if (e->type() == QEvent::TabletPress || d->deferToAnnotation) {
+                // start to handle events through the annotation window
+                d->deferToAnnotation = true;
+                e->ignore();
+                return;
+            }
         }
+    }
+    d->deferToAnnotation = false;
+
+    // and pass on any secondary button presses
+    if (e->type() == QEvent::TabletPress && e->button() != Qt::LeftButton) {
+        e->ignore();
+        return;
     }
 
     // Determine pen state
