@@ -9,8 +9,12 @@
 
 #include "xmlgui_helper.h"
 
+#include "kxmlgui_version.h"
+
 #include <QDebug>
 #include <QFile>
+
+#if KXMLGUI_VERSION < QT_VERSION_CHECK(5, 73, 0)
 
 // Copied from KXmlGuiVersionHandler::findVersionNumber :/
 static QString findVersionNumber(const QString &xml)
@@ -85,6 +89,8 @@ static QString findVersionNumber(const QString &xml)
     return QString();
 }
 
+#endif
+
 namespace Okular
 {
 void removeRCFileIfVersionSmallerThan(const QString &filePath, int version)
@@ -93,7 +99,11 @@ void removeRCFileIfVersionSmallerThan(const QString &filePath, int version)
     if (f.open(QIODevice::ReadOnly)) {
         const QByteArray contents = f.readAll();
         f.close();
+#if KXMLGUI_VERSION < QT_VERSION_CHECK(5, 73, 0)
         const QString fileVersion = findVersionNumber(contents);
+#else
+        const QString fileVersion = KXMLGUIClient::findVersionNumber(contents);
+#endif
         if (fileVersion.toInt() < version) {
             QFile::remove(filePath);
         }
