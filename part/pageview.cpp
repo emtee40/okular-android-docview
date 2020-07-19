@@ -256,10 +256,8 @@ public:
 
     int setting_viewCols;
     bool rtl_Mode;
-    // Keep track of whether tablet pen is currently pressed down
+    /** Keeps track of whether tablet pen is currently pressed down */
     bool penDown;
-    // Know when to defer tablet events to annotation pop-up windows
-    bool deferToAnnotation;
 
     // Keep track of mouse over link object
     const Okular::ObjectRect *mouseOverLinkObject;
@@ -385,7 +383,6 @@ PageView::PageView(QWidget *parent, Okular::Document *document)
     d->mouseModeActionGroup = nullptr;
     d->aMouseModeMenu = nullptr;
     d->penDown = false;
-    d->deferToAnnotation = false;
     d->aMouseMagnifier = nullptr;
     d->aFitWindowToPage = nullptr;
     d->trimBoundingBox = Okular::NormalizedRect(); // Null box
@@ -2079,29 +2076,20 @@ void PageView::inputMethodEvent(QInputMethodEvent *e)
 void PageView::tabletEvent(QTabletEvent *e)
 {
     // Ignore tablet events that we don't care about
-    if (!(e->type() == QEvent::TabletPress || e->type() == QEvent::TabletRelease || e->type() == QEvent::TabletMove)) {
+    if (!((e->type() == QEvent::TabletPress && e->button() == Qt::LeftButton) || e->type() == QEvent::TabletRelease || e->type() == QEvent::TabletMove)) {
         e->ignore();
         return;
     }
 
-    // also ignore when this falls in an annotation window area
-    // that ensures it is later handled as a mouse event
-    for (AnnotWindow *aw : qAsConst(d->m_annowindows)) {
-        if (aw->frameGeometry().contains(e->pos())) {
-            if (e->type() == QEvent::TabletPress || d->deferToAnnotation) {
-                // start to handle events through the annotation window
-                d->deferToAnnotation = true;
+    // also ignore events that falls in any of the annotation window areas
+    // while we are not completing a pen action (as indicated by pendown)
+    if (!d->penDown) {
+        for (AnnotWindow *aw : qAsConst(d->m_annowindows)) {
+            if (aw->frameGeometry().contains(e->pos())) {
                 e->ignore();
                 return;
             }
         }
-    }
-    d->deferToAnnotation = false;
-
-    // and pass on any secondary button presses
-    if (e->type() == QEvent::TabletPress && e->button() != Qt::LeftButton) {
-        e->ignore();
-        return;
     }
 
     // Determine pen state
