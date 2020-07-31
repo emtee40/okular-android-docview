@@ -480,7 +480,24 @@ void AnnotationActionHandlerPrivate::slotStampToolSelected(const QString &stamp)
 void AnnotationActionHandlerPrivate::slotQuickToolSelected(int favToolID)
 {
     int toolID = annotator->setQuickTool(favToolID); // always triggers an unuseful reparsing
-    QAction *favToolAction = agTools->actions().at(toolID - 1);
+    int indexOfActionInGroup = toolID - 1;
+    if (toolID == PageViewAnnotator::STAMP_TOOL_ID) {
+        // if the quick tool is a stamp we need to find its corresponding built-in tool action and select it
+        QDomElement favToolElement = annotator->quickTool(favToolID);
+        QDomElement engineElement = favToolElement.firstChildElement(QStringLiteral("engine"));
+        QDomElement annotationElement = engineElement.firstChildElement(QStringLiteral("annotation"));
+        QString stampIconName = annotationElement.attribute(QStringLiteral("icon"));
+
+        auto it = std::find_if(StampAnnotationWidget::defaultStamps.begin(), StampAnnotationWidget::defaultStamps.end(), [&stampIconName](const QPair<QString, QString> &element) { return element.second == stampIconName; });
+        if (it != StampAnnotationWidget::defaultStamps.end()) {
+            int stampActionIndex = std::distance(StampAnnotationWidget::defaultStamps.begin(), it);
+            indexOfActionInGroup = PageViewAnnotator::STAMP_TOOL_ID + stampActionIndex - 1;
+        } else {
+            selectStampActionItem(stampIconName);
+            indexOfActionInGroup = agTools->actions().size() - 1;
+        }
+    }
+    QAction *favToolAction = agTools->actions().at(indexOfActionInGroup);
     if (!favToolAction->isChecked()) {
         // action group workaround: activates the action slot calling selectTool
         //                          when new tool if different from the selected one
