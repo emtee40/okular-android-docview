@@ -143,6 +143,7 @@ QDomDocument EditAnnotToolDialog::toolXml() const
     if (toolType == ToolNoteLinked) {
         Okular::TextAnnotation *ta = static_cast<Okular::TextAnnotation *>(m_stubann);
         toolElement.setAttribute(QStringLiteral("type"), QStringLiteral("note-linked"));
+        toolElement.setAttribute(QStringLiteral("sourceId"), QStringLiteral("7"));
         engineElement.setAttribute(QStringLiteral("type"), QStringLiteral("PickPoint"));
         engineElement.setAttribute(QStringLiteral("color"), color);
         engineElement.setAttribute(QStringLiteral("hoverIcon"), QStringLiteral("tool-note"));
@@ -152,6 +153,7 @@ QDomDocument EditAnnotToolDialog::toolXml() const
     } else if (toolType == ToolNoteInline) {
         Okular::TextAnnotation *ta = static_cast<Okular::TextAnnotation *>(m_stubann);
         toolElement.setAttribute(QStringLiteral("type"), QStringLiteral("note-inline"));
+        toolElement.setAttribute(QStringLiteral("sourceId"), QStringLiteral("6"));
         engineElement.setAttribute(QStringLiteral("type"), QStringLiteral("PickPoint"));
         engineElement.setAttribute(QStringLiteral("color"), color);
         engineElement.setAttribute(QStringLiteral("hoverIcon"), QStringLiteral("tool-note-inline"));
@@ -165,6 +167,7 @@ QDomDocument EditAnnotToolDialog::toolXml() const
             annotationElement.setAttribute(QStringLiteral("font"), ta->textFont().toString());
     } else if (toolType == ToolInk) {
         toolElement.setAttribute(QStringLiteral("type"), QStringLiteral("ink"));
+        toolElement.setAttribute(QStringLiteral("sourceId"), QStringLiteral("8"));
         engineElement.setAttribute(QStringLiteral("type"), QStringLiteral("SmoothLine"));
         engineElement.setAttribute(QStringLiteral("color"), color);
         annotationElement.setAttribute(QStringLiteral("type"), QStringLiteral("Ink"));
@@ -185,9 +188,16 @@ QDomDocument EditAnnotToolDialog::toolXml() const
         }
         annotationElement.setAttribute(QStringLiteral("startStyle"), QString::number(la->lineStartStyle()));
         annotationElement.setAttribute(QStringLiteral("endStyle"), QString::number(la->lineEndStyle()));
+        if (la->lineStartStyle() != 5 || la->lineEndStyle() != 5) {
+            // both differs from None
+            toolElement.setAttribute(QStringLiteral("sourceId"), QStringLiteral("9"));
+        } else {
+            toolElement.setAttribute(QStringLiteral("sourceId"), QStringLiteral("10"));
+        }
     } else if (toolType == ToolPolygon) {
         Okular::LineAnnotation *la = static_cast<Okular::LineAnnotation *>(m_stubann);
         toolElement.setAttribute(QStringLiteral("type"), QStringLiteral("polygon"));
+        toolElement.setAttribute(QStringLiteral("sourceId"), QStringLiteral("13"));
         engineElement.setAttribute(QStringLiteral("type"), QStringLiteral("PolyLine"));
         engineElement.setAttribute(QStringLiteral("color"), color);
         engineElement.setAttribute(QStringLiteral("points"), QStringLiteral("-1"));
@@ -203,18 +213,22 @@ QDomDocument EditAnnotToolDialog::toolXml() const
         switch (ha->highlightType()) {
         case Okular::HighlightAnnotation::Highlight:
             toolElement.setAttribute(QStringLiteral("type"), QStringLiteral("highlight"));
+            toolElement.setAttribute(QStringLiteral("sourceId"), QStringLiteral("1"));
             annotationElement.setAttribute(QStringLiteral("type"), QStringLiteral("Highlight"));
             break;
         case Okular::HighlightAnnotation::Squiggly:
             toolElement.setAttribute(QStringLiteral("type"), QStringLiteral("squiggly"));
+            toolElement.setAttribute(QStringLiteral("sourceId"), QStringLiteral("3"));
             annotationElement.setAttribute(QStringLiteral("type"), QStringLiteral("Squiggly"));
             break;
         case Okular::HighlightAnnotation::Underline:
             toolElement.setAttribute(QStringLiteral("type"), QStringLiteral("underline"));
+            toolElement.setAttribute(QStringLiteral("sourceId"), QStringLiteral("2"));
             annotationElement.setAttribute(QStringLiteral("type"), QStringLiteral("Underline"));
             break;
         case Okular::HighlightAnnotation::StrikeOut:
             toolElement.setAttribute(QStringLiteral("type"), QStringLiteral("strikeout"));
+            toolElement.setAttribute(QStringLiteral("sourceId"), QStringLiteral("4"));
             annotationElement.setAttribute(QStringLiteral("type"), QStringLiteral("StrikeOut"));
             break;
         }
@@ -227,9 +241,11 @@ QDomDocument EditAnnotToolDialog::toolXml() const
 
         if (ga->geometricalType() == Okular::GeomAnnotation::InscribedCircle) {
             toolElement.setAttribute(QStringLiteral("type"), QStringLiteral("ellipse"));
+            toolElement.setAttribute(QStringLiteral("sourceId"), QStringLiteral("12"));
             annotationElement.setAttribute(QStringLiteral("type"), QStringLiteral("GeomCircle"));
         } else {
             toolElement.setAttribute(QStringLiteral("type"), QStringLiteral("rectangle"));
+            toolElement.setAttribute(QStringLiteral("sourceId"), QStringLiteral("11"));
             annotationElement.setAttribute(QStringLiteral("type"), QStringLiteral("GeomSquare"));
         }
 
@@ -244,6 +260,7 @@ QDomDocument EditAnnotToolDialog::toolXml() const
     } else if (toolType == ToolStamp) {
         Okular::StampAnnotation *sa = static_cast<Okular::StampAnnotation *>(m_stubann);
         toolElement.setAttribute(QStringLiteral("type"), QStringLiteral("stamp"));
+        toolElement.setAttribute(QStringLiteral("sourceId"), QStringLiteral("14"));
         engineElement.setAttribute(QStringLiteral("type"), QStringLiteral("PickPoint"));
         engineElement.setAttribute(QStringLiteral("hoverIcon"), sa->stampIconName());
         engineElement.setAttribute(QStringLiteral("size"), QStringLiteral("64"));
@@ -253,6 +270,7 @@ QDomDocument EditAnnotToolDialog::toolXml() const
     } else if (toolType == ToolTypewriter) {
         Okular::TextAnnotation *ta = static_cast<Okular::TextAnnotation *>(m_stubann);
         toolElement.setAttribute(QStringLiteral("type"), QStringLiteral("typewriter"));
+        toolElement.setAttribute(QStringLiteral("sourceId"), QStringLiteral("5"));
         engineElement.setAttribute(QStringLiteral("type"), QStringLiteral("PickPoint"));
         engineElement.setAttribute(QStringLiteral("block"), QStringLiteral("true"));
         annotationElement.setAttribute(QStringLiteral("type"), QStringLiteral("Typewriter"));
