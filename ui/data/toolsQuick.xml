@@ -1,4 +1,11 @@
 <!DOCTYPE okularQuickAnnotatingTools>
+<!--
+Refer to tools.xml for the documentation of the attribues not documented here.
+
+Tool
+  [id]              {int = unique id identifying the quick tool}
+  [sourceId]        {int = id of the built-in tool correspondig to this tool}
+-->
 <quickAnnotatingTools>
     <tool id="1" sourceId="1" type="highlight" name="Yellow Highlighter">
         <engine type="TextSelector" color="#ffff00">
