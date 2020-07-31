@@ -74,7 +74,15 @@ public:
     }
 
     QAction *selectActionItem(KSelectAction *aList, QAction *aCustomCurrent, double value, const QList<double> &defaultValues, const QIcon &icon, const QString &label);
-    void selectStampActionItem(const QString &stampIconName);
+    /**
+    * @short Adds a custom stamp annotation action to the stamp list when the stamp is not a default stamp
+    *
+    * When stampIconName cannot be found among the default stamps, this method creates a new action
+    * for the custom stamp annotation and adds it to the stamp action combo box. If a custom action
+    * is already present in the list, it is removed before adding the new custom action. If stampIconName
+    * matches a default stamp, any existing stamp annotation action is removed.
+    */
+    void maybeUpdateCustomStampAction(const QString &stampIconName);
     void parseTool(int toolID);
 
     void updateConfigActions(const QString &annotType = QLatin1String(""));
@@ -168,7 +176,7 @@ QAction *AnnotationActionHandlerPrivate::selectActionItem(KSelectAction *aList, 
     return aCustom;
 }
 
-void AnnotationActionHandlerPrivate::selectStampActionItem(const QString &stampIconName)
+void AnnotationActionHandlerPrivate::maybeUpdateCustomStampAction(const QString &stampIconName)
 {
     auto it = std::find_if(StampAnnotationWidget::defaultStamps.begin(), StampAnnotationWidget::defaultStamps.end(), [&stampIconName](const QPair<QString, QString> &element) { return element.second == stampIconName; });
     bool defaultStamp = it != StampAnnotationWidget::defaultStamps.end();
@@ -242,7 +250,7 @@ void AnnotationActionHandlerPrivate::parseTool(int toolID)
     // if the tool is a custom stamp, insert a new action in the stamp list
     if (annotType == QStringLiteral("stamp")) {
         QString stampIconName = annElement.attribute(QStringLiteral("icon"));
-        selectStampActionItem(stampIconName);
+        maybeUpdateCustomStampAction(stampIconName);
     }
 
     updateConfigActions(annotType);
@@ -493,7 +501,7 @@ void AnnotationActionHandlerPrivate::slotQuickToolSelected(int favToolID)
             int stampActionIndex = std::distance(StampAnnotationWidget::defaultStamps.begin(), it);
             indexOfActionInGroup = PageViewAnnotator::STAMP_TOOL_ID + stampActionIndex - 1;
         } else {
-            selectStampActionItem(stampIconName);
+            maybeUpdateCustomStampAction(stampIconName);
             indexOfActionInGroup = agTools->actions().size() - 1;
         }
     }
