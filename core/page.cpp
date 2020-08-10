@@ -818,8 +818,8 @@ bool PagePrivate::restoreLocalContents(const QDomNode &pageNode)
                 // get annotation from the dom element
                 Annotation *annotation = AnnotationUtils::createAnnotation(annotElement);
 
-		// set author, timestamp, etc. properties from original annotation
-		annotation->setAnnotationProperties(annotationNode);
+                // set author, timestamp, etc. properties from original annotation
+                annotation->setAnnotationProperties(annotationNode);
 
                 // append annotation to the list or show warning
                 if (annotation) {
