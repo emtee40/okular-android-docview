@@ -88,7 +88,7 @@ void DocumentTest::testDocdataMigration()
     const QMimeType mime = db.mimeTypeForFile(testFilePath);
     QCOMPARE(m_document->openDocument(testFilePath, testFileUrl, mime), Okular::Document::OpenSuccess);
 
-    // Check that the annotation from file1-docdata.xml was loaded and has same uniqueName, author, create, and modify time 
+    // Check that the annotation from file1-docdata.xml was loaded and has same uniqueName, author, create, and modify time
     QCOMPARE(m_document->page(0)->annotations().size(), 1);
     QCOMPARE(m_document->page(0)->annotations().first()->uniqueName(), QStringLiteral("testannot"));
     QCOMPARE(m_document->page(0)->annotations().first()->author(), QStringLiteral("someone"));
