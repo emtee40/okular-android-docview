@@ -364,6 +364,54 @@ static Okular::TextAnnotation::InplaceIntent popplerToOkular(Poppler::TextAnnota
     return Okular::TextAnnotation::Unknown;
 }
 
+static Okular::LineAnnotation::TermStyle popplerToOkular(Poppler::LineAnnotation::TermStyle pts)
+{
+    switch (pts) {
+    case Poppler::LineAnnotation::Square:
+        return Okular::LineAnnotation::Square;
+    case Poppler::LineAnnotation::Circle:
+        return Okular::LineAnnotation::Circle;
+    case Poppler::LineAnnotation::Diamond:
+        return Okular::LineAnnotation::Diamond;
+    case Poppler::LineAnnotation::OpenArrow:
+        return Okular::LineAnnotation::OpenArrow;
+    case Poppler::LineAnnotation::ClosedArrow:
+        return Okular::LineAnnotation::ClosedArrow;
+    case Poppler::LineAnnotation::None:
+        return Okular::LineAnnotation::None;
+    case Poppler::LineAnnotation::Butt:
+        return Okular::LineAnnotation::Butt;
+    case Poppler::LineAnnotation::ROpenArrow:
+        return Okular::LineAnnotation::ROpenArrow;
+    case Poppler::LineAnnotation::RClosedArrow:
+        return Okular::LineAnnotation::RClosedArrow;
+    case Poppler::LineAnnotation::Slash:
+        return Okular::LineAnnotation::Slash;
+    default:
+        qWarning() << Q_FUNC_INFO << "unknown value" << pts;
+    }
+
+    return Okular::LineAnnotation::None;
+}
+
+static Okular::LineAnnotation::LineIntent popplerToOkular(Poppler::LineAnnotation::LineIntent pli)
+{
+    switch (pli) {
+    case Poppler::LineAnnotation::Unknown:
+        return Okular::LineAnnotation::Unknown;
+    case Poppler::LineAnnotation::Arrow:
+        return Okular::LineAnnotation::Arrow;
+    case Poppler::LineAnnotation::Dimension:
+        return Okular::LineAnnotation::Dimension;
+    case Poppler::LineAnnotation::PolygonCloud:
+        return Okular::LineAnnotation::PolygonCloud;
+    default:
+        qWarning() << Q_FUNC_INFO << "unknown value" << pli;
+    }
+
+    return Okular::LineAnnotation::Unknown;
+}
+
 static Okular::Annotation *createAnnotationFromPopplerAnnotation(Poppler::TextAnnotation *popplerAnnotation)
 {
     Okular::TextAnnotation *oTextAnn = new Okular::TextAnnotation();
@@ -381,6 +429,28 @@ static Okular::Annotation *createAnnotationFromPopplerAnnotation(Poppler::TextAn
     }
 
     return oTextAnn;
+}
+
+static Okular::Annotation *createAnnotationFromPopplerAnnotation(const Poppler::LineAnnotation *popplerAnnotation)
+{
+    Okular::LineAnnotation *oLineAnn = new Okular::LineAnnotation();
+
+    oLineAnn->setLineStartStyle(popplerToOkular(popplerAnnotation->lineStartStyle()));
+    oLineAnn->setLineEndStyle(popplerToOkular(popplerAnnotation->lineEndStyle()));
+    oLineAnn->setLineClosed(popplerAnnotation->isLineClosed());
+    oLineAnn->setLineInnerColor(popplerAnnotation->lineInnerColor());
+    oLineAnn->setLineLeadingForwardPoint(popplerAnnotation->lineLeadingForwardPoint());
+    oLineAnn->setLineLeadingBackwardPoint(popplerAnnotation->lineLeadingBackPoint());
+    oLineAnn->setShowCaption(popplerAnnotation->lineShowCaption());
+    oLineAnn->setLineIntent(popplerToOkular(popplerAnnotation->lineIntent()));
+
+    QLinkedList<Okular::NormalizedPoint> points;
+    for (const QPointF &p : popplerAnnotation->linePoints()) {
+        points << Okular::NormalizedPoint(p.x(), p.y());
+    }
+    oLineAnn->setLinePoints(points);
+
+    return oLineAnn;
 }
 
 Okular::Annotation *createAnnotationFromPopplerAnnotation(Poppler::Annotation *popplerAnnotation, const Poppler::Page &popplerPage, bool *doDelete)
@@ -457,7 +527,13 @@ Okular::Annotation *createAnnotationFromPopplerAnnotation(Poppler::Annotation *p
         okularAnnotation = createAnnotationFromPopplerAnnotation(static_cast<Poppler::TextAnnotation *>(popplerAnnotation));
         break;
     }
-    case Poppler::Annotation::ALine:
+    case Poppler::Annotation::ALine: {
+        externallyDrawn = true;
+        tieToOkularAnn = true;
+        *doDelete = false;
+        okularAnnotation = createAnnotationFromPopplerAnnotation(static_cast<Poppler::LineAnnotation *>(popplerAnnotation));
+        break;
+    }
     case Poppler::Annotation::AGeom:
     case Poppler::Annotation::AHighlight:
     case Poppler::Annotation::AInk:
