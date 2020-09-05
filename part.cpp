@@ -69,9 +69,7 @@
 #include <KToggleFullScreenAction>
 #include <Kdelibs4ConfigMigrator>
 #include <Kdelibs4Migration>
-#ifdef WITH_KWALLET
 #include <KWallet>
-#endif
 #include <KXMLGUIClient>
 #include <KXMLGUIFactory>
 
@@ -1373,7 +1371,6 @@ Document::OpenResult Part::doOpenFile(const QMimeType &mimeA, const QString &fil
         }
         m_documentOpenWithPassword = false;
 
-#ifdef WITH_KWALLET
         // if the file didn't open correctly it might be encrypted, so ask for a pass
         QString walletName, walletFolder, walletKey;
         m_document->walletDataForFile(fileNameToOpen, &walletName, &walletFolder, &walletKey);
@@ -1439,7 +1436,6 @@ Document::OpenResult Part::doOpenFile(const QMimeType &mimeA, const QString &fil
                 }
             }
         }
-#endif
     }
 
     if (openResult == Document::OpenSuccess) {
