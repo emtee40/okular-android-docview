@@ -67,13 +67,11 @@
 #include <KStandardShortcut>
 #include <KToggleAction>
 #include <KToggleFullScreenAction>
-#include <Kdelibs4ConfigMigrator>
-#include <Kdelibs4Migration>
-#ifdef WITH_KWALLET
 #include <KWallet>
-#endif
 #include <KXMLGUIClient>
 #include <KXMLGUIFactory>
+#include <Kdelibs4ConfigMigrator>
+#include <Kdelibs4Migration>
 
 #if PURPOSE_FOUND
 #include <Purpose/AlternativesModel>
@@ -93,6 +91,7 @@
 #include "core/document.h"
 #include "core/document_p.h"
 #include "core/fileprinter.h"
+#include "core/form.h"
 #include "core/generator.h"
 #include "core/page.h"
 #include "core/printoptionswidget.h"
@@ -1373,7 +1372,6 @@ Document::OpenResult Part::doOpenFile(const QMimeType &mimeA, const QString &fil
         }
         m_documentOpenWithPassword = false;
 
-#ifdef WITH_KWALLET
         // if the file didn't open correctly it might be encrypted, so ask for a pass
         QString walletName, walletFolder, walletKey;
         m_document->walletDataForFile(fileNameToOpen, &walletName, &walletFolder, &walletKey);
@@ -1439,7 +1437,6 @@ Document::OpenResult Part::doOpenFile(const QMimeType &mimeA, const QString &fil
                 }
             }
         }
-#endif
     }
 
     if (openResult == Document::OpenSuccess) {
@@ -1528,13 +1525,25 @@ bool Part::openFile()
         m_formsMessage->setVisible(false);
     }
 
-    if (ok && m_document->metaData(QStringLiteral("IsDigitallySigned")).toBool()) {
-        if (m_embedMode == PrintPreviewMode) {
-            m_signatureMessage->setText(i18n("All editing and interactive features for this document are disabled. Please save a copy and reopen to edit this document."));
-        } else {
-            m_signatureMessage->setText(i18n("This document is digitally signed."));
+    if (ok) {
+        const uint numPages = m_document->pages();
+        bool isDigitallySigned = false;
+        for (uint i = 0; i < numPages; i++) {
+            const QLinkedList<Okular::FormField *> formFields = m_document->page(i)->formFields();
+            for (const Okular::FormField *f : formFields) {
+                if (f->type() == Okular::FormField::FormSignature)
+                    isDigitallySigned = true;
+            }
         }
-        m_signatureMessage->setVisible(true);
+
+        if (isDigitallySigned) {
+            if (m_embedMode == PrintPreviewMode) {
+                m_signatureMessage->setText(i18n("All editing and interactive features for this document are disabled. Please save a copy and reopen to edit this document."));
+            } else {
+                m_signatureMessage->setText(i18n("This document is digitally signed."));
+            }
+            m_signatureMessage->setVisible(true);
+        }
     }
 
     if (m_showPresentation)

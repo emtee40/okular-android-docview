@@ -663,10 +663,10 @@ public:
         return tools;
     }
 
-    QDomElement tool(int toolID)
+    QDomElement tool(int toolId)
     {
         QDomElement toolElement = m_toolsDefinition.documentElement().firstChildElement();
-        while (!toolElement.isNull() && toolElement.attribute(QStringLiteral("id")).toInt() != toolID) {
+        while (!toolElement.isNull() && toolElement.attribute(QStringLiteral("id")).toInt() != toolId) {
             toolElement = toolElement.nextSiblingElement();
         }
         return toolElement; // can return a null element
@@ -679,30 +679,37 @@ public:
         m_toolsDefinition.documentElement().appendChild(toolElement);
     }
 
-    bool updateTool(QDomElement newToolElement, int toolID)
+    bool updateTool(QDomElement newToolElement, int toolId)
     {
-        QDomElement toolElement = tool(toolID);
+        QDomElement toolElement = tool(toolId);
         if (toolElement.isNull())
             return false;
         newToolElement = newToolElement.cloneNode().toElement();
-        newToolElement.setAttribute(QStringLiteral("id"), toolID);
+        newToolElement.setAttribute(QStringLiteral("id"), toolId);
         QDomNode oldTool = m_toolsDefinition.documentElement().replaceChild(newToolElement, toolElement);
         return !oldTool.isNull();
     }
 
     int findToolId(const QString &type)
     {
-        int toolID = -1;
+        int toolId = -1;
+        if (type.isEmpty()) {
+            return -1;
+        }
         // FIXME: search from left. currently searching from right side as a workaround to avoid matching
         // straight line tools to the arrow tool, which is also of type straight-line
         QDomElement toolElement = m_toolsDefinition.documentElement().lastChildElement();
         while (!toolElement.isNull() && toolElement.attribute(QStringLiteral("type")) != type) {
             toolElement = toolElement.previousSiblingElement();
         }
-        if (!toolElement.isNull()) {
-            toolID = toolElement.attribute(QStringLiteral("id")).toInt();
+        if (!toolElement.isNull() && toolElement.hasAttribute(QStringLiteral("id"))) {
+            bool ok;
+            toolId = toolElement.attribute(QStringLiteral("id")).toInt(&ok);
+            if (!ok) {
+                return -1;
+            }
         }
-        return toolID;
+        return toolId;
     }
 
 private:
@@ -719,11 +726,11 @@ PageViewAnnotator::PageViewAnnotator(PageView *parent, Okular::Document *storage
     , m_pageView(parent)
     , m_actionHandler(nullptr)
     , m_engine(nullptr)
-    , m_toolsDefinition(nullptr)
+    , m_builtinToolsDefinition(nullptr)
     , m_quickToolsDefinition(nullptr)
     , m_continuousMode(true)
     , m_constrainRatioAndAngle(false)
-    , m_lastToolID(-1)
+    , m_lastToolId(-1)
     , m_lockedItem(nullptr)
 {
     reparseConfig();
@@ -732,9 +739,9 @@ PageViewAnnotator::PageViewAnnotator(PageView *parent, Okular::Document *storage
 void PageViewAnnotator::reparseConfig()
 {
     // Read tool list from configuration. It's a list of XML <tool></tool> elements
-    if (!m_toolsDefinition)
-        m_toolsDefinition = new AnnotationTools();
-    m_toolsDefinition->setTools(Okular::Settings::annotationTools());
+    if (!m_builtinToolsDefinition)
+        m_builtinToolsDefinition = new AnnotationTools();
+    m_builtinToolsDefinition->setTools(Okular::Settings::builtinAnnotationTools());
 
     if (!m_quickToolsDefinition)
         m_quickToolsDefinition = new AnnotationTools();
@@ -841,7 +848,7 @@ QRect PageViewAnnotator::performRouteMouseOrTabletEvent(const AnnotatorEngine::E
         }
 
         if (m_continuousMode)
-            selectTool(m_lastToolID);
+            selectTool(m_lastToolId);
         else
             detachAnnotation();
     }
@@ -928,10 +935,10 @@ void PageViewAnnotator::routePaint(QPainter *painter, const QRect paintRect)
     painter->restore();
 }
 
-void PageViewAnnotator::selectTool(int toolID)
+void PageViewAnnotator::selectTool(int toolId)
 {
     // ask for Author's name if not already set
-    if (toolID > 0 && Okular::Settings::identityAuthor().isEmpty()) {
+    if (toolId > 0 && Okular::Settings::identityAuthor().isEmpty()) {
         // get default username from the kdelibs/kdecore/KUser
         KUser currentUser;
         QString userName = currentUser.property(KUser::FullName).toString();
@@ -962,17 +969,17 @@ void PageViewAnnotator::selectTool(int toolID)
     }
 
     // store current tool for later usage
-    m_lastToolID = toolID;
+    m_lastToolId = toolId;
 
     // handle tool deselection
-    if (toolID == -1) {
+    if (toolId == -1) {
         m_pageView->displayMessage(QString());
         m_pageView->updateCursor();
         return;
     }
 
     // for the selected tool create the Engine
-    QDomElement toolElement = m_toolsDefinition->tool(toolID);
+    QDomElement toolElement = m_builtinToolsDefinition->tool(toolId);
     if (!toolElement.isNull()) {
         // parse tool properties
         QDomElement engineElement = toolElement.firstChildElement(QStringLiteral("engine"));
@@ -1033,7 +1040,7 @@ void PageViewAnnotator::selectTool(int toolID)
         m_pageView->updateCursor();
     }
 
-    if (toolID > 0)
+    if (toolId > 0)
         emit toolSelected();
 }
 
@@ -1268,36 +1275,39 @@ void PageViewAnnotator::setTextToolsEnabled(bool enabled)
 
 void PageViewAnnotator::saveAnnotationTools()
 {
-    Okular::Settings::setAnnotationTools(m_toolsDefinition->toStringList());
+    Okular::Settings::setBuiltinAnnotationTools(m_builtinToolsDefinition->toStringList());
     Okular::Settings::setQuickAnnotationTools(m_quickToolsDefinition->toStringList());
     Okular::Settings::self()->save();
 }
 
-int PageViewAnnotator::setQuickTool(int favToolID)
+int PageViewAnnotator::setQuickTool(int favToolId)
 {
     int toolId = -1;
-    QDomElement favToolElement = m_quickToolsDefinition->tool(favToolID);
+    QDomElement favToolElement = m_quickToolsDefinition->tool(favToolId);
     if (!favToolElement.isNull()) {
-        toolId = m_toolsDefinition->findToolId(favToolElement.attribute(QStringLiteral("type")));
-        if (m_toolsDefinition->updateTool(favToolElement, toolId))
+        toolId = m_builtinToolsDefinition->findToolId(favToolElement.attribute(QStringLiteral("type")));
+        if (toolId == -1) {
+            return -1;
+        }
+        if (m_builtinToolsDefinition->updateTool(favToolElement, toolId))
             saveAnnotationTools();
     }
     return toolId;
 }
 
-QDomElement PageViewAnnotator::builtinTool(int toolID)
+QDomElement PageViewAnnotator::builtinTool(int toolId)
 {
-    return m_toolsDefinition->tool(toolID);
+    return m_builtinToolsDefinition->tool(toolId);
 }
 
-QDomElement PageViewAnnotator::quickTool(int toolID)
+QDomElement PageViewAnnotator::quickTool(int toolId)
 {
-    return m_quickToolsDefinition->tool(toolID);
+    return m_quickToolsDefinition->tool(toolId);
 }
 
 QDomElement PageViewAnnotator::currentEngineElement()
 {
-    return m_toolsDefinition->tool(m_lastToolID).firstChildElement(QStringLiteral("engine"));
+    return m_builtinToolsDefinition->tool(m_lastToolId).firstChildElement(QStringLiteral("engine"));
 }
 
 QDomElement PageViewAnnotator::currentAnnotationElement()
@@ -1309,7 +1319,7 @@ void PageViewAnnotator::setAnnotationWidth(double width)
 {
     currentAnnotationElement().setAttribute(QStringLiteral("width"), QString::number(width));
     saveAnnotationTools();
-    selectTool(m_lastToolID);
+    selectTool(m_lastToolId);
 }
 
 void PageViewAnnotator::setAnnotationColor(const QColor &color)
@@ -1323,7 +1333,7 @@ void PageViewAnnotator::setAnnotationColor(const QColor &color)
         annotationElement.setAttribute(QStringLiteral("color"), color.name(QColor::HexRgb));
     }
     saveAnnotationTools();
-    selectTool(m_lastToolID);
+    selectTool(m_lastToolId);
 }
 
 void PageViewAnnotator::setAnnotationInnerColor(const QColor &color)
@@ -1335,26 +1345,26 @@ void PageViewAnnotator::setAnnotationInnerColor(const QColor &color)
         annotationElement.setAttribute(QStringLiteral("innerColor"), color.name(QColor::HexRgb));
     }
     saveAnnotationTools();
-    selectTool(m_lastToolID);
+    selectTool(m_lastToolId);
 }
 
 void PageViewAnnotator::setAnnotationOpacity(double opacity)
 {
     currentAnnotationElement().setAttribute(QStringLiteral("opacity"), QString::number(opacity));
     saveAnnotationTools();
-    selectTool(m_lastToolID);
+    selectTool(m_lastToolId);
 }
 
 void PageViewAnnotator::setAnnotationFont(const QFont &font)
 {
     currentAnnotationElement().setAttribute(QStringLiteral("font"), font.toString());
     saveAnnotationTools();
-    selectTool(m_lastToolID);
+    selectTool(m_lastToolId);
 }
 
 void PageViewAnnotator::addToQuickAnnotations()
 {
-    QDomElement sourceToolElement = m_toolsDefinition->tool(m_lastToolID);
+    QDomElement sourceToolElement = m_builtinToolsDefinition->tool(m_lastToolId);
     if (sourceToolElement.isNull())
         return;
 
@@ -1374,17 +1384,17 @@ void PageViewAnnotator::addToQuickAnnotations()
 
 void PageViewAnnotator::slotAdvancedSettings()
 {
-    QDomElement toolElement = m_toolsDefinition->tool(m_lastToolID);
+    QDomElement toolElement = m_builtinToolsDefinition->tool(m_lastToolId);
 
     EditAnnotToolDialog t(nullptr, toolElement, true);
     if (t.exec() != QDialog::Accepted)
         return;
 
     QDomElement toolElementUpdated = t.toolXml().documentElement();
-    int toolID = toolElement.attribute(QStringLiteral("id")).toInt();
-    m_toolsDefinition->updateTool(toolElementUpdated, toolID);
+    int toolId = toolElement.attribute(QStringLiteral("id")).toInt();
+    m_builtinToolsDefinition->updateTool(toolElementUpdated, toolId);
     saveAnnotationTools();
-    selectTool(m_lastToolID);
+    selectTool(m_lastToolId);
 }
 
 #include "moc_pageviewannotator.cpp"

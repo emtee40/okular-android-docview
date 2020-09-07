@@ -83,21 +83,18 @@ public:
      * matches a default stamp, any existing stamp annotation action is removed.
      */
     void maybeUpdateCustomStampAction(const QString &stampIconName);
-    void parseTool(int toolID);
+    void parseTool(int toolId);
 
     void updateConfigActions(const QString &annotType = QLatin1String(""));
     void populateQuickAnnotations();
     KSelectAction *colorPickerAction(AnnotationColor colorType);
 
-    const QIcon colorIcon(const QColor &color);
     const QIcon widthIcon(double width);
-    const QIcon colorPickerIcon(const QString &iconName, const QColor &color);
-    const QIcon opacityIcon(double opacity);
     const QIcon stampIcon(const QString &stampIconName);
 
-    void selectTool(int toolID);
+    void selectTool(int toolId);
     void slotStampToolSelected(const QString &stamp);
-    void slotQuickToolSelected(int favToolID);
+    void slotQuickToolSelected(int favToolId);
     void slotSetColor(AnnotationColor colorType, const QColor &color = QColor());
     void slotSelectAnnotationFont();
     void slotToolBarVisibilityChanged(bool checked);
@@ -154,7 +151,7 @@ const QList<QPair<QString, QColor>> AnnotationActionHandlerPrivate::defaultColor
 
 const QList<double> AnnotationActionHandlerPrivate::widthStandardValues = {1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5};
 
-const QList<double> AnnotationActionHandlerPrivate::opacityStandardValues = {10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
+const QList<double> AnnotationActionHandlerPrivate::opacityStandardValues = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
 
 QAction *AnnotationActionHandlerPrivate::selectActionItem(KSelectAction *aList, QAction *aCustomCurrent, double value, const QList<double> &defaultValues, const QIcon &icon, const QString &label)
 {
@@ -199,14 +196,14 @@ void AnnotationActionHandlerPrivate::maybeUpdateCustomStampAction(const QString 
     }
 }
 
-void AnnotationActionHandlerPrivate::parseTool(int toolID)
+void AnnotationActionHandlerPrivate::parseTool(int toolId)
 {
-    if (toolID == -1) {
+    if (toolId == -1) {
         updateConfigActions();
         return;
     }
 
-    QDomElement toolElement = annotator->builtinTool(toolID);
+    QDomElement toolElement = annotator->builtinTool(toolId);
     const QString annotType = toolElement.attribute(QStringLiteral("type"));
     QDomElement engineElement = toolElement.firstChildElement(QStringLiteral("engine"));
     QDomElement annElement = engineElement.firstChildElement(QStringLiteral("annotation"));
@@ -241,8 +238,8 @@ void AnnotationActionHandlerPrivate::parseTool(int toolID)
 
     // if the opacity value is not a default one, insert a new action in the opacity list
     if (annElement.hasAttribute(QStringLiteral("opacity"))) {
-        double opacity = 100 * annElement.attribute(QStringLiteral("opacity")).toDouble();
-        aCustomOpacity = selectActionItem(aOpacity, aCustomOpacity, opacity, opacityStandardValues, opacityIcon(opacity), i18nc("@item:inlistbox", "%1\%", opacity));
+        double opacity = annElement.attribute(QStringLiteral("opacity")).toDouble();
+        aCustomOpacity = selectActionItem(aOpacity, aCustomOpacity, opacity, opacityStandardValues, GuiUtils::createOpacityIcon(opacity), i18nc("@item:inlistbox", "%1\%", opacity * 100));
     } else {
         aOpacity->setCurrentItem(opacityStandardValues.size() - 1); // 100 %
     }
@@ -269,11 +266,11 @@ void AnnotationActionHandlerPrivate::updateConfigActions(const QString &annotTyp
     const bool isStamp = annotType == QStringLiteral("stamp");
 
     if (isTypewriter) {
-        aColor->setIcon(colorPickerIcon(QStringLiteral("format-text-color"), currentColor));
+        aColor->setIcon(GuiUtils::createColorIcon({currentColor}, QIcon::fromTheme(QStringLiteral("format-text-color"))));
     } else {
-        aColor->setIcon(colorPickerIcon(QStringLiteral("format-stroke-color"), currentColor));
+        aColor->setIcon(GuiUtils::createColorIcon({currentColor}, QIcon::fromTheme(QStringLiteral("format-stroke-color"))));
     }
-    aInnerColor->setIcon(colorPickerIcon(QStringLiteral("format-fill-color"), currentInnerColor));
+    aInnerColor->setIcon(GuiUtils::createColorIcon({currentInnerColor}, QIcon::fromTheme(QStringLiteral("format-fill-color"))));
 
     aAddToQuickTools->setEnabled(isAnnotationSelected);
     aWidth->setEnabled(isLine || isShape);
@@ -359,7 +356,7 @@ void AnnotationActionHandlerPrivate::populateQuickAnnotations()
         QAction *annFav = new QAction(toolIcon, itemText, q);
         aQuickTools->addAction(annFav);
         if (shortcutNumber != numberKeys.end())
-            annFav->setShortcut(QKeySequence(Qt::ALT + *(shortcutNumber++)));
+            annFav->setShortcut(QKeySequence(*(shortcutNumber++)));
         QObject::connect(annFav, &QAction::triggered, q, [this, favToolId]() { slotQuickToolSelected(favToolId); });
 
         QDomElement engineElement = favToolElement.firstChildElement(QStringLiteral("engine"));
@@ -393,7 +390,7 @@ KSelectAction *AnnotationActionHandlerPrivate::colorPickerAction(AnnotationColor
     aColorPicker->setToolBarMode(KSelectAction::MenuMode);
     for (const auto &colorNameValue : colorList) {
         QColor color(colorNameValue.second);
-        QAction *aColor = new QAction(colorIcon(color), i18nc("@item:inlistbox Color name", "%1", colorNameValue.first), q);
+        QAction *aColor = new QAction(GuiUtils::createColorIcon({color}, QIcon(), GuiUtils::VisualizeTransparent), i18nc("@item:inlistbox Color name", "%1", colorNameValue.first), q);
         aColorPicker->addAction(aColor);
         QObject::connect(aColor, &QAction::triggered, q, [this, colorType, color]() { slotSetColor(colorType, color); });
     }
@@ -415,53 +412,6 @@ const QIcon AnnotationActionHandlerPrivate::widthIcon(double width)
     return QIcon(pm);
 }
 
-const QIcon AnnotationActionHandlerPrivate::colorPickerIcon(const QString &iconName, const QColor &color)
-{
-    QIcon icon = QIcon::fromTheme(iconName);
-    if (!color.isValid()) {
-        return icon;
-    }
-    QSize iconSize = QSize(32, 32);
-    QPixmap pm = icon.pixmap(iconSize);
-    QPainter p(&pm);
-    p.fillRect(0, iconSize.height() - 8, iconSize.width(), 8, color);
-    p.end();
-    return QIcon(pm);
-}
-
-const QIcon AnnotationActionHandlerPrivate::colorIcon(const QColor &color)
-{
-    QSize iconSize = QSize(32, 32);
-    QPixmap pm(iconSize);
-    QPainter p(&pm);
-    if (color == Qt::transparent) {
-        p.fillRect(0, 0, iconSize.width(), iconSize.height(), Qt::white);
-        p.setPen(QPen(Qt::red, 2));
-        p.drawLine(iconSize.width() - 1, 0, 0, iconSize.height() - 1);
-    } else {
-        p.fillRect(0, 0, iconSize.width(), iconSize.height(), color);
-    }
-    p.setPen(Qt::black);
-    p.drawRect(0, 0, iconSize.width() - 1, iconSize.height() - 1);
-    p.end();
-    return QIcon(pm);
-}
-
-const QIcon AnnotationActionHandlerPrivate::opacityIcon(double opacity)
-{
-    QPixmap pm(32, 32);
-    pm.fill(Qt::transparent);
-    QPainter p(&pm);
-    p.setRenderHint(QPainter::Antialiasing);
-    p.setPen(Qt::NoPen);
-    QColor color(Qt::black);
-    color.setAlpha(opacity * 255 / 100);
-    p.setBrush(QBrush(color));
-    p.drawRect(4, 4, 24, 24);
-    p.end();
-    return QIcon(pm);
-}
-
 const QIcon AnnotationActionHandlerPrivate::stampIcon(const QString &stampIconName)
 {
     QPixmap stampPix = GuiUtils::loadStamp(stampIconName, 32);
@@ -471,11 +421,11 @@ const QIcon AnnotationActionHandlerPrivate::stampIcon(const QString &stampIconNa
         return QIcon::fromTheme(QStringLiteral("tag"));
 }
 
-void AnnotationActionHandlerPrivate::selectTool(int toolID)
+void AnnotationActionHandlerPrivate::selectTool(int toolId)
 {
-    selectedTool = toolID;
-    annotator->selectTool(toolID);
-    parseTool(toolID);
+    selectedTool = toolId;
+    annotator->selectTool(toolId);
+    parseTool(toolId);
 }
 
 void AnnotationActionHandlerPrivate::slotStampToolSelected(const QString &stamp)
@@ -485,13 +435,17 @@ void AnnotationActionHandlerPrivate::slotStampToolSelected(const QString &stamp)
     annotator->selectStampTool(stamp); // triggers a reparsing thus calling parseTool
 }
 
-void AnnotationActionHandlerPrivate::slotQuickToolSelected(int favToolID)
+void AnnotationActionHandlerPrivate::slotQuickToolSelected(int favToolId)
 {
-    int toolID = annotator->setQuickTool(favToolID); // always triggers an unuseful reparsing
-    int indexOfActionInGroup = toolID - 1;
-    if (toolID == PageViewAnnotator::STAMP_TOOL_ID) {
+    int toolId = annotator->setQuickTool(favToolId); // always triggers an unuseful reparsing
+    if (toolId == -1) {
+        qWarning("Corrupted configuration for quick annotation tool with id: %d", favToolId);
+        return;
+    }
+    int indexOfActionInGroup = toolId - 1;
+    if (toolId == PageViewAnnotator::STAMP_TOOL_ID) {
         // if the quick tool is a stamp we need to find its corresponding built-in tool action and select it
-        QDomElement favToolElement = annotator->quickTool(favToolID);
+        QDomElement favToolElement = annotator->quickTool(favToolId);
         QDomElement engineElement = favToolElement.firstChildElement(QStringLiteral("engine"));
         QDomElement annotationElement = engineElement.firstChildElement(QStringLiteral("annotation"));
         QString stampIconName = annotationElement.attribute(QStringLiteral("icon"));
@@ -511,7 +465,7 @@ void AnnotationActionHandlerPrivate::slotQuickToolSelected(int favToolID)
         //                          when new tool if different from the selected one
         favToolAction->trigger();
     } else {
-        selectTool(toolID);
+        selectTool(toolId);
     }
     aShowToolBar->setChecked(true);
 }
@@ -679,10 +633,10 @@ AnnotationActionHandler::AnnotationActionHandler(PageViewAnnotator *parent, KAct
     // Opacity list
     d->aOpacity = new KSelectAction(QIcon::fromTheme(QStringLiteral("edit-opacity")), i18nc("@action:intoolbar Current annotation config option", "Opacity"), this);
     d->aOpacity->setToolBarMode(KSelectAction::MenuMode);
-    for (auto opacity : d->opacityStandardValues) {
-        KToggleAction *ann = new KToggleAction(d->opacityIcon(opacity), QStringLiteral("%1\%").arg(opacity), this);
+    for (double opacity : d->opacityStandardValues) {
+        KToggleAction *ann = new KToggleAction(GuiUtils::createOpacityIcon(opacity), QStringLiteral("%1\%").arg(opacity * 100), this);
         d->aOpacity->addAction(ann);
-        connect(ann, &QAction::triggered, this, [this, opacity]() { d->annotator->setAnnotationOpacity(opacity / 100); });
+        connect(ann, &QAction::triggered, this, [this, opacity]() { d->annotator->setAnnotationOpacity(opacity); });
     }
 
     connect(d->aAddToQuickTools, &QAction::triggered, d->annotator, &PageViewAnnotator::addToQuickAnnotations);
@@ -734,16 +688,16 @@ AnnotationActionHandler::AnnotationActionHandler(PageViewAnnotator *parent, KAct
     ac->addAction(QStringLiteral("annotation_settings_advanced"), d->aAdvancedSettings);
 
     ac->setDefaultShortcut(d->aShowToolBar, Qt::Key_F6);
-    ac->setDefaultShortcut(aHighlighter, Qt::Key_1);
-    ac->setDefaultShortcut(aUnderline, Qt::Key_2);
-    ac->setDefaultShortcut(aSquiggle, Qt::Key_3);
-    ac->setDefaultShortcut(aStrikeout, Qt::Key_4);
-    ac->setDefaultShortcut(aTypewriter, Qt::Key_5);
-    ac->setDefaultShortcut(aInlineNote, Qt::Key_6);
-    ac->setDefaultShortcut(aPopupNote, Qt::Key_7);
-    ac->setDefaultShortcut(aFreehandLine, Qt::Key_8);
-    ac->setDefaultShortcut(aArrow, Qt::Key_9);
-    ac->setDefaultShortcut(aRectangle, Qt::Key_0);
+    ac->setDefaultShortcut(aHighlighter, Qt::ALT + Qt::Key_1);
+    ac->setDefaultShortcut(aUnderline, Qt::ALT + Qt::Key_2);
+    ac->setDefaultShortcut(aSquiggle, Qt::ALT + Qt::Key_3);
+    ac->setDefaultShortcut(aStrikeout, Qt::ALT + Qt::Key_4);
+    ac->setDefaultShortcut(aTypewriter, Qt::ALT + Qt::Key_5);
+    ac->setDefaultShortcut(aInlineNote, Qt::ALT + Qt::Key_6);
+    ac->setDefaultShortcut(aPopupNote, Qt::ALT + Qt::Key_7);
+    ac->setDefaultShortcut(aFreehandLine, Qt::ALT + Qt::Key_8);
+    ac->setDefaultShortcut(aArrow, Qt::ALT + Qt::Key_9);
+    ac->setDefaultShortcut(aRectangle, Qt::ALT + Qt::Key_0);
     ac->setDefaultShortcut(d->aAddToQuickTools, QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_B));
     d->updateConfigActions();
 }
