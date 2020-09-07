@@ -121,6 +121,10 @@ void PopplerAnnotationProxy::notifyAddition(Okular::Annotation *okl_ann, int pag
     ppl_page->addAnnotation(ppl_ann);
     delete ppl_page;
 
+    // restore okl_ann modificationDate to ensure pdfAnnot
+    // object is true to the okl_ann timestamp in saved state
+    ppl_ann->setModificationDate(okl_ann->modificationDate());
+
     // Set pointer to poppler annotation as native Id
     okl_ann->setNativeId(QVariant::fromValue(ppl_ann));
     okl_ann->setDisposeDataFunction(disposeAnnotation);
