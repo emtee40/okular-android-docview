@@ -126,8 +126,10 @@ void DocumentTest::testDocdataMigration()
     QCOMPARE(m_document->page(0)->annotations().size(), 1);
     QCOMPARE(m_document->page(0)->annotations().first()->uniqueName(), QStringLiteral("testannot"));
     QCOMPARE(m_document->page(0)->annotations().first()->author(), QStringLiteral("someone"));
+#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(20, 9, 0)
     QCOMPARE(m_document->page(0)->annotations().first()->creationDate().toString(Qt::ISODate), (QDateTime::QDateTime::fromString(QStringLiteral("2017-09-11T19:40:57Z"), Qt::ISODate)).toString(Qt::ISODate));
     QCOMPARE(m_document->page(0)->annotations().first()->modificationDate().toString(Qt::ISODate), (QDateTime::QDateTime::fromString(QStringLiteral("2017-09-11T19:40:57Z"), Qt::ISODate)).toString(Qt::ISODate));
+#endif
     QVERIFY(!m_document->isDocdataMigrationNeeded());
     m_document->closeDocument();
 
