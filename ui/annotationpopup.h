@@ -72,10 +72,10 @@ public:
     };
 
 private:
-    void doRemovePageAnnotation(const AnnotPagePair &pair);
-    void doOpenAnnotationWindow(const AnnotPagePair &pair);
-    void doOpenPropertiesDialog(const AnnotPagePair &pair);
-    void doSaveEmbeddedFile(const AnnotPagePair &pair);
+    void doRemovePageAnnotation(AnnotPagePair pair);
+    void doOpenAnnotationWindow(AnnotPagePair pair);
+    void doOpenPropertiesDialog(AnnotPagePair pair);
+    void doSaveEmbeddedFile(AnnotPagePair pair);
 
     QWidget *mParent;
 
