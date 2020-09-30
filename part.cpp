@@ -2790,7 +2790,12 @@ void Part::slotNewConfig()
     if (m_presentationDrawingActions) {
         m_presentationDrawingActions->reparseConfig();
         if (factory()) {
+            // aacid: begin workaround: I think this is a bug in kxmlgui
+            //        this resets the cached xml so that if the user just changed
+            //        a shortcut we read the new one and not the old one from the cached xml
+            setXMLGUIBuildDocument({});
             factory()->refreshActionProperties();
+            // aacid: end workaround
         }
     }
 }
