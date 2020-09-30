@@ -41,6 +41,7 @@
 #include <QApplication>
 #include <QDBusConnection>
 #include <QDesktopWidget>
+#include <QDomDocument>
 #include <QDragMoveEvent>
 #include <QFileDialog>
 #include <QMenuBar>
@@ -599,6 +600,13 @@ void Shell::setActiveTab(int tab)
 {
     m_tabWidget->setCurrentIndex(tab);
     createGUI(m_tabs[tab].part);
+    // aacid: begin workaround: I think this is a bug in kxmlgui
+    //        this resets the cached xml so that we can refresh the properties
+    //        so that if the user changed the shortcuts in a different tab
+    //        they are updated in this one too
+    m_tabs[tab].part->setXMLGUIBuildDocument({});
+    m_tabs[tab].part->factory()->refreshActionProperties();
+    // aacid: end workaround
     m_printAction->setEnabled(m_tabs[tab].printEnabled);
     m_closeAction->setEnabled(m_tabs[tab].closeEnabled);
 }
