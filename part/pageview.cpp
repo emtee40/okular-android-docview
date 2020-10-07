@@ -4308,7 +4308,7 @@ void PageView::zoomWithFixedCenter(PageView::ZoomMode newZoomMode, QPointF zoomC
 
     const int newScrollX = std::round(newScroll.x());
     const int newScrollY = std::round(newScroll.y());
-    scrollTo(newScrollX, newScrollY, false);
+    d->scroller->scrollTo(QPoint(newScrollX, newScrollY), 0);
 
     viewport()->setUpdatesEnabled(true);
     viewport()->update();
