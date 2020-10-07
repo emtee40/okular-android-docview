@@ -266,7 +266,9 @@ public:
 
     QScroller *scroller;
     bool zoomActive;
-    QPointF scrollRest;
+
+    // The remaining scroll from the previous zoom event
+    QPointF remainingScroll;
 };
 
 PageViewPrivate::PageViewPrivate(PageView *qq)
@@ -391,7 +393,7 @@ PageView::PageView(QWidget *parent, Okular::Document *document)
     d->aFitWindowToPage = nullptr;
     d->trimBoundingBox = Okular::NormalizedRect(); // Null box
     d->zoomActive = false;
-    d->scrollRest = QPointF(0.0, 0.0);
+    d->remainingScroll = QPointF(0.0, 0.0);
 
     switch (Okular::Settings::zoomMode()) {
     case 0: {
@@ -1696,7 +1698,7 @@ bool PageView::gestureEvent(QGestureEvent *event)
 
         // Zoom
         if (pinch->changeFlags() & QPinchGesture::ScaleFactorChanged) {
-            holdZoomCenter(ZoomRefreshCurrent, mapFromGlobal(pinch->centerPoint().toPoint()), vanillaZoom * pinch->totalScaleFactor());
+            zoomWithFixedCenter(ZoomRefreshCurrent, mapFromGlobal(pinch->centerPoint().toPoint()), vanillaZoom * pinch->totalScaleFactor());
         }
 
         // Count the number of 90-degree rotations we did since the start of the pinch gesture.
@@ -1720,7 +1722,7 @@ bool PageView::gestureEvent(QGestureEvent *event)
         if (pinch->state() == Qt::GestureFinished || pinch->state() == Qt::GestureCanceled) {
             rotations = 0;
             d->zoomActive = false;
-            d->scrollRest = QPointF(0.0, 0.0);
+            d->remainingScroll = QPointF(0.0, 0.0);
         }
 
         return true;
@@ -2084,7 +2086,7 @@ void PageView::keyReleaseEvent(QKeyEvent *e)
     }
 
     if (e->key() == Qt::Key_Control) {
-        d->scrollRest = QPointF(0.0, 0.0);
+        d->remainingScroll = QPointF(0.0, 0.0);
         d->zoomActive = false;
     }
 }
@@ -2160,7 +2162,7 @@ void PageView::mouseMoveEvent(QMouseEvent *e)
             d->zoomActive = true;
             // lock mouse cursor in the position of the mousePressEvent
             QCursor::setPos(d->mousePressPos);
-            holdZoomCenter(ZoomRefreshCurrent, mapFromGlobal(d->mousePressPos), d->zoomFactor * (1.0 + ((double)deltaY / 500.0)));
+            zoomWithFixedCenter(ZoomRefreshCurrent, mapFromGlobal(d->mousePressPos), d->zoomFactor * (1.0 + ((double)deltaY / 500.0)));
         }
         return;
     }
@@ -2474,7 +2476,7 @@ void PageView::mouseReleaseEvent(QMouseEvent *e)
     // handle mode independent mid bottom zoom
     if (e->button() == Qt::MiddleButton) {
         d->zoomActive = false;
-        d->scrollRest = QPointF(0.0, 0.0);
+        d->remainingScroll = QPointF(0.0, 0.0);
         // the cursor may now be over a link.. update it
         updateCursor(eventPos);
         return;
@@ -3134,11 +3136,11 @@ void PageView::wheelEvent(QWheelEvent *e)
         d->controlWheelAccumulatedDelta += delta;
         if (d->controlWheelAccumulatedDelta <= -QWheelEvent::DefaultDeltasPerStep) {
             d->zoomActive = true;
-            holdZoomCenter(ZoomOut, e->pos());
+            zoomWithFixedCenter(ZoomOut, e->pos());
             d->controlWheelAccumulatedDelta = 0;
         } else if (d->controlWheelAccumulatedDelta >= QWheelEvent::DefaultDeltasPerStep) {
             d->zoomActive = true;
-            holdZoomCenter(ZoomIn, e->pos());
+            zoomWithFixedCenter(ZoomIn, e->pos());
             d->controlWheelAccumulatedDelta = 0;
         }
     } else {
@@ -4243,7 +4245,7 @@ void PageView::updateSmoothScrollAnimationSpeed()
     d->currentLongScrollDuration = d->baseLongScrollDuration * globalAnimationScale;
 }
 
-void PageView::holdZoomCenter(PageView::ZoomMode newZm, QPointF zoomCenter, float newZoom)
+void PageView::zoomWithFixedCenter(PageView::ZoomMode newZoomMode, QPointF zoomCenter, float newZoom)
 {
     const Okular::DocumentViewport &vp = d->document->viewport();
     Q_ASSERT(vp.pageNumber >= 0);
@@ -4269,7 +4271,7 @@ void PageView::holdZoomCenter(PageView::ZoomMode newZm, QPointF zoomCenter, floa
     if (newZoom)
         d->zoomFactor = newZoom;
 
-    updateZoom(newZm);
+    updateZoom(newZoomMode);
     d->blockPixmapsRequest = false;
 
     const QRect afterGeometry = page->croppedGeometry();
@@ -4282,8 +4284,8 @@ void PageView::holdZoomCenter(PageView::ZoomMode newZm, QPointF zoomCenter, floa
     newScroll.setX(vpZoomX * (oldScroll.x() + zoomCenter.x()) - zoomCenter.x());
 
     // add the remaining scroll from the previous zoom event
-    newScroll.setY(newScroll.y() + d->scrollRest.y() * vpZoomY);
-    newScroll.setX(newScroll.x() + d->scrollRest.x() * vpZoomX);
+    newScroll.setX(newScroll.x() + d->remainingScroll.x() * vpZoomX);
+    newScroll.setY(newScroll.y() + d->remainingScroll.y() * vpZoomY);
 
     // adjust newScroll to the new margins after zooming
     offset = QPoint {afterGeometry.left(), afterGeometry.top()};
@@ -4316,9 +4318,9 @@ void PageView::holdZoomCenter(PageView::ZoomMode newZm, QPointF zoomCenter, floa
     const QPointF diffF = newScroll - contentAreaPosition();
     if (abs(diffF.x()) < 0.5 && abs(diffF.y()) < 0.5) {
         // scroll target reached set d->scrollRest to 0.0
-        d->scrollRest = QPointF(0.0, 0.0);
+        d->remainingScroll = QPointF(0.0, 0.0);
     } else {
-        d->scrollRest = diffF;
+        d->remainingScroll = diffF;
     }
 }
 

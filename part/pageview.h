@@ -226,7 +226,11 @@ private:
     // Update speed of animated smooth scroll transitions
     void updateSmoothScrollAnimationSpeed();
 
-    void holdZoomCenter(ZoomMode newZm, QPointF zoomCenter, float newZoom = 0.0);
+    // Zoom around the point given as zoomCenter
+    // zoomCenter is given in the coordinate system used by the scroll bars
+    // newZoom is the intended new zoom level.  A value of 0.0 means: Don't change the current zoom level.
+    // The zoomMode is set to newZoomMode.
+    void zoomWithFixedCenter(ZoomMode newZoomMode, QPointF zoomCenter, float newZoom = 0.0);
 
     // don't want to expose classes in here
     class PageViewPrivate *d;
