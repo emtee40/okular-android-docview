@@ -1972,7 +1972,7 @@ void PageView::resizeEvent(QResizeEvent *e)
     }
 
     if (d->zoomActive) {
-        // if we make a continuous zooming with pinch gesture or mouse, we call delayedResizeEvent() direct.
+        // if we make a continuous zooming with pinch gesture or mouse, we call delayedResizeEvent() directly.
         delayedResizeEvent();
     } else {
         // start a timer that will refresh the pixmap after 0.2s
@@ -4291,7 +4291,7 @@ void PageView::zoomWithFixedCenter(PageView::ZoomMode newZoomMode, QPointF zoomC
     offset = QPoint {afterGeometry.left(), afterGeometry.top()};
     newScroll += offset;
 
-    // adjust newScroll for appear and disappear of the scrollbars
+    // adjust newScroll for appearance and disappearance of the scrollbars
     if (Okular::Settings::showScrollBars()) {
         if (hScrollBarMaximum == 0 && horizontalScrollBar()->maximum() > 0)
             newScroll.setY(newScroll.y() - (horizontalScrollBar()->height() / 2.0));
