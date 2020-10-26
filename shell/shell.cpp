@@ -292,6 +292,11 @@ void Shell::openUrl(const QUrl &url, const QString &serializedOptions)
 void Shell::closeUrl()
 {
     closeTab(m_tabWidget->currentIndex());
+
+    if (m_tabWidget->count() >= 0) {
+        KParts::ReadWritePart *const newPart = m_tabs[m_tabWidget->currentIndex()].part;
+        newPart->widget()->setFocus();
+    }
 }
 
 void Shell::readSettings()
