@@ -5,9 +5,10 @@
       http://www.kde.org/standards/kcfg/1.0/kcfg.xsd" >
     <kcfgfile name="okular-generator-popplercertsrc"/>
     <group name="Signatures" >
-      <entry key="Certificates" type="StringList">
-      </entry>
-      <entry key="CertificatePath" type="String">
+      <entry key="UseDefaultDB" type="Bool">
+          <default>true</default>
+          </entry>
+      <entry key="DBCertificatePath" type="String">
       </entry>
     </group>
 </kcfg>
