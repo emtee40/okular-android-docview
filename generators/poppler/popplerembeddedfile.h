@@ -22,6 +22,8 @@ public:
     {
     }
 
+    ~PDFEmbeddedFile();
+
     QString name() const override
     {
         return ef->name();
