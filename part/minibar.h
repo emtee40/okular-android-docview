@@ -12,6 +12,7 @@
 #define _OKULAR_MINIBAR_H_
 
 #include "core/observer.h"
+#include <KBusyIndicatorWidget>
 #include <KLineEdit>
 #include <QSet>
 #include <qwidget.h>
@@ -178,6 +179,34 @@ protected:
 private:
     Okular::Document *m_document;
     float m_progressPercentage;
+};
+
+/**
+ * @short An infinite progress bar with text visible when pixmap or text generation is in process
+ */
+class LoadingIndicatorWidget : public KBusyIndicatorWidget, public Okular::DocumentObserver
+{
+    Q_OBJECT
+public:
+    LoadingIndicatorWidget(QWidget *parent, Okular::Document *document);
+    ~LoadingIndicatorWidget() override;
+
+    // [INHERITED] from DocumentObserver
+    void notifyPixmapGenerationStarted() override;
+
+    // [INHERITED] from DocumentObserver
+    void notifyPixmapGenerationFinished() override;
+
+    // [INHERITED] from DocumentObserver
+    void notifyTextGenerationStarted() override;
+
+    // [INHERITED] from DocumentObserver
+    void notifyTextGenerationFinished() override;
+
+private:
+    Okular::Document *m_document;
+    bool m_pixmapGenerationInProgress;
+    bool m_textGenerationInProgress;
 };
 
 #endif

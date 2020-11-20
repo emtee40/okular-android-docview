@@ -532,6 +532,13 @@ Part::Part(QWidget *parentWidget, QObject *parent, const QVariantList &args)
     bottomBarLayout->addWidget(m_pageSizeLabel);
     rightLayout->addWidget(m_bottomBar);
 
+    QHBoxLayout *loadingIndicatorWidgetLayout = new QHBoxLayout(m_pageView);
+
+    loadingIndicatorWidgetLayout->addStretch(45);
+    m_loadingIndicatorWidget = new LoadingIndicatorWidget(m_pageView, m_document);
+    loadingIndicatorWidgetLayout->addWidget(m_loadingIndicatorWidget, 10);
+    loadingIndicatorWidgetLayout->addStretch(45);
+
     m_pageNumberTool = new MiniBar(nullptr, m_miniBarLogic);
 
     connect(m_findBar, &FindBar::forwardKeyPressEvent, m_pageView, &PageView::externalKeyPressEvent);
@@ -549,6 +556,7 @@ Part::Part(QWidget *parentWidget, QObject *parent, const QVariantList &args)
     m_document->registerView(m_pageView);
     m_document->addObserver(m_toc);
     m_document->addObserver(m_miniBarLogic);
+    m_document->addObserver(m_loadingIndicatorWidget);
 #ifdef OKULAR_ENABLE_MINIBAR
     m_document->addObserver(m_progressWidget);
 #endif
@@ -942,6 +950,7 @@ Part::~Part()
     delete m_pageNumberTool;
     delete m_miniBarLogic;
     delete m_bottomBar;
+    delete m_loadingIndicatorWidget;
 #ifdef OKULAR_ENABLE_MINIBAR
     delete m_progressWidget;
 #endif

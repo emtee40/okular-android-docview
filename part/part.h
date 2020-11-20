@@ -63,6 +63,7 @@ class ThumbnailList;
 class PageSizeLabel;
 class PageView;
 class PresentationWidget;
+class LoadingIndicatorWidget;
 class ProgressWidget;
 class SearchWidget;
 class Sidebar;
@@ -324,6 +325,7 @@ private:
     QPointer<MiniBar> m_miniBar;
     QPointer<MiniBar> m_pageNumberTool;
     QPointer<QWidget> m_bottomBar;
+    QPointer<LoadingIndicatorWidget> m_loadingIndicatorWidget;
     QPointer<PresentationWidget> m_presentationWidget;
     QPointer<ProgressWidget> m_progressWidget;
     QPointer<PageSizeLabel> m_pageSizeLabel;

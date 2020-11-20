@@ -52,3 +52,19 @@ bool DocumentObserver::canUnloadPixmap(int) const
 void DocumentObserver::notifyCurrentPageChanged(int, int)
 {
 }
+
+void DocumentObserver::notifyPixmapGenerationStarted()
+{
+}
+
+void DocumentObserver::notifyPixmapGenerationFinished()
+{
+}
+
+void DocumentObserver::notifyTextGenerationStarted()
+{
+}
+
+void DocumentObserver::notifyTextGenerationFinished()
+{
+}

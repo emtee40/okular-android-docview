@@ -118,6 +118,26 @@ public:
      */
     virtual void notifyCurrentPageChanged(int previous, int current);
 
+    /**
+     * This method is called whenever pixmap generation is started
+     */
+    virtual void notifyPixmapGenerationStarted();
+
+    /**
+     * This method is called whenever pixmap generation is finished
+     */
+    virtual void notifyPixmapGenerationFinished();
+
+    /**
+     * This method is called whenever text generation is started
+     */
+    virtual void notifyTextGenerationStarted();
+
+    /**
+     * This method is called whenever text generation is finished
+     */
+    virtual void notifyTextGenerationFinished();
+
 private:
     class Private;
     const Private *d;

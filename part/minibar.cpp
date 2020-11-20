@@ -13,6 +13,7 @@
 // qt / kde includes
 #include <KLocalizedString>
 #include <QIcon>
+#include <QProgressBar>
 #include <QToolButton>
 #include <kacceleratormanager.h>
 #include <kicontheme.h>
@@ -554,6 +555,50 @@ HoverButton::HoverButton(QWidget *parent)
     setFocusPolicy(Qt::NoFocus);
     setToolButtonStyle(Qt::ToolButtonIconOnly);
     KAcceleratorManager::setNoAccel(this);
+}
+
+LoadingIndicatorWidget::LoadingIndicatorWidget(QWidget *parent, Okular::Document *document)
+    : KBusyIndicatorWidget(parent)
+    , m_document(document)
+    , m_pixmapGenerationInProgress(false)
+    , m_textGenerationInProgress(false)
+{
+    hide();
+}
+
+LoadingIndicatorWidget::~LoadingIndicatorWidget()
+{
+    m_document->removeObserver(this);
+}
+
+void LoadingIndicatorWidget::notifyPixmapGenerationStarted()
+{
+    m_pixmapGenerationInProgress = true;
+    show();
+}
+
+void LoadingIndicatorWidget::notifyPixmapGenerationFinished()
+{
+    m_pixmapGenerationInProgress = false;
+
+    if (!m_textGenerationInProgress) {
+        hide();
+    }
+}
+
+void LoadingIndicatorWidget::notifyTextGenerationStarted()
+{
+    m_textGenerationInProgress = true;
+    show();
+}
+
+void LoadingIndicatorWidget::notifyTextGenerationFinished()
+{
+    m_textGenerationInProgress = false;
+
+    if (!m_pixmapGenerationInProgress) {
+        hide();
+    }
 }
 
 #include "minibar.moc"
