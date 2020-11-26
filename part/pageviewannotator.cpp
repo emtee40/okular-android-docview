@@ -971,6 +971,7 @@ QRect PageViewAnnotator::performRouteMouseOrTabletEvent(const AnnotatorEngine::E
             if (signEngine->isAccepted()) {
                 static_cast<PickPointEngineSignature *>(m_engine)->sign(m_lockedItem->pageNumber());
             }
+            m_continuousMode = false;
         }
 
         if (m_continuousMode)
@@ -1183,8 +1184,8 @@ void PageViewAnnotator::selectStampTool(const QString &stampSymbol)
 
 void PageViewAnnotator::detachAnnotation()
 {
+    selectTool(-1);
     if (!signatureMode()) {
-        selectTool(-1);
         if (m_actionHandler)
             m_actionHandler->deselectAllAnnotationActions();
     } else {
