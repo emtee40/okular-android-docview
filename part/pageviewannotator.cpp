@@ -1591,6 +1591,4 @@ void PageViewAnnotator::slotAdvancedSettings()
     selectTool(m_lastToolId);
 }
 
-#include "moc_pageviewannotator.cpp"
-
 /* kate: replace-tabs on; indent-width 4; */
