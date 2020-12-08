@@ -26,7 +26,7 @@ import org.kde.okular.app 2.0
 Kirigami.ApplicationWindow {
     id: root
 
-    property int columnWidth: Kirigami.Units.gridUnit * 13
+    readonly property int columnWidth: Kirigami.Units.gridUnit * 13
 
     wideScreen: width > columnWidth * 5
     visible: true
