@@ -24,13 +24,13 @@ import org.kde.kirigami 2.0 as Kirigami
 ThumbnailsBase {
     id: root
     model: documentItem.matchingPages
+    padding: 0
 
     header: QQC2.ToolBar {
         id: toolBarContent
-        width: root.width
-        QQC2.TextField {
+        padding: 0
+        contentItem: QQC2.TextField {
             id: searchField
-            width: parent.width
             placeholderText: i18n("Search...")
             enabled: documentItem ? documentItem.supportsSearching : false
             onTextChanged: {
