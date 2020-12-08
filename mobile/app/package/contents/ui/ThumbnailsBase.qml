@@ -39,9 +39,6 @@ Kirigami.ScrollablePage {
             text: i18n("No results found.")
         }
 
-        //leftMargin: Kirigami.Units.largeSpacing * 10
-        //rightMargin: Kirigami.Units.largeSpacing * 10
-
         delegate: Kirigami.AbstractCard {
             implicitWidth: root.width
             highlighted: delegateRecycler && delegateRecycler.GridView.isCurrentItem
