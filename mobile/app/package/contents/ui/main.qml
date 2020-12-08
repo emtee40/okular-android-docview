@@ -67,8 +67,9 @@ Kirigami.ApplicationWindow {
         onUrlChanged: { currentPage = 0 }
     }
 
-    pageStack.initialPage: MainView {
+    MainView {
         id: pageArea
+        anchors.fill: parent
         document: documentItem
     }
 
