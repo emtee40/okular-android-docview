@@ -24,10 +24,6 @@ else()
     set(BUILD_MOBILE OFF)
 endif()
 
-if (BUILD_MOBILE)
-    set(KF5_REQUIRED_VERSION "5.75.0")
-endif()
-
 if (ANDROID OR BUILD_MOBILE)
     set(QT_REQUIRED_VERSION "5.13.0")
 endif()
