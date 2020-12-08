@@ -20,7 +20,7 @@
 import QtQuick 2.1
 import QtQuick.Controls 2.3 as QQC2
 import org.kde.okular 2.0 as Okular
-import org.kde.kirigami 2.13 as Kirigami
+import org.kde.kirigami 2.10 as Kirigami
 
 Kirigami.Page {
     property alias document: pageArea.document
@@ -47,7 +47,8 @@ Kirigami.Page {
         onClicked: fileBrowserRoot.controlsVisible = !fileBrowserRoot.controlsVisible
     }
 
-    Kirigami.PlaceholderMessage {
+    // TODO KF 5.64 replace usage by upstream PlaceholderMessage
+    PlaceholderMessage {
         visible: documentItem.url.toString().length === 0
         text: i18n("No document open")
         helpfulAction: openDocumentAction
