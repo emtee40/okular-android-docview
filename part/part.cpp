@@ -37,6 +37,7 @@
 #include <QLabel>
 #include <QLayout>
 #include <QMenu>
+#include <QMenuBar>
 #include <QPrintDialog>
 #include <QPrintPreviewDialog>
 #include <QPrinter>
@@ -58,12 +59,14 @@
 #include <KJobWidgets>
 #include <KMessageBox>
 #include <KParts/GUIActivateEvent>
+#include <KParts/MainWindow>
 #include <KPasswordDialog>
 #include <KPluginMetaData>
 #include <KSharedDataCache>
 #include <KStandardShortcut>
 #include <KToggleAction>
 #include <KToggleFullScreenAction>
+#include <KToolBar>
 #include <Kdelibs4ConfigMigrator>
 #include <Kdelibs4Migration>
 #ifdef WITH_KWALLET
@@ -105,6 +108,7 @@
 #include "preferencesdialog.h"
 #include "presentationwidget.h"
 #include "propertiesdialog.h"
+#include "readingmode.h"
 #include "searchwidget.h"
 #include "settings.h"
 #include "side_reviews.h"
@@ -299,6 +303,7 @@ Part::Part(QWidget *parentWidget, QObject *parent, const QVariantList &args)
     , m_embedMode(detectEmbedMode(parentWidget, parent, args))
     , m_generatorGuiClient(nullptr)
     , m_keeper(nullptr)
+    , m_readingMode(nullptr)
 {
     // make sure that the component name is okular otherwise the XMLGUI .rc files are not found
     // when this part is used in an application other than okular (e.g. unit tests)
@@ -342,6 +347,7 @@ Part::Part(QWidget *parentWidget, QObject *parent, const QVariantList &args)
     GuiUtils::addIconLoader(iconLoader());
 
     m_sidebar = new Sidebar(parentWidget);
+
     setWidget(m_sidebar);
     connect(m_sidebar, &Sidebar::urlsDropped, this, &Part::handleDroppedUrls);
 
@@ -779,6 +785,7 @@ void Part::setupViewerActions()
 
     m_showEmbeddedFiles = nullptr;
     m_showPresentation = nullptr;
+    m_showReadingMode = nullptr;
 
     m_exportAs = nullptr;
     m_exportAsMenu = nullptr;
@@ -917,6 +924,15 @@ void Part::setupActions()
     ac->setDefaultShortcut(m_showPresentation, QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_P));
     m_showPresentation->setEnabled(false);
 
+    m_showReadingMode = new KToggleAction(ac);
+    m_readingMode = new ReadingMode(this, m_showReadingMode, m_wasSidebarVisible);
+    ac->addAction(QStringLiteral("reading_mode"), m_showReadingMode);
+    m_showReadingMode->setText((i18n("Reading Mode")));
+    m_showReadingMode->setIcon(QIcon::fromTheme(QStringLiteral("view-readermode")));
+    ac->setDefaultShortcut(m_showReadingMode, QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_R));
+    connect(m_showReadingMode, &QAction::toggled, m_readingMode, &ReadingMode::slotShowReadingMode);
+    m_showReadingMode->setEnabled(false);
+
     m_openContainingFolder = ac->addAction(QStringLiteral("open_containing_folder"));
     m_openContainingFolder->setText(i18n("Open Con&taining Folder"));
     m_openContainingFolder->setIcon(QIcon::fromTheme(QStringLiteral("document-open-folder")));
@@ -960,7 +976,9 @@ Part::~Part()
 
     if (m_document->isOpened())
         Part::closeUrl(false);
-
+    delete m_showReadingMode;
+    if (m_readingMode)
+        delete m_readingMode;
     delete m_toc;
     delete m_layers;
     delete m_pageView;
@@ -1590,6 +1608,12 @@ bool Part::openFile()
 
     if (m_showPresentation)
         m_showPresentation->setEnabled(ok);
+    if (m_showReadingMode) {
+        m_showReadingMode->setEnabled(ok);
+        shellActionSearch();
+        m_readingMode->initializeLinks(m_showLeftPanel, m_showMenuBarAction, m_showBottomBar, m_sidebar, m_bottomBar);
+    }
+
     if (ok) {
         if (m_exportAs) {
             m_exportFormats = m_document->exportFormats();
@@ -1858,6 +1882,8 @@ bool Part::closeUrl(bool promptToSave)
 #endif
     if (m_showPresentation)
         m_showPresentation->setEnabled(false);
+    if (m_showReadingMode)
+        m_showReadingMode->setEnabled(false);
     emit setWindowCaption(QLatin1String(""));
     emit enablePrintAction(false);
     m_realUrl = QUrl();
@@ -2909,24 +2935,7 @@ void Part::showMenu(const Okular::Page *page, const QPoint point, const QString 
     const bool currentPage = page && page->number() == m_document->viewport().pageNumber;
 
     if (!m_actionsSearched) {
-        // the quest for options_show_menubar
-        KActionCollection *ac;
-        QAction *act;
-
-        if (factory()) {
-            const QList<KXMLGUIClient *> clients(factory()->clients());
-            for (int i = 0; (!m_showMenuBarAction || !m_showFullScreenAction) && i < clients.size(); ++i) {
-                ac = clients.at(i)->actionCollection();
-                // show_menubar
-                act = ac->action(QStringLiteral("options_show_menubar"));
-                if (act && qobject_cast<KToggleAction *>(act))
-                    m_showMenuBarAction = qobject_cast<KToggleAction *>(act);
-                // fullscreen
-                act = ac->action(QStringLiteral("fullscreen"));
-                if (act && qobject_cast<KToggleFullScreenAction *>(act))
-                    m_showFullScreenAction = qobject_cast<KToggleFullScreenAction *>(act);
-            }
-        }
+        shellActionSearch();
         m_actionsSearched = true;
     }
 
@@ -2985,6 +2994,26 @@ void Part::showMenu(const Okular::Page *page, const QPoint point, const QString 
         }
     }
     delete popup;
+}
+
+void Part::shellActionSearch()
+{
+    if (factory()) {
+        KActionCollection *ac;
+        QAction *act;
+        const QList<KXMLGUIClient *> clients(factory()->clients());
+        for (int i = 0; (!m_showMenuBarAction || !m_showFullScreenAction) && i < clients.size(); ++i) {
+            ac = clients.at(i)->actionCollection();
+            // show_menubar
+            act = ac->action(QStringLiteral("options_show_menubar"));
+            if (act && qobject_cast<KToggleAction *>(act))
+                m_showMenuBarAction = qobject_cast<KToggleAction *>(act);
+            // fullscreen
+            act = ac->action(QStringLiteral("fullscreen"));
+            if (act && qobject_cast<KToggleFullScreenAction *>(act))
+                m_showFullScreenAction = qobject_cast<KToggleFullScreenAction *>(act);
+        }
+    }
 }
 
 void Part::slotShowProperties()

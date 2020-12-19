@@ -87,6 +87,7 @@ namespace Okular
 {
 class BrowserExtension;
 class ExportFormat;
+class ReadingMode;
 
 /**
  * Describes the possible embedding modes of the part
@@ -150,6 +151,15 @@ public:
     void setShowSourceLocationsGraphically(bool show) override;
     bool openNewFilesInTabs() const override;
     Q_INVOKABLE bool activateTabIfAlreadyOpenFile() const;
+    template<typename T, typename U> static inline bool getSpecificWidgetfromList(const QList<U *> &objs, T *&lookedForWidget)
+    {
+        static_assert(std::is_base_of<QWidget, T>::value || std::is_same<QWidget, T>::value, "Associated Widget should inherit from QWidget.");
+        static_assert(std::is_base_of<QWidget, U>::value, "The passed list should contain objects that should inherit from QWidget");
+        auto itObj = std::find_if(objs.begin(), objs.end(), [](const U *currObj) { return qobject_cast<const T *>(currObj) != nullptr; });
+        Q_ASSERT(itObj != objs.end());
+        lookedForWidget = qobject_cast<T *>(*itObj);
+        return lookedForWidget != nullptr;
+    }
 
 public Q_SLOTS: // dbus
     Q_SCRIPTABLE Q_NOREPLY void goToPage(uint page) override;
@@ -268,6 +278,7 @@ private:
     void setupViewerActions();
     void setViewerShortcuts();
     void setupActions();
+    void shellActionSearch();
 
     void setupPrint(QPrinter &printer);
     bool doPrint(QPrinter &printer);
@@ -392,6 +403,7 @@ private:
     QAction *m_showPresentation;
     QAction *m_openContainingFolder;
     KToggleAction *m_showMenuBarAction;
+    KToggleAction *m_showReadingMode;
     KToggleAction *m_showLeftPanel;
     KToggleAction *m_showBottomBar;
     QAction *m_showSignaturePanel;
@@ -434,6 +446,8 @@ private:
     // Set when opening an url that had fragment so that if it fails opening we try adding the fragment to the filename
     // if we're opening http://localhost/foo#bar.pdf and the filename contains an # we can open it after trying to open foo fails
     QUrl m_urlWithFragment;
+
+    ReadingMode *m_readingMode;
 
 private Q_SLOTS:
     void slotAnnotationPreferences();
