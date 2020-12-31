@@ -11,12 +11,12 @@
 
 #include <QObject>
 #include <QPointer>
+#include <QWidget>
 
 // Forward declaration of classes.
 class KToggleAction;
 class KToolBar;
 class Sidebar;
-class QWidget;
 
 namespace KParts
 {
@@ -87,13 +87,9 @@ public:
      * @param bottomBar This is a reference to the bottom bar QWidget instance stored in the Part class instance.
      */
 
-    void initializeLinks(KToggleAction *show_LeftPanel, KToggleAction *showMenuBarAction, KToggleAction *showBottomBar, Sidebar *sidebar, QPointer<QWidget> bottomBar);
+    void initializeLinks(KToggleAction *show_LeftPanel, KToggleAction *showMenuBarAction, KToggleAction *showBottomBar, Sidebar *sidebar, QPointer<QWidget> &bottomBar);
 
-public Q_SLOTS:
-    /**
-     * @brief slotShowReadingMode used for handling signal triggered by the showReadingMode action.
-     */
-    void slotShowReadingMode();
+    void showReadingMode();
 };
 }
 

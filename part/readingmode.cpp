@@ -44,7 +44,7 @@ ReadingMode::~ReadingMode()
     m_sidebar = nullptr;
 }
 
-void ReadingMode::initializeLinks(KToggleAction *showLeftPanel, KToggleAction *showMenuBarAction, KToggleAction *showBottomBar, Sidebar *sidebar, QPointer<QWidget> bottomBar)
+void ReadingMode::initializeLinks(KToggleAction *showLeftPanel, KToggleAction *showMenuBarAction, KToggleAction *showBottomBar, Sidebar *sidebar, QPointer<QWidget> &bottomBar)
 {
     // Store references
     m_showLeftPanel = showLeftPanel;
@@ -64,7 +64,7 @@ void ReadingMode::initializeLinks(KToggleAction *showLeftPanel, KToggleAction *s
     }
 }
 
-void ReadingMode::slotShowReadingMode()
+void ReadingMode::showReadingMode()
 {
     /*
      * Check to see that all the needed references are not null and show warning message for each of the references

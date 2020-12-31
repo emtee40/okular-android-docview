@@ -930,7 +930,7 @@ void Part::setupActions()
     m_showReadingMode->setText((i18n("Reading Mode")));
     m_showReadingMode->setIcon(QIcon::fromTheme(QStringLiteral("view-readermode")));
     ac->setDefaultShortcut(m_showReadingMode, QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_R));
-    connect(m_showReadingMode, &QAction::toggled, m_readingMode, &ReadingMode::slotShowReadingMode);
+    connect(m_showReadingMode, &QAction::toggled, this, &Part::slotShowReadingMode);
     m_showReadingMode->setEnabled(false);
 
     m_openContainingFolder = ac->addAction(QStringLiteral("open_containing_folder"));
@@ -1610,8 +1610,6 @@ bool Part::openFile()
         m_showPresentation->setEnabled(ok);
     if (m_showReadingMode) {
         m_showReadingMode->setEnabled(ok);
-        shellActionSearch();
-        m_readingMode->initializeLinks(m_showLeftPanel, m_showMenuBarAction, m_showBottomBar, m_sidebar, m_bottomBar);
     }
 
     if (ok) {
@@ -3035,6 +3033,13 @@ void Part::slotShowPresentation()
     if (!m_presentationWidget) {
         m_presentationWidget = new PresentationWidget(widget(), m_document, m_presentationDrawingActions, actionCollection());
     }
+}
+
+void Part::slotShowReadingMode()
+{
+    shellActionSearch();
+    m_readingMode->initializeLinks(m_showLeftPanel, m_showMenuBarAction, m_showBottomBar, m_sidebar, m_bottomBar);
+    m_readingMode->showReadingMode();
 }
 
 void Part::slotHidePresentation()

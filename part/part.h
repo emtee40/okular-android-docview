@@ -232,6 +232,7 @@ protected Q_SLOTS:
     void slotShowLeftPanel();
     void slotShowBottomBar();
     void slotShowPresentation();
+    void slotShowReadingMode();
     void slotHidePresentation();
     void slotExportAs(QAction *);
     bool slotImportPSFile();
