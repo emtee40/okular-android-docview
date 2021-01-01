@@ -257,6 +257,11 @@
   <entry key="ShowBottomBar" type="Bool" >
    <default>false</default>
   </entry>
+  <entry key="WasClosedAtReadingMode" type="Bool" >
+    <default>false</default>
+  </entry>
+  <entry key="MainToolbarVisible" type="Bool" />
+  <entry key="AnnotationToolBarVisible" type="Bool" />
  </group>
  <group name="Nav Panel" >
   <entry key="CurrentPageOnly" type="Bool" >

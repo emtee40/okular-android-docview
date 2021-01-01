@@ -87,7 +87,7 @@ namespace Okular
 {
 class BrowserExtension;
 class ExportFormat;
-class ReadingMode;
+class ReadingModeAction;
 
 /**
  * Describes the possible embedding modes of the part
@@ -404,7 +404,7 @@ private:
     QAction *m_showPresentation;
     QAction *m_openContainingFolder;
     KToggleAction *m_showMenuBarAction;
-    KToggleAction *m_showReadingMode;
+    ReadingModeAction *m_showReadingMode;
     KToggleAction *m_showLeftPanel;
     KToggleAction *m_showBottomBar;
     QAction *m_showSignaturePanel;
@@ -447,8 +447,6 @@ private:
     // Set when opening an url that had fragment so that if it fails opening we try adding the fragment to the filename
     // if we're opening http://localhost/foo#bar.pdf and the filename contains an # we can open it after trying to open foo fails
     QUrl m_urlWithFragment;
-
-    ReadingMode *m_readingMode;
 
 private Q_SLOTS:
     void slotAnnotationPreferences();

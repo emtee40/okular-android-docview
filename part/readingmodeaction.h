@@ -6,17 +6,13 @@
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
  ***************************************************************************/
-#ifndef READINGMODE_H
-#define READINGMODE_H
+#ifndef READINGMODEACTION_H
+#define READINGMODEACTION_H
 
-#include <QObject>
-#include <QPointer>
-#include <QWidget>
+#include <KToggleAction>
 
 // Forward declaration of classes.
-class KToggleAction;
 class KToolBar;
-class Sidebar;
 
 namespace KParts
 {
@@ -25,8 +21,6 @@ class MainWindow;
 
 namespace Okular
 {
-class Part;
-
 /**
  * @short The ReadingMode class used for displaying reading mode in Okular.
  *
@@ -45,25 +39,16 @@ class Part;
  *
  * @author Sanchit Singh <sanckde@gmail.com>
  */
-class ReadingMode : public QObject
+class ReadingModeAction : public KToggleAction
 {
     Q_OBJECT
 
 private:
-    Part *m_part;
     KParts::MainWindow *m_parentWindow;
     bool m_wasBottomBarVisible;
-    bool &m_wasSideBarVisible;
-    bool m_wasMenubarVisible;
+    bool m_wasMenuBarVisible;
     QList<bool> m_wasToolbarsVisible;
-    QList<KToolBar *> m_toolbars;
-    Sidebar *m_sidebar;
-    QPointer<QWidget> m_bottomBar;
-
-    KToggleAction *m_showReadingMode;
-    KToggleAction *m_showMenuBarAction;
-    KToggleAction *m_showBottomBar;
-    KToggleAction *m_showLeftPanel;
+    QList<KToolBar *> toolbars;
 
 public:
     /**
@@ -73,24 +58,19 @@ public:
      * @param showReadingMode This is the reference to the KToggleAction created within the Part class instance.
      * @param wasSideBarVisible This is a reference to the wasSideBarVisible bool in Part class instance
      */
-    explicit ReadingMode(Part *part, KToggleAction *showReadingMode, bool &wasSideBarVisible);
-    ~ReadingMode();
+    explicit ReadingModeAction(QObject *parent);
 
-    /**
-     * @brief initializeLinks A method used for storing reference to GUI elements of the Okular to be able to restore
-     * them to their initial state i.e. before the reading mode was initiated.
-     *
-     * @param show_LeftPanel This is a reference to the left panel in Okular GUI.
-     * @param showMenuBarAction This is a reference to the showMenuBarAction stored in Part class instance.
-     * @param showBottomBar This is a reference to the showBottomBarAction stored in the Part class instance.
-     * @param sidebar This is a reference to the Sidebar class instance sotred in the Part class instance.
-     * @param bottomBar This is a reference to the bottom bar QWidget instance stored in the Part class instance.
-     */
-
-    void initializeLinks(KToggleAction *show_LeftPanel, KToggleAction *showMenuBarAction, KToggleAction *showBottomBar, Sidebar *sidebar, QPointer<QWidget> &bottomBar);
-
-    void showReadingMode();
+    KParts::MainWindow *parentWindow() const;
+    void setParentWindow(KParts::MainWindow *parentWindow);
+    bool wasBottomBarVisible() const;
+    void setWasBottomBarVisible(bool wasBottomBarVisible);
+    bool wasMenuBarVisible() const;
+    void setWasMenuBarVisible(bool wasMenuBarVisible);
+    QList<bool> wasToolbarsVisible() const;
+    void setWasToolbarsVisible(const QList<bool> &wasToolbarsVisible);
+    QList<KToolBar *> getToolbars() const;
+    void setToolbars(const QList<KToolBar *> &value);
 };
 }
 
-#endif // READINGMODE_H
+#endif // READINGMODEACTION_H

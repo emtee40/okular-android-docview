@@ -108,7 +108,7 @@
 #include "preferencesdialog.h"
 #include "presentationwidget.h"
 #include "propertiesdialog.h"
-#include "readingmode.h"
+#include "readingmodeaction.h"
 #include "searchwidget.h"
 #include "settings.h"
 #include "side_reviews.h"
@@ -303,7 +303,6 @@ Part::Part(QWidget *parentWidget, QObject *parent, const QVariantList &args)
     , m_embedMode(detectEmbedMode(parentWidget, parent, args))
     , m_generatorGuiClient(nullptr)
     , m_keeper(nullptr)
-    , m_readingMode(nullptr)
 {
     // make sure that the component name is okular otherwise the XMLGUI .rc files are not found
     // when this part is used in an application other than okular (e.g. unit tests)
@@ -924,8 +923,7 @@ void Part::setupActions()
     ac->setDefaultShortcut(m_showPresentation, QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_P));
     m_showPresentation->setEnabled(false);
 
-    m_showReadingMode = new KToggleAction(ac);
-    m_readingMode = new ReadingMode(this, m_showReadingMode, m_wasSidebarVisible);
+    m_showReadingMode = new ReadingModeAction(ac);
     ac->addAction(QStringLiteral("reading_mode"), m_showReadingMode);
     m_showReadingMode->setText((i18n("Reading Mode")));
     m_showReadingMode->setIcon(QIcon::fromTheme(QStringLiteral("view-readermode")));
@@ -976,9 +974,8 @@ Part::~Part()
 
     if (m_document->isOpened())
         Part::closeUrl(false);
+
     delete m_showReadingMode;
-    if (m_readingMode)
-        delete m_readingMode;
     delete m_toc;
     delete m_layers;
     delete m_pageView;
@@ -1837,7 +1834,6 @@ bool Part::closeUrl(bool promptToSave)
         // current one when openUrl() calls us internally
         return true; // pretend it worked
     }
-
     m_document->setHistoryClean(true);
 
     if (!m_temporaryLocalFile.isNull() && m_temporaryLocalFile != localFilePath()) {
@@ -1880,8 +1876,32 @@ bool Part::closeUrl(bool promptToSave)
 #endif
     if (m_showPresentation)
         m_showPresentation->setEnabled(false);
-    if (m_showReadingMode)
+    if (m_showReadingMode) {
+        if (m_showReadingMode->isChecked()) {
+            Okular::Settings::setWasClosedAtReadingMode(true);
+            // Write the status of the menubar before Reading Mode was activated, if Okular was closed while Reading Mode was activated.
+            KConfigGroup group = KSharedConfig::openConfig()->group("MainWindow");
+            group.writeEntry("MenuBar", m_showReadingMode->wasMenuBarVisible() ? "Enabled" : "Disabled");
+            // Write the status of the toolbars before Reading Mode was activated, if Okular was closed while Reading Mode was activated.
+            const QList<KToolBar *> toolbars = m_showReadingMode->getToolbars();
+            const QList<bool> wasToolBarVisible = m_showReadingMode->wasToolbarsVisible();
+
+            for (int i = 0; i < toolbars.count(); i++) {
+                if (QString::compare(toolbars[i]->objectName(), "mainToolBar") == 0)
+                    Okular::Settings::setMainToolbarVisible(wasToolBarVisible[i]);
+                else if (QString::compare(toolbars[i]->objectName(), "annotationToolBar") == 0)
+                    Okular::Settings::setAnnotationToolBarVisible(wasToolBarVisible[i]);
+            }
+
+            m_showReadingMode->setChecked(false);
+        } else {
+            // If Okular was not closed while in Reading Mode then setWasClosedAtReadingMode should be set to false
+            Okular::Settings::setWasClosedAtReadingMode(false);
+        }
+        Okular::Settings::self()->save();
         m_showReadingMode->setEnabled(false);
+    }
+
     emit setWindowCaption(QLatin1String(""));
     emit enablePrintAction(false);
     m_realUrl = QUrl();
@@ -1927,6 +1947,19 @@ void Part::guiActivateEvent(KParts::GUIActivateEvent *event)
 
     if (event->activated()) {
         m_pageView->setupActionsPostGUIActivated();
+
+        // Restore the status of toolbars if Okular was closed while Reading Mode was activated last run.
+        if (Okular::Settings::wasClosedAtReadingMode()) {
+            KParts::MainWindow *parentWindow = qobject_cast<KParts::MainWindow *>(parent());
+            const QList<KToolBar *> toolbars = parentWindow->toolBars();
+
+            for (KToolBar *toolbar : toolbars) {
+                if (QString::compare(toolbar->objectName(), "mainToolBar") == 0)
+                    toolbar->setVisible(Okular::Settings::mainToolbarVisible());
+                else if (QString::compare(toolbar->objectName(), "annotationToolBar") == 0)
+                    toolbar->setVisible(Okular::Settings::annotationToolBarVisible());
+            }
+        }
     }
 }
 
@@ -3038,8 +3071,102 @@ void Part::slotShowPresentation()
 void Part::slotShowReadingMode()
 {
     shellActionSearch();
-    m_readingMode->initializeLinks(m_showLeftPanel, m_showMenuBarAction, m_showBottomBar, m_sidebar, m_bottomBar);
-    m_readingMode->showReadingMode();
+    KParts::MainWindow *parentWindow = nullptr;
+    if (!m_showReadingMode->parentWindow()) {
+        // Find reference to the KParts::MainWindow of Okular.
+        bool parentWindowFound = Part::getSpecificWidgetfromList<KParts::MainWindow, QWidget>(m_showLeftPanel->associatedWidgets(), parentWindow);
+        if (parentWindowFound) {
+            m_showReadingMode->setParentWindow(parentWindow);
+            m_showReadingMode->setToolbars(parentWindow->toolBars());
+        } else {
+            qCWarning(OkularUiDebug) << "Unable to find a reference to main window to view reading mode";
+            return;
+        }
+    } else {
+        parentWindow = m_showReadingMode->parentWindow();
+    }
+
+    // Store references for convenience
+    QList<KToolBar *> toolbars = m_showReadingMode->getToolbars();
+    QList<bool> wasToolbarsVisible = m_showReadingMode->wasToolbarsVisible();
+
+    /*
+     * Check to see that all the needed references are not null and show warning message for each of the references
+     * that are null before exiting the method.
+     */
+    if (!m_showBottomBar || !m_showMenuBarAction || !m_sidebar || !m_bottomBar || m_showReadingMode->getToolbars().count() <= 0) {
+        if (!m_showBottomBar)
+            qCWarning(OkularUiDebug) << "Unable to find a reference to showBottomBar action";
+        if (!m_showMenuBarAction)
+            qCWarning(OkularUiDebug) << "Unable to find a reference to showMenuBar action";
+        if (!m_sidebar)
+            qCWarning(OkularUiDebug) << "Unable to find a reference to sidebar";
+        if (!m_bottomBar)
+            qCWarning(OkularUiDebug) << "Unable to find a reference to bottombar";
+        if (m_showReadingMode->getToolbars().count() <= 0)
+            qCWarning(OkularUiDebug) << "No toolbars in the main window:" << m_showReadingMode->parentWindow() << "were found.";
+
+        return;
+    }
+
+    // Perform actions when the showReadingMode KToggleAction is checked.
+    if (m_showReadingMode->isChecked()) {
+        // Hide the side bar and store it's current visible state.
+        m_wasSidebarVisible = m_sidebar->isSidebarVisible();
+        m_sidebar->setSidebarVisibility(false);
+        m_showLeftPanel->setChecked(false);
+
+        // Set the bottom bar as visible to be able to show page numbers to the user.
+        m_showReadingMode->setWasBottomBarVisible(m_bottomBar->isVisible());
+        m_bottomBar->setVisible(true);
+        m_showBottomBar->setChecked(true);
+        // Hide the main menu bar and store it's current visible state.
+        m_showReadingMode->setWasMenuBarVisible(parentWindow->menuBar()->isVisible());
+        parentWindow->menuBar()->setVisible(false);
+        m_showMenuBarAction->setChecked(false);
+
+        /* Hide all the toolbars associated with Okular and store each of
+         * their current state in QList m_wasToolbarsVisible. If the QList does not contain any
+         * items (which would be the case when the current method is called for the
+         * first time) append the status of each of the toolbars to the QList.
+         */
+        if (wasToolbarsVisible.count() <= 0) {
+            for (int i = 0; i < toolbars.count(); i++) {
+                wasToolbarsVisible.append(toolbars[i]->isVisible());
+            }
+        } else {
+            for (int i = 0; i < toolbars.count(); i++) {
+                wasToolbarsVisible[i] = toolbars[i]->isVisible();
+            }
+        }
+
+        // Update the wasToolBarsVisible QList<bool> in the m_showReadingMode instance
+        m_showReadingMode->setWasToolbarsVisible(wasToolbarsVisible);
+        for (KToolBar *toolbar : qAsConst(toolbars)) {
+            toolbar->setVisible(false);
+        }
+
+        // Perform actions when the showReadingMode KToggleAction is unchecked.
+    } else {
+        // Restore the state of the side bar before the reading mode was triggered.
+        m_sidebar->setSidebarVisibility(m_wasSidebarVisible);
+        m_showLeftPanel->setChecked(m_wasSidebarVisible);
+
+        // Restore the state of the bottom bar before the reading mode was triggered.
+        m_bottomBar->setVisible(m_showReadingMode->wasBottomBarVisible());
+        m_showBottomBar->setChecked(m_showReadingMode->wasBottomBarVisible());
+
+        // Restore the state of the main menu bar before the reading mode was triggered.
+        parentWindow->menuBar()->setVisible(m_showReadingMode->wasMenuBarVisible());
+        m_showMenuBarAction->setChecked(m_showReadingMode->wasMenuBarVisible());
+
+        // Restore the state of the all the tool bars of Okular before the reading mode was triggered.
+        if (toolbars.count() == wasToolbarsVisible.count()) {
+            for (int i = 0; i < toolbars.count(); i++) {
+                toolbars[i]->setVisible(wasToolbarsVisible[i]);
+            }
+        }
+    }
 }
 
 void Part::slotHidePresentation()
