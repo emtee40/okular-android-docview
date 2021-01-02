@@ -23,6 +23,7 @@ EpubDocument::EpubDocument(const QString &fileName)
     mEpub = epub_open(qPrintable(fileName), 3);
 
     setPageSize(QSizeF(600, 800));
+    setDefaultStyleSheet("p { text-indent: 10px }");
 }
 
 bool EpubDocument::isValid()
