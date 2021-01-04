@@ -1887,9 +1887,9 @@ bool Part::closeUrl(bool promptToSave)
             const QList<bool> wasToolBarVisible = m_showReadingMode->wasToolbarsVisible();
 
             for (int i = 0; i < toolbars.count(); i++) {
-                if (QString::compare(toolbars[i]->objectName(), "mainToolBar") == 0)
+                if (QString::compare(toolbars[i]->objectName(), QStringLiteral("mainToolBar")) == 0)
                     Okular::Settings::setMainToolbarVisible(wasToolBarVisible[i]);
-                else if (QString::compare(toolbars[i]->objectName(), "annotationToolBar") == 0)
+                else if (QString::compare(toolbars[i]->objectName(), QStringLiteral("annotationToolBar")) == 0)
                     Okular::Settings::setAnnotationToolBarVisible(wasToolBarVisible[i]);
             }
 
@@ -1954,9 +1954,9 @@ void Part::guiActivateEvent(KParts::GUIActivateEvent *event)
             const QList<KToolBar *> toolbars = parentWindow->toolBars();
 
             for (KToolBar *toolbar : toolbars) {
-                if (QString::compare(toolbar->objectName(), "mainToolBar") == 0)
+                if (QString::compare(toolbar->objectName(), QStringLiteral("mainToolBar")) == 0)
                     toolbar->setVisible(Okular::Settings::mainToolbarVisible());
-                else if (QString::compare(toolbar->objectName(), "annotationToolBar") == 0)
+                else if (QString::compare(toolbar->objectName(), QStringLiteral("annotationToolBar")) == 0)
                     toolbar->setVisible(Okular::Settings::annotationToolBarVisible());
             }
         }
