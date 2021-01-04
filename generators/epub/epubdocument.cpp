@@ -11,7 +11,7 @@
 #include <QDir>
 #include <QTemporaryFile>
 
-#include <QRegExp>
+#include <QRegularExpression>
 
 Q_LOGGING_CATEGORY(OkularEpuDebug, "org.kde.okular.generators.epu", QtWarningMsg)
 using namespace Epub;
@@ -23,7 +23,7 @@ EpubDocument::EpubDocument(const QString &fileName)
     mEpub = epub_open(qPrintable(fileName), 3);
 
     setPageSize(QSizeF(600, 800));
-    setDefaultStyleSheet("p { text-indent: 10px }");
+ //   setDefaultStyleSheet("p { text-indent: 1em }");
 }
 
 bool EpubDocument::isValid()
@@ -63,10 +63,35 @@ int EpubDocument::maxContentWidth() const
     return pageSize().width() - (2 * padding);
 }
 
-void EpubDocument::checkCSS(QString &css)
+QString EpubDocument::checkCSS(const QString &c)
 {
+    QString css = c;
     // remove paragraph line-heights
-    css.remove(QRegExp(QStringLiteral("line-height\\s*:\\s*[\\w\\.]*;")));
+    css.remove(QRegularExpression(QStringLiteral("line-height\\s*:\\s*[\\w\\.]*;")));
+
+    const QStringList cssArray = css.split(QRegularExpression(QStringLiteral("\\s+")));
+    QStringList cssArrayReplaced;
+    std::size_t cssArrayCount = cssArray.count();
+    std::size_t i = 0;
+    const QRegularExpression re(QStringLiteral("(([0-9]+)(\\.[0-9]+)?)r?em(.*)"));
+    while (i < cssArrayCount) {
+        auto item = cssArray[i];
+        qDebug() << item;
+        QRegularExpressionMatch match = re.match(item);
+        if (match.hasMatch()) { 
+            double em = match.captured(1).toDouble(); // digits before the decimal separator
+
+            // 16 here is hardcoded
+            // TODO use QFont from setting
+            double px = em * 16.0;
+            cssArrayReplaced.append(QStringLiteral("%1px%2").arg(px).arg(match.captured(4)));
+        } else  {
+            cssArrayReplaced.append(item);
+        }
+        i++;
+    }
+    qDebug() << cssArrayReplaced.join(" ");
+    return cssArrayReplaced.join(" ");
 }
 
 QVariant EpubDocument::loadResource(int type, const QUrl &name)
@@ -96,8 +121,7 @@ QVariant EpubDocument::loadResource(int type, const QUrl &name)
         }
         case QTextDocument::StyleSheetResource: {
             QString css = QString::fromUtf8(data);
-            checkCSS(css);
-            resource.setValue(css);
+            resource.setValue(checkCSS(css));
             break;
         }
         case EpubDocument::MovieResource: {

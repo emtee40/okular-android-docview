@@ -37,7 +37,7 @@ protected:
     QVariant loadResource(int type, const QUrl &name) override;
 
 private:
-    void checkCSS(QString &css);
+    QString checkCSS(const QString &css);
 
     struct epub *mEpub;
     QUrl mCurrentSubDocument;
