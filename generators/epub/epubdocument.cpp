@@ -16,9 +16,10 @@
 Q_LOGGING_CATEGORY(OkularEpuDebug, "org.kde.okular.generators.epu", QtWarningMsg)
 using namespace Epub;
 
-EpubDocument::EpubDocument(const QString &fileName)
+EpubDocument::EpubDocument(const QString &fileName, const QFont &font)
     : QTextDocument()
     , padding(20)
+    , mFont(font)
 {
     mEpub = epub_open(qPrintable(fileName), 3);
 
@@ -83,7 +84,7 @@ QString EpubDocument::checkCSS(const QString &c)
 
             // 16 here is hardcoded
             // TODO use QFont from setting
-            double px = em * 16.0;
+            double px = em * mFont.pointSize();
             cssArrayReplaced.append(QStringLiteral("%1px%2").arg(px).arg(match.captured(4)));
         } else {
             cssArrayReplaced.append(item);
