@@ -23,7 +23,7 @@ EpubDocument::EpubDocument(const QString &fileName)
     mEpub = epub_open(qPrintable(fileName), 3);
 
     setPageSize(QSizeF(600, 800));
- //   setDefaultStyleSheet("p { text-indent: 1em }");
+    //   setDefaultStyleSheet("p { text-indent: 1em }");
 }
 
 bool EpubDocument::isValid()
@@ -76,21 +76,19 @@ QString EpubDocument::checkCSS(const QString &c)
     const QRegularExpression re(QStringLiteral("(([0-9]+)(\\.[0-9]+)?)r?em(.*)"));
     while (i < cssArrayCount) {
         auto item = cssArray[i];
-        qDebug() << item;
         QRegularExpressionMatch match = re.match(item);
-        if (match.hasMatch()) { 
+        if (match.hasMatch()) {
             double em = match.captured(1).toDouble(); // digits before the decimal separator
 
             // 16 here is hardcoded
             // TODO use QFont from setting
             double px = em * 16.0;
             cssArrayReplaced.append(QStringLiteral("%1px%2").arg(px).arg(match.captured(4)));
-        } else  {
+        } else {
             cssArrayReplaced.append(item);
         }
         i++;
     }
-    qDebug() << cssArrayReplaced.join(" ");
     return cssArrayReplaced.join(" ");
 }
 
