@@ -80,10 +80,7 @@ QString EpubDocument::checkCSS(const QString &c)
         auto item = cssArray[i];
         QRegularExpressionMatch match = re.match(item);
         if (match.hasMatch()) {
-            double em = match.captured(1).toDouble(); // digits before the decimal separator
-
-            // 16 here is hardcoded
-            // TODO use QFont from setting
+            double em = match.captured(1).toDouble();
             double px = em * mFont.pointSize();
             cssArrayReplaced.append(QStringLiteral("%1px%2").arg(px).arg(match.captured(4)));
         } else {
