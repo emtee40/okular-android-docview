@@ -68,6 +68,8 @@ QString EpubDocument::checkCSS(const QString &c)
     // remove paragraph line-heights
     css.remove(QRegularExpression(QStringLiteral("line-height\\s*:\\s*[\\w\\.]*;")));
 
+    // HACK transform em and rem notation to px, because QTextDocument doesn't support
+    // em and rem.
     const QStringList cssArray = css.split(QRegularExpression(QStringLiteral("\\s+")));
     QStringList cssArrayReplaced;
     std::size_t cssArrayCount = cssArray.count();
