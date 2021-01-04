@@ -16,7 +16,6 @@
 #include <QTextDocumentFragment>
 #include <QTextFrame>
 
-
 #include <KLocalizedString>
 #include <QDebug>
 
