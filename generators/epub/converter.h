@@ -10,9 +10,9 @@
 #ifndef EPUB_CONVERTER_H
 #define EPUB_CONVERTER_H
 
+#include <QFont>
 #include <core/document.h>
 #include <core/textdocumentgenerator.h>
-#include <QFont>
 
 #include "epubdocument.h"
 
