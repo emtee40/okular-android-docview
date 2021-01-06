@@ -88,7 +88,7 @@ QString EpubDocument::checkCSS(const QString &c)
         }
         i++;
     }
-    return cssArrayReplaced.join(" ");
+    return cssArrayReplaced.join(QStringLiteral(" "));
 }
 
 QVariant EpubDocument::loadResource(int type, const QUrl &name)
