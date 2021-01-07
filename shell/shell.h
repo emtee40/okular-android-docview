@@ -16,6 +16,7 @@
 #ifndef _OKULAR_SHELL_H_
 #define _OKULAR_SHELL_H_
 
+#include <KActionCollection>
 #include <QAction>
 #include <QList>
 #include <QMimeDatabase>
@@ -30,12 +31,33 @@ class KToggleAction;
 class QTabWidget;
 class KPluginFactory;
 
+namespace Okular
+{
+class ReadingModeAction;
+}
+
 #ifndef Q_OS_WIN
 namespace KActivities
 {
 class ResourceInstance;
 }
 #endif
+
+struct TabState {
+    TabState(KParts::ReadWritePart *p)
+        : part(p)
+        , printEnabled(false)
+        , closeEnabled(false)
+    {
+        lftPnlVisBeforeReadingMode = false;
+        btmBarVisBeforeReadingMode = false;
+    }
+    KParts::ReadWritePart *part;
+    bool printEnabled;
+    bool closeEnabled;
+    bool lftPnlVisBeforeReadingMode;
+    bool btmBarVisBeforeReadingMode;
+};
 
 /**
  * This is the application "Shell".  It has a menubar and a toolbar
@@ -72,6 +94,23 @@ public:
     bool isValid() const;
 
     bool openDocument(const QUrl &url, const QString &serializedOptions);
+    template<typename T> static inline bool findActionInPart(KParts::ReadWritePart &part, const QString &actionName, T *&foundAction)
+    {
+        static_assert(std::is_base_of<QAction, T>::value || std::is_same<QAction, T>::value, "Found action should be of type QAction or inherit from QAction");
+
+        KActionCollection *ac = nullptr;
+        QAction *act = nullptr;
+
+        ac = part.actionCollection();
+        act = ac->action(actionName);
+
+        if (ac && qobject_cast<T *>(act)) {
+            foundAction = qobject_cast<T *>(act);
+            return true;
+        }
+
+        return false;
+    }
 
 public Q_SLOTS:
     Q_SCRIPTABLE Q_NOREPLY void tryRaise();
@@ -116,6 +155,8 @@ protected:
     void showEvent(QShowEvent *event) override;
     void keyPressEvent(QKeyEvent *) override;
 
+    void closeEvent(QCloseEvent *e) override;
+
 private Q_SLOTS:
     void fileOpen();
 
@@ -140,6 +181,8 @@ private Q_SLOTS:
     void moveTabData(int from, int to);
 
     void slotFitWindowToPage(const QSize pageViewSize, const QSize pageSize);
+
+    void slotShowReadingMode();
 
 Q_SIGNALS:
     void moveSplitter(int sideWidgetSize);
@@ -166,22 +209,11 @@ private:
     QAction *m_closeAction;
     KToggleAction *m_fullScreenAction;
     KToggleAction *m_showMenuBarAction;
+    Okular::ReadingModeAction *m_showReadingModeAction;
     bool m_menuBarWasShown, m_toolBarWasShown;
     bool m_unique;
     QTabWidget *m_tabWidget;
     KToggleAction *m_openInTab;
-
-    struct TabState {
-        TabState(KParts::ReadWritePart *p)
-            : part(p)
-            , printEnabled(false)
-            , closeEnabled(false)
-        {
-        }
-        KParts::ReadWritePart *part;
-        bool printEnabled;
-        bool closeEnabled;
-    };
     QList<TabState> m_tabs;
     QList<QUrl> m_closedTabUrls;
     QAction *m_nextTabAction;
@@ -192,6 +224,10 @@ private:
     KActivities::ResourceInstance *m_activityResource;
 #endif
     bool m_isValid;
+
+public:
+    static const QString SHOWLEFTPANELACTIONNAME;
+    static const QString SHOWBOTTOMBARACTIONNAME;
 };
 
 #endif

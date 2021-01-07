@@ -416,7 +416,6 @@ if(BUILD_DESKTOP)
     part/signaturepropertiesdialog.cpp
     part/signaturemodel.cpp
     part/signaturepanel.cpp
-    part/readingmodeaction.cpp
   )
 endif()
 

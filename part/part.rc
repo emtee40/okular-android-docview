@@ -30,8 +30,7 @@
     <Action name="edit_find_prev"/>
   </Menu>
   <Menu name="view"><text>&amp;View</text>
-    <Action name="presentation"/>
-    <Action name="reading_mode"/>
+    <Action group="view_main" name="presentation"/>
     <Separator/>
     <Action name="view_zoom_in"/>
     <Action name="view_zoom_out"/>
