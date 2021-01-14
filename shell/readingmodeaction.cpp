@@ -133,7 +133,7 @@ void ReadingModeAction::synchronizeTabs(QList<TabState> &tabs, bool readingModeA
     }
 }
 
-void ReadingModeAction::initalizeTabInReadingMode(TabState &newTab, const TabState &currTab)
+void ReadingModeAction::initalizeTabInReadingMode(TabState &newTab, const TabState currTab)
 {
     // Copy the left panel visibility state from the passed currTab reference
     newTab.lftPnlVisBeforeReadingMode = currTab.lftPnlVisBeforeReadingMode;

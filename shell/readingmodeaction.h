@@ -103,7 +103,7 @@ public:
      * @param newTab A reference the new tab that is created.
      * @param currTab A reference to the current tab, which is used as the basis to synchronize the GUI elements state.
      */
-    static void initalizeTabInReadingMode(TabState &newTab, const TabState &currTab);
+    static void initalizeTabInReadingMode(TabState &newTab, const TabState currTab);
 };
 }
 
