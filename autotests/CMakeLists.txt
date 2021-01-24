@@ -105,6 +105,11 @@ if(KF5Activities_FOUND AND BUILD_DESKTOP)
 		LINK_LIBRARIES Qt5::Test KF5::Activities okularpart okularcore
 	)
 	target_compile_definitions(mainshelltest PRIVATE OKULAR_BINARY="$<TARGET_FILE:okular>")
+
+        ecm_add_test(readingmodetest.cpp ../shell/okular_main.cpp ../shell/shell.cpp ../shell/shellutils.cpp ../shell/readingmodeaction.cpp
+                TEST_NAME "readingmodetest"
+                LINK_LIBRARIES Qt5::Test Qt5::Xml okularpart
+        )
 endif()
 
 if(BUILD_DESKTOP)

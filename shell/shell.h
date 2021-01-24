@@ -74,6 +74,7 @@ class Shell : public KParts::MainWindow
 
     friend class MainShellTest;
     friend class AnnotationToolBarTest;
+    friend class ReadingModeTest;
 
 public:
     /**
