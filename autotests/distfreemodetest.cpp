@@ -11,7 +11,7 @@
 #include "../part/sidebar.h"
 #include "../settings.h"
 #include "../shell/okular_main.h"
-#include "../shell/readingmodeaction.h"
+#include "../shell/distfreemodeaction.h"
 #include "../shell/shell.h"
 #include <KToolBar>
 #include <QMenuBar>
@@ -46,7 +46,7 @@ Shell *findShell(Shell *ignore = nullptr)
     return nullptr;
 }
 
-class ReadingModeTest : public QObject, public Okular::PartTest
+class DistfreeModeTest : public QObject, public Okular::PartTest
 {
     Q_OBJECT
 
@@ -54,17 +54,17 @@ private slots:
     void initTestCase();
     void init();
     void cleanup();
-    void checkReadingMode();
-    void checkReadingMode_data();
+    void checkDistfreeMode();
+    void checkDistfreeMode_data();
     // Private constants
 private:
     /*
-     * Constant chars pointers that define the datatags for the different iterations of the Reading Mode tests.
-     * "Empty Shell": A test that will check that the ReadingModeAction is not enabled when there are no files opened.
-     * "One Tab": A test that will check the GUI elements state prior, during and after the Reading Mode is activated.
-     * "Two Tab": A test that will check the GUI elements state is synchronized between tabs when Reading Mode is activated.
-     * "Two Tab Save State": A test that will check that when a Okular shell is closed with multiple tabs open while Reading Mode is activated,
-     * the GUI elements state (prior to Reading Mode activation) is restored for the currently activated tab.
+     * Constant chars pointers that define the datatags for the different iterations of the Distraction-free Mode tests.
+     * "Empty Shell": A test that will check that the DistfreeModeAction is not enabled when there are no files opened.
+     * "One Tab": A test that will check the GUI elements state prior, during and after the Distraction-free Mode is activated.
+     * "Two Tab": A test that will check the GUI elements state is synchronized between tabs when Distraction-free Mode is activated.
+     * "Two Tab Save State": A test that will check that when a Okular shell is closed with multiple tabs open while Distraction-free Mode is activated,
+     * the GUI elements state (prior to Distraction-free Mode activation) is restored for the currently activated tab.
      */
     const char *EMPTY_SHELL_TEST = "Empty Shell";
     const char *ONE_TAB_TEST = "One Tab";
@@ -72,37 +72,37 @@ private:
     const char *TWO_TAB_SAVESTATE_TEST = "Two Tab Save State";
     // Private variables
 private:
-    // Variables that are used to store GUI elements state prior to Reading Mode activation.
+    // Variables that are used to store GUI elements state prior to Distraction-free Mode activation.
     QList<bool> toolBarState;
     bool menuBarState;
     QList<bool> sideBarState;
     QList<bool> bottomBarState;
     // Private functions
 private:
-    // Helper function to run checks prior to Reading Mode activation.
-    void storePriorReadingModeState(const Shell *shell);
-    // Helper function to run checks after Reading Mode activation.
-    void checkAfterReadingModeState(const Shell *shell);
-    // Helper function to run checks while Reading Mode is activated.
-    void checkReadingModeState(Shell *shell);
-    // Helper function to reset the variables that store GUI elements state prior to Reading Mode activation.
+    // Helper function to run checks prior to Distraction-free Mode activation.
+    void storePriorDistfreeModeState(const Shell *shell);
+    // Helper function to run checks after Distraction-free Mode activation.
+    void checkAfterDistfreeModeState(const Shell *shell);
+    // Helper function to run checks while Distraction-free Mode is activated.
+    void checkDistfreeModeState(Shell *shell);
+    // Helper function to reset the variables that store GUI elements state prior to Distraction-free Mode activation.
     void clearStates();
 };
 
-void ReadingModeTest::initTestCase()
+void DistfreeModeTest::initTestCase()
 {
     // Use a test user environment to store confirguration files.
     QStandardPaths::setTestModeEnabled(true);
     // Don't pollute people's okular settings
-    Okular::Settings::instance(QStringLiteral("readingmodetest"));
+    Okular::Settings::instance(QStringLiteral("distfreemodetest"));
 }
 
-void ReadingModeTest::init()
+void DistfreeModeTest::init()
 {
     /*
      * Delete the configuration file to restore the GUI element states to their defaults
      */
-    QString configFile = QStandardPaths::locate(QStandardPaths::ConfigLocation, QStringLiteral("readingmodetestrc"));
+    QString configFile = QStandardPaths::locate(QStandardPaths::ConfigLocation, QStringLiteral("distfreemodetestrc"));
     if (QFile::exists(configFile)) {
         QFile file(configFile);
         file.remove();
@@ -112,7 +112,7 @@ void ReadingModeTest::init()
     Okular::Settings::setShellOpenFileInTabs(true);
 }
 
-void ReadingModeTest::checkReadingMode_data()
+void DistfreeModeTest::checkDistfreeMode_data()
 {
     QTest::addColumn<QStringList>("paths");
 
@@ -122,7 +122,7 @@ void ReadingModeTest::checkReadingMode_data()
     QTest::newRow(TWO_TAB_SAVESTATE_TEST) << (QStringList() << QStringLiteral(KDESRCDIR "data/file1.pdf") << QStringLiteral(KDESRCDIR "data/file2.pdf"));
 }
 
-void ReadingModeTest::checkReadingMode()
+void DistfreeModeTest::checkDistfreeMode()
 {
     // Fetch data for the current check type.
     QFETCH(QStringList, paths);
@@ -131,40 +131,40 @@ void ReadingModeTest::checkReadingMode()
     QCOMPARE(status, Okular::Success);
     Shell *shell = findShell();
     QVERIFY(shell);
-    QVERIFY(shell->m_showReadingModeAction);
+    QVERIFY(shell->m_showDistfreeModeAction);
     // Run different checks depending on which check type is being run.
     if (QString::compare(QTest::currentDataTag(), EMPTY_SHELL_TEST) == 0) {
-        QCOMPARE(shell->m_showReadingModeAction->isEnabled(), false);
+        QCOMPARE(shell->m_showDistfreeModeAction->isEnabled(), false);
     } else if (QString::compare(QTest::currentDataTag(), ONE_TAB_TEST) == 0) {
         QCOMPARE(shell->m_tabs.count(), 1);
         Okular::Part *part = shell->findChild<Okular::Part *>();
         QVERIFY(part);
         QCOMPARE(part->url().url(), QStringLiteral("file://%1").arg(paths[0]));
-        QCOMPARE(shell->m_showReadingModeAction->isEnabled(), true);
-        storePriorReadingModeState(shell);
-        shell->m_showReadingModeAction->setChecked(true);
+        QCOMPARE(shell->m_showDistfreeModeAction->isEnabled(), true);
+        storePriorDistfreeModeState(shell);
+        shell->m_showDistfreeModeAction->setChecked(true);
         QTest::qWait(750);
-        shell->m_showReadingModeAction->setChecked(false);
+        shell->m_showDistfreeModeAction->setChecked(false);
         QTest::qWait(750);
-        checkAfterReadingModeState(shell);
+        checkAfterDistfreeModeState(shell);
     } else if (QString::compare(QTest::currentDataTag(), TWO_TAB_TEST) == 0) {
         QCOMPARE(shell->m_tabs.count(), 2);
-        storePriorReadingModeState(shell);
+        storePriorDistfreeModeState(shell);
         for (int i = 0; i < shell->m_tabs.count(); ++i) {
             Okular::Part *currPart = dynamic_cast<Okular::Part *>(shell->m_tabs[i].part);
             QVERIFY(currPart);
             QCOMPARE(currPart->url().url(), QStringLiteral("file://%1").arg(paths[i]));
         }
-        shell->m_showReadingModeAction->setChecked(true);
+        shell->m_showDistfreeModeAction->setChecked(true);
         QTest::qWait(750);
-        checkReadingModeState(shell);
-        shell->m_showReadingModeAction->setChecked(false);
+        checkDistfreeModeState(shell);
+        shell->m_showDistfreeModeAction->setChecked(false);
         QTest::qWait(750);
-        checkAfterReadingModeState(shell);
+        checkAfterDistfreeModeState(shell);
     } else if (QString::compare(QTest::currentDataTag(), TWO_TAB_SAVESTATE_TEST) == 0) {
         QCOMPARE(shell->m_tabs.count(), 2);
         Okular::Part *currPart = nullptr;
-        storePriorReadingModeState(shell);
+        storePriorDistfreeModeState(shell);
         for (int i = 0; i < shell->m_tabs.count(); ++i) {
             currPart = dynamic_cast<Okular::Part *>(shell->m_tabs[i].part);
             QVERIFY(currPart);
@@ -179,12 +179,12 @@ void ReadingModeTest::checkReadingMode()
         QWidget *currBottomBar = getBottombar(currPart);
         currBottomBar->setVisible(true);
         // Store the GUI states of all the tabs.
-        storePriorReadingModeState(shell);
-        // Activate Reading Mode.
-        shell->m_showReadingModeAction->setChecked(true);
+        storePriorDistfreeModeState(shell);
+        // Activate Distraction-free Mode.
+        shell->m_showDistfreeModeAction->setChecked(true);
         /*
          * Activate different tabs to be able to check later that Okular restores the GUI elements states
-         * of the tab that was active when Okular was closed while in Reading Mode.
+         * of the tab that was active when Okular was closed while in Distraction-free Mode.
          */
         QTest::qWait(750);
         shell->activatePrevTab();
@@ -199,7 +199,7 @@ void ReadingModeTest::checkReadingMode()
         QCOMPARE(status, Okular::Success);
         Shell *shell = findShell();
         QVERIFY(shell);
-        // Check that Okular restored the state of the activated tab when Okular was closed during last run while in Reading Mode.
+        // Check that Okular restored the state of the activated tab when Okular was closed during last run while in Distraction-free Mode.
         Okular::Part *part = shell->findChild<Okular::Part *>();
         currSideBar = getSidebar(part);
         QCOMPARE(currSideBar->isSidebarVisible(), sideBarState[activeTabIndex]);
@@ -208,7 +208,7 @@ void ReadingModeTest::checkReadingMode()
     }
 }
 
-void ReadingModeTest::storePriorReadingModeState(const Shell *shell)
+void DistfreeModeTest::storePriorDistfreeModeState(const Shell *shell)
 {
     const int iter = shell->m_tabs.count();
     // Clear the variables that store the GUI element visibility states.
@@ -228,27 +228,27 @@ void ReadingModeTest::storePriorReadingModeState(const Shell *shell)
     }
 }
 
-void ReadingModeTest::checkAfterReadingModeState(const Shell *shell)
+void DistfreeModeTest::checkAfterDistfreeModeState(const Shell *shell)
 {
-    // Check the visibility state of the menubar compared with the state prior to Reading Mode activation.
+    // Check the visibility state of the menubar compared with the state prior to Distraction-free Mode activation.
     QCOMPARE(shell->menuBar()->isVisible(), menuBarState);
-    // Check the QList<KToolBar *> element count as not changed after Reading Mode de-activation.
+    // Check the QList<KToolBar *> element count as not changed after Distraction-free Mode de-activation.
     QCOMPARE(shell->toolBars().count(), toolBarState.count());
-    // Check the visibility states of the toolbars compared with the states prior to Reading Mode activation.
+    // Check the visibility states of the toolbars compared with the states prior to Distraction-free Mode activation.
     const QList<KToolBar *> toolBars = shell->toolBars();
     for (int i = 0; i < toolBars.count(); ++i) {
         QCOMPARE(toolBars[i]->isVisible(), toolBarState[i]);
     }
 
     const int iter = shell->m_tabs.count();
-    // Check that the number of tabs have not changed after Reading Mode de-activation.
+    // Check that the number of tabs have not changed after Distraction-free Mode de-activation.
     QCOMPARE(sideBarState.count(), iter);
     QCOMPARE(bottomBarState.count(), iter);
 
     Okular::Part *currPart = nullptr;
     Sidebar *sideBar = nullptr;
     QWidget *bottomBar = nullptr;
-    // Compare the visibility states of the sidebar and bottombar compared with their states prior to Reading Mode activation.
+    // Compare the visibility states of the sidebar and bottombar compared with their states prior to Distraction-free Mode activation.
     for (int i = 0; i < iter; ++i) {
         currPart = dynamic_cast<Okular::Part *>(shell->m_tabs[i].part);
         sideBar = getSidebar(currPart);
@@ -258,16 +258,16 @@ void ReadingModeTest::checkAfterReadingModeState(const Shell *shell)
     }
 }
 
-void ReadingModeTest::checkReadingModeState(Shell *shell)
+void DistfreeModeTest::checkDistfreeModeState(Shell *shell)
 {
-    // Menubar should be hidden when Reading Mode is activated.
+    // Menubar should be hidden when Distraction-free Mode is activated.
     QCOMPARE(shell->menuBar()->isVisible(), false);
-    // All toolbars should be hidden when Reading Mode is activated.
+    // All toolbars should be hidden when Distraction-free Mode is activated.
     const QList<KToolBar *> toolBars = shell->toolBars();
     for (int i = 0; i < toolBars.count(); ++i) {
         QCOMPARE(toolBars[i]->isVisible(), false);
     }
-    // Sidebar should be hidden and the bottombar should be visible when Reading Mode is activated.
+    // Sidebar should be hidden and the bottombar should be visible when Distraction-free Mode is activated.
     const int iter = shell->m_tabs.count();
     for (int i = 0; i < iter; ++i) {
         Okular::Part *currPart = dynamic_cast<Okular::Part *>(shell->m_tabs[i].part);
@@ -280,7 +280,7 @@ void ReadingModeTest::checkReadingModeState(Shell *shell)
     }
 }
 
-void ReadingModeTest::clearStates()
+void DistfreeModeTest::clearStates()
 {
     toolBarState.clear();
     menuBarState = false;
@@ -288,7 +288,7 @@ void ReadingModeTest::clearStates()
     bottomBarState.clear();
 }
 
-void ReadingModeTest::cleanup()
+void DistfreeModeTest::cleanup()
 {
     Shell *s;
     while ((s = findShell())) {
@@ -296,5 +296,5 @@ void ReadingModeTest::cleanup()
     }
 }
 
-QTEST_MAIN(ReadingModeTest)
-#include "readingmodetest.moc"
+QTEST_MAIN(DistfreeModeTest)
+#include "distfreemodetest.moc"

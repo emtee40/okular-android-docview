@@ -7,11 +7,11 @@
  *   (at your option) any later version.                                   *
  ***************************************************************************/
 
-#ifndef DEBUG_READINGMODE_H
-#define DEBUG_READINGMODE_H
+#ifndef DEBUG_DISTFREEMODE_H
+#define DEBUG_DISTFREEMODE_H
 
 #include <QLoggingCategory>
 
-Q_DECLARE_LOGGING_CATEGORY(OkularReadingModeDebug)
+Q_DECLARE_LOGGING_CATEGORY(OkularDistfreeModeDebug)
 
-#endif // DEBUG_READINGMODE_H
+#endif // DEBUG_DISTFREEMODE_H

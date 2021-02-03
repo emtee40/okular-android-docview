@@ -6,8 +6,8 @@
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
  ***************************************************************************/
-#ifndef READINGMODEACTION_H
-#define READINGMODEACTION_H
+#ifndef DISTRACTIONFREEMODEACTION_H
+#define DISTRACTIONFREEMODEACTION_H
 
 #include <KToggleAction>
 #include <QPointer>
@@ -26,7 +26,7 @@ class ReadWritePart;
 namespace Okular
 {
 /**
- * @short The ReadingMode class used for displaying reading mode in Okular.
+ * @short The DistfreeMode class used for displaying reading mode in Okular.
  *
  * This class is used for displaying reading mode in Okular. Reading mode basically provides a convenient way of hiding menubar,
  * sidebar, main toolbar, annotation toolbar but showing the pagebar with one click of a toggle button. This mode also shows the
@@ -38,7 +38,7 @@ namespace Okular
  *
  * @author Sanchit Singh <sanckde@gmail.com>
  */
-class ReadingModeAction : public KToggleAction
+class DistFreeModeAction : public KToggleAction
 {
     Q_OBJECT
 
@@ -50,20 +50,20 @@ private:
 
 public:
     /**
-     * @brief ReadingModeAction The default constructor of reading mode.
+     * @brief DistfreeModeAction The default constructor of reading mode.
      * @param parent The parent object of this Action.
      * @param okularShell A pointer to the Shell where this instance is created.
      */
-    explicit ReadingModeAction(QObject *parent, const QPointer<Shell> &okularShell);
+    explicit DistFreeModeAction(QObject *parent, const QPointer<Shell> &okularShell);
     /**
      * @brief getWasMenuBarVisible Getter for m_wasMenuBarVisible bool variable. This holds the state of the
-     * menu bar visibility prior to Reading Mode activation.
-     * @return bool containing the visibility state of the menu bar prior to Reading Mode activation.
+     * menu bar visibility prior to Distraction-free Mode activation.
+     * @return bool containing the visibility state of the menu bar prior to Distraction-free Mode activation.
      */
     bool getWasMenuBarVisible() const;
     /**
      * @brief setWasMenuBarVisible Setting for m_wasMenuBarVisible bool variable. This holds the state of the
-     * menu bar visibility prior to Reading Mode activation.
+     * menu bar visibility prior to Distraction-free Mode activation.
      * @param wasMenuBarVisible holds the visibility state of the menu bar.
      */
     void setWasMenuBarVisible(bool wasMenuBarVisible);
@@ -87,24 +87,24 @@ public:
     /**
      * @brief handleToolBarVisibility A method used to show and hide the toolbars of the Shell in which current instance
      * was created.
-     * @param restore A bool which specifies if the toolbars should be restored to the state prior to Reading Mode activation or if they
-     * should have a state during Reading Mode activation.
+     * @param restore A bool which specifies if the toolbars should be restored to the state prior to Distraction-free Mode activation or if they
+     * should have a state during Distraction-free Mode activation.
      */
     void handleToolBarVisibility(bool restore);
     /**
-     * @brief synchronizeTabs A static helper method to synchronize the GUI elements state both when Reading Mode is activated and
+     * @brief synchronizeTabs A static helper method to synchronize the GUI elements state both when Distraction-free Mode is activated and
      * de-activated between the open tabs of the Shell in which current instance was created.
      * @param tabs A reference to QList<TabState> which contain t
-     * @param readingModeActivated A bool that tells the method what kind of synchronization that needs to be performed between the tabs.
+     * @param distfreeModeActivated A bool that tells the method what kind of synchronization that needs to be performed between the tabs.
      */
-    static void synchronizeTabs(QList<TabState> &tabs, bool readingModeActivated);
+    static void synchronizeTabs(QList<TabState> &tabs, bool distfreeModeActivated);
     /**
-     * @brief initalizeTabInReadingMode A static helper method to initialize a new tab when it is opened while Reading Mode is activated.
+     * @brief initalizeTabInDistfreeMode A static helper method to initialize a new tab when it is opened while Distraction-free Mode is activated.
      * @param newTab A reference the new tab that is created.
      * @param currTab A reference to the current tab, which is used as the basis to synchronize the GUI elements state.
      */
-    static void initalizeTabInReadingMode(TabState &newTab, const TabState currTab);
+    static void initalizeTabInDistfreeMode(TabState &newTab, const TabState currTab);
 };
 }
 
-#endif // READINGMODEACTION_H
+#endif // DISTRACTIONFREEMODEACTION_H

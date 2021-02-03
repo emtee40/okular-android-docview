@@ -100,20 +100,20 @@ ecm_add_test(calculatetexttest.cpp
 )
 
 if(KF5Activities_FOUND AND BUILD_DESKTOP)
-        ecm_add_test(mainshelltest.cpp ../shell/okular_main.cpp ../shell/shellutils.cpp ../shell/shell.cpp closedialoghelper.cpp ../shell/readingmodeaction.cpp
+        ecm_add_test(mainshelltest.cpp ../shell/okular_main.cpp ../shell/shellutils.cpp ../shell/shell.cpp closedialoghelper.cpp ../shell/distfreemodeaction.cpp
 		TEST_NAME "mainshelltest"
 		LINK_LIBRARIES Qt5::Test KF5::Activities okularpart okularcore
 	)
 	target_compile_definitions(mainshelltest PRIVATE OKULAR_BINARY="$<TARGET_FILE:okular>")
 
-        ecm_add_test(readingmodetest.cpp ../shell/okular_main.cpp ../shell/shell.cpp ../shell/shellutils.cpp ../shell/readingmodeaction.cpp
-                TEST_NAME "readingmodetest"
+        ecm_add_test(distfreemodetest.cpp ../shell/okular_main.cpp ../shell/shell.cpp ../shell/shellutils.cpp ../shell/distfreemodeaction.cpp
+                TEST_NAME "distfreemodetest"
                 LINK_LIBRARIES Qt5::Test Qt5::Xml okularpart
         )
 endif()
 
 if(BUILD_DESKTOP)
-    ecm_add_test(annotationtoolbartest.cpp ../shell/okular_main.cpp ../shell/shellutils.cpp ../shell/shell.cpp closedialoghelper.cpp ../shell/readingmodeaction.cpp
+    ecm_add_test(annotationtoolbartest.cpp ../shell/okular_main.cpp ../shell/shellutils.cpp ../shell/shell.cpp closedialoghelper.cpp ../shell/distfreemodeaction.cpp
         TEST_NAME "annotationtoolbartest"
         LINK_LIBRARIES Qt5::Test okularpart
     )

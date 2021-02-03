@@ -58,7 +58,7 @@
 // local includes
 #include "../interfaces/viewerinterface.h"
 #include "kdocumentviewer.h"
-#include "readingmodeaction.h"
+#include "distfreemodeaction.h"
 #include "shellutils.h"
 using namespace Okular;
 
@@ -68,7 +68,7 @@ static const char *shouldShowToolBarComingFromFullScreen = "shouldShowToolBarCom
 static const char *const SESSION_URL_KEY = "Urls";
 static const char *const SESSION_TAB_KEY = "ActiveTab";
 
-// Const strings used for extracting specific QActions from Part for use with Reading Mode.
+// Const strings used for extracting specific QActions from Part for use with Distraction-free Mode.
 const QString Shell::SHOWLEFTPANELACTIONNAME = QStringLiteral("show_leftpanel");
 const QString Shell::SHOWBOTTOMBARACTIONNAME = QStringLiteral("show_bottombar");
 
@@ -89,7 +89,7 @@ Shell::Shell(const QString &serializedOptions)
     setXMLFile(QStringLiteral("shell.rc"));
     m_fileformatsscanned = false;
     m_showMenuBarAction = nullptr;
-    m_showReadingModeAction = nullptr;
+    m_showDistfreeModeAction = nullptr;
     // this routine will find and load our Part.  it finds the Part by
     // name which is a bad idea usually.. but it's alright in this
     // case since our Part is made for this Shell
@@ -228,7 +228,7 @@ Shell::~Shell()
         QDBusConnection::sessionBus().unregisterService(QStringLiteral("org.kde.okular"));
 
     delete m_tabWidget;
-    delete m_showReadingModeAction;
+    delete m_showDistfreeModeAction;
 }
 
 // Open a new document if we have space for it
@@ -276,8 +276,8 @@ bool Shell::canOpenDocs(int numDocs, int desktop)
 void Shell::openUrl(const QUrl &url, const QString &serializedOptions)
 {
     const int activeTab = m_tabWidget->currentIndex();
-    // Set Reading Mode Action enabled if a new document is going to be opened.
-    m_showReadingModeAction->setEnabled(true);
+    // Set Distraction-free Mode Action enabled if a new document is going to be opened.
+    m_showDistfreeModeAction->setEnabled(true);
     if (activeTab < m_tabs.size()) {
         KParts::ReadWritePart *const activePart = m_tabs[activeTab].part;
         if (!activePart->url().isEmpty()) {
@@ -310,8 +310,8 @@ void Shell::openUrl(const QUrl &url, const QString &serializedOptions)
                 } else {
                     m_recent->removeUrl(url);
                     closeTab(activeTab);
-                    // Since opening of a new document was not successful, Reading Mode should be deactivated
-                    m_showReadingModeAction->setEnabled(false);
+                    // Since opening of a new document was not successful, Distraction-free Mode should be deactivated
+                    m_showDistfreeModeAction->setEnabled(false);
                 }
             }
         }
@@ -381,13 +381,13 @@ void Shell::setupActions()
     m_showMenuBarAction = KStandardAction::showMenubar(this, SLOT(slotShowMenubar()), actionCollection());
     m_fullScreenAction = KStandardAction::fullScreen(this, SLOT(slotUpdateFullScreen()), this, actionCollection());
 
-    m_showReadingModeAction = new ReadingModeAction(actionCollection(), this);
-    actionCollection()->addAction(QStringLiteral("reading_mode"), m_showReadingModeAction);
-    m_showReadingModeAction->setText(i18n("Reading Mode"));
-    m_showReadingModeAction->setIcon(QIcon::fromTheme(QStringLiteral("view-readermode")));
-    actionCollection()->setDefaultShortcut(m_showReadingModeAction, QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_R));
-    connect(m_showReadingModeAction, &QAction::toggled, this, &Shell::slotShowReadingMode);
-    m_showReadingModeAction->setEnabled(false);
+    m_showDistfreeModeAction = new DistFreeModeAction(actionCollection(), this);
+    actionCollection()->addAction(QStringLiteral("distfree_mode"), m_showDistfreeModeAction);
+    m_showDistfreeModeAction->setText(i18n("Distraction-free Mode"));
+    m_showDistfreeModeAction->setIcon(QIcon::fromTheme(QStringLiteral("view-readermode")));
+    actionCollection()->setDefaultShortcut(m_showDistfreeModeAction, QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_R));
+    connect(m_showDistfreeModeAction, &QAction::toggled, this, &Shell::slotShowDistfreeMode);
+    m_showDistfreeModeAction->setEnabled(false);
 
     m_nextTabAction = actionCollection()->addAction(QStringLiteral("tab-next"));
     m_nextTabAction->setText(i18n("Next Tab"));
@@ -585,7 +585,7 @@ void Shell::showEvent(QShowEvent *e)
     if (!menuBar()->isNativeMenuBar() && m_showMenuBarAction)
         m_showMenuBarAction->setChecked(menuBar()->isVisible());
     // Get the links to GUI elements once the Shell is shown.
-    m_showReadingModeAction->reloadLinks();
+    m_showDistfreeModeAction->reloadLinks();
 
     KParts::MainWindow::showEvent(e);
 }
@@ -593,27 +593,27 @@ void Shell::showEvent(QShowEvent *e)
 void Shell::closeEvent(QCloseEvent *e)
 {
     /*
-     * Reading Mode should be deactivated so that the GUI is restored to the state
-     * prior to Reading Mode activation, the next time Okular is started. This is if the user
-     * tries to close the Shell while in the Reading Mode
+     * Distraction-free Mode should be deactivated so that the GUI is restored to the state
+     * prior to Distraction-free Mode activation, the next time Okular is started. This is if the user
+     * tries to close the Shell while in the Distraction-free Mode
      */
-    if (m_showReadingModeAction->isChecked() && m_tabs.count() == 1)
-        m_showReadingModeAction->setChecked(false);
+    if (m_showDistfreeModeAction->isChecked() && m_tabs.count() == 1)
+        m_showDistfreeModeAction->setChecked(false);
     /*
-     * Reading Mode is deactivated in a different way when there are multiple
+     * Distraction-free Mode is deactivated in a different way when there are multiple
      * tabs open. The idea is that GUI state is restored and saved for the current activated tab
      * so that it is the last active tab's GUI state that is restored next time Okular is launched.
      */
-    else if (m_showReadingModeAction->isChecked() && m_tabs.count() > 1) {
-        // Restore the menu bar state prior to Reading Mode activation.
-        m_showMenuBarAction->setChecked(m_showReadingModeAction->getWasMenuBarVisible());
-        menuBar()->setVisible(m_showReadingModeAction->getWasMenuBarVisible());
-        // Restore the tool bars states prior to Reading Mode activation.
-        m_showReadingModeAction->handleToolBarVisibility(true);
+    else if (m_showDistfreeModeAction->isChecked() && m_tabs.count() > 1) {
+        // Restore the menu bar state prior to Distraction-free Mode activation.
+        m_showMenuBarAction->setChecked(m_showDistfreeModeAction->getWasMenuBarVisible());
+        menuBar()->setVisible(m_showDistfreeModeAction->getWasMenuBarVisible());
+        // Restore the tool bars states prior to Distraction-free Mode activation.
+        m_showDistfreeModeAction->handleToolBarVisibility(true);
         QList<TabState> tabs;
         // Restore the part GUI states only for the currently activated tab.
         tabs.append(m_tabs[m_tabWidget->currentIndex()]);
-        ReadingModeAction::synchronizeTabs(tabs, false);
+        DistFreeModeAction::synchronizeTabs(tabs, false);
     }
     KParts::MainWindow::closeEvent(e);
 }
@@ -682,10 +682,10 @@ bool Shell::queryClose()
 
             if (result != QDialogButtonBox::Yes) {
                 /*
-                 * Since the user chose not to close the shell, Reading Mode should be
-                 * deactivated to restore the GUI state prior to Reading Mode activation.
+                 * Since the user chose not to close the shell, Distraction-free Mode should be
+                 * deactivated to restore the GUI state prior to Distraction-free Mode activation.
                  */
-                m_showReadingModeAction->setChecked(false);
+                m_showDistfreeModeAction->setChecked(false);
                 return false;
             }
         }
@@ -701,11 +701,11 @@ bool Shell::queryClose()
         if (!part->queryClose()) {
             /*
              * Since the user chose not to close the shell when multiple tabs were open,
-             * Reading Mode should be deactivated to restore the GUI state prior to Reading mode
+             * Distraction-free Mode should be deactivated to restore the GUI state prior to Reading mode
              * activation.
              */
             if (m_tabs.count() > 1)
-                m_showReadingModeAction->setChecked(false);
+                m_showDistfreeModeAction->setChecked(false);
             return false;
         }
     }
@@ -746,10 +746,10 @@ void Shell::closeTab(int tab)
         }
     }
 
-    // If the last open tab/part is closed of Okular Shell then Reading Mode action should be deactivated.
+    // If the last open tab/part is closed of Okular Shell then Distraction-free Mode action should be deactivated.
     if (isPartClosed && tab == 0) {
-        m_showReadingModeAction->setChecked(false);
-        m_showReadingModeAction->setEnabled(false);
+        m_showDistfreeModeAction->setChecked(false);
+        m_showDistfreeModeAction->setEnabled(false);
     }
 }
 
@@ -786,10 +786,10 @@ void Shell::openNewTab(const QUrl &url, const QString &serializedOptions)
 
     /*
      * Set the GUI state of the newly added tab to the previously active tab, if new tab
-     * is added while Reading Mode is activated
+     * is added while Distraction-free Mode is activated
      */
-    if (m_showReadingModeAction->isChecked()) {
-        ReadingModeAction::initalizeTabInReadingMode(m_tabs[newIndex], m_tabs[previousActiveTab]);
+    if (m_showDistfreeModeAction->isChecked()) {
+        DistFreeModeAction::initalizeTabInDistfreeMode(m_tabs[newIndex], m_tabs[previousActiveTab]);
     }
 
     // Update GUI
@@ -944,35 +944,35 @@ void Shell::slotFitWindowToPage(const QSize pageViewSize, const QSize pageSize)
     emit moveSplitter(pageSize.width());
 }
 
-void Shell::slotShowReadingMode()
+void Shell::slotShowDistfreeMode()
 {
     // Reload pointers just in case some have become null.
-    m_showReadingModeAction->reloadLinks();
+    m_showDistfreeModeAction->reloadLinks();
 
     // Handle the activated trigger
-    if (m_showReadingModeAction->isChecked()) {
-        // Store the state of menu bar prior to Reading Mode activation.
-        m_showReadingModeAction->setWasMenuBarVisible(m_showMenuBarAction->isChecked());
+    if (m_showDistfreeModeAction->isChecked()) {
+        // Store the state of menu bar prior to Distraction-free Mode activation.
+        m_showDistfreeModeAction->setWasMenuBarVisible(m_showMenuBarAction->isChecked());
         // Hide the menu bar
         m_showMenuBarAction->setChecked(false);
         menuBar()->setVisible(false);
 
         // Hide the toolbars
-        m_showReadingModeAction->handleToolBarVisibility(false);
+        m_showDistfreeModeAction->handleToolBarVisibility(false);
 
     } else { // Handle deactivated trigger
-        // Restore the state of the menu bar prior to Reading Mode activation.
-        m_showMenuBarAction->setChecked(m_showReadingModeAction->getWasMenuBarVisible());
-        menuBar()->setVisible(m_showReadingModeAction->getWasMenuBarVisible());
-        // Restore the state of the tool bars prior to Reading Mode activation.
-        m_showReadingModeAction->handleToolBarVisibility(true);
+        // Restore the state of the menu bar prior to Distraction-free Mode activation.
+        m_showMenuBarAction->setChecked(m_showDistfreeModeAction->getWasMenuBarVisible());
+        menuBar()->setVisible(m_showDistfreeModeAction->getWasMenuBarVisible());
+        // Restore the state of the tool bars prior to Distraction-free Mode activation.
+        m_showDistfreeModeAction->handleToolBarVisibility(true);
     }
 
     /*
-     * Depending upon the checked state of the ReadingModeAction, synchronize the GUI state across the open tabs if Reading Mode is activated or
-     * restore the GUI state of all open tabs to the state prior to Reading Mode activation.
+     * Depending upon the checked state of the DistfreeModeAction, synchronize the GUI state across the open tabs if Distraction-free Mode is activated or
+     * restore the GUI state of all open tabs to the state prior to Distraction-free Mode activation.
      */
-    ReadingModeAction::synchronizeTabs(m_tabs, m_showReadingModeAction->isChecked());
+    DistFreeModeAction::synchronizeTabs(m_tabs, m_showDistfreeModeAction->isChecked());
 }
 
 /* kate: replace-tabs on; indent-width 4; */

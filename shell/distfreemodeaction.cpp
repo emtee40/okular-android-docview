@@ -9,39 +9,39 @@
 
 #include <KToolBar>
 
-#include "debug_readingmode.h"
-#include "readingmodeaction.h"
+#include "debug_distfreemode.h"
+#include "distfreemodeaction.h"
 #include "shell.h"
 
 namespace Okular
 {
-ReadingModeAction::ReadingModeAction(QObject *parent, const QPointer<Shell> &okularShell)
+DistFreeModeAction::DistFreeModeAction(QObject *parent, const QPointer<Shell> &okularShell)
     : KToggleAction(parent)
     , m_okularShell(okularShell)
 {
 }
 
-bool ReadingModeAction::getWasMenuBarVisible() const
+bool DistFreeModeAction::getWasMenuBarVisible() const
 {
     return m_wasMenuBarVisible;
 }
 
-void ReadingModeAction::setWasMenuBarVisible(bool wasMenuBarVisible)
+void DistFreeModeAction::setWasMenuBarVisible(bool wasMenuBarVisible)
 {
     m_wasMenuBarVisible = wasMenuBarVisible;
 }
 
-QPointer<Shell> ReadingModeAction::getOkularShell() const
+QPointer<Shell> DistFreeModeAction::getOkularShell() const
 {
     return m_okularShell;
 }
 
-void ReadingModeAction::setOkularShell(const QPointer<Shell> &value)
+void DistFreeModeAction::setOkularShell(const QPointer<Shell> &value)
 {
     m_okularShell = value;
 }
 
-void ReadingModeAction::reloadLinks()
+void DistFreeModeAction::reloadLinks()
 {
     m_toolBars.clear();
     const QList<KToolBar *> toolbars = m_okularShell->toolBars();
@@ -50,7 +50,7 @@ void ReadingModeAction::reloadLinks()
     }
 }
 
-void ReadingModeAction::handleToolBarVisibility(bool restore)
+void DistFreeModeAction::handleToolBarVisibility(bool restore)
 {
     // Reload m_wereToolBarsVisible QList if it had been corrupted.
     if (m_toolBars.count() != m_wereToolBarsVisible.count()) {
@@ -59,7 +59,7 @@ void ReadingModeAction::handleToolBarVisibility(bool restore)
             if (m_toolBars[i])
                 m_wereToolBarsVisible.append(m_toolBars[i]->isVisible());
             else {
-                qCWarning(OkularReadingModeDebug) << "Pointer to a toolbar is either missing or corrupted.";
+                qCWarning(OkularDistfreeModeDebug) << "Pointer to a toolbar is either missing or corrupted.";
             }
         }
     }
@@ -70,7 +70,7 @@ void ReadingModeAction::handleToolBarVisibility(bool restore)
                 m_wereToolBarsVisible[i] = m_toolBars[i]->isVisible();
                 m_toolBars[i]->setVisible(false);
             } else {
-                qCWarning(OkularReadingModeDebug) << "Pointer to a toolbar is either missing or corrupted!";
+                qCWarning(OkularDistfreeModeDebug) << "Pointer to a toolbar is either missing or corrupted!";
             }
         }
     } else {
@@ -78,13 +78,13 @@ void ReadingModeAction::handleToolBarVisibility(bool restore)
             if (m_toolBars[i])
                 m_toolBars[i]->setVisible(m_wereToolBarsVisible[i]);
             else {
-                qCWarning(OkularReadingModeDebug) << "Pointer to a toolbar is either missing or corrupted!";
+                qCWarning(OkularDistfreeModeDebug) << "Pointer to a toolbar is either missing or corrupted!";
             }
         }
     }
 }
 
-void ReadingModeAction::synchronizeTabs(QList<TabState> &tabs, bool readingModeActivated)
+void DistFreeModeAction::synchronizeTabs(QList<TabState> &tabs, bool distfreeModeActivated)
 {
     for (int i = 0; i < tabs.count(); i++) {
         // Pointer to store bottom bar action reference for a currPart
@@ -104,42 +104,42 @@ void ReadingModeAction::synchronizeTabs(QList<TabState> &tabs, bool readingModeA
         // If pointers to left panel and bottom bar are found then continue otherwise return from the function
         if (!foundLeftPanelAct || !foundBottomBarAct) {
             if (!foundLeftPanelAct)
-                qCWarning(OkularReadingModeDebug) << "Pointer to left panel of" << currPart << "was not found!";
+                qCWarning(OkularDistfreeModeDebug) << "Pointer to left panel of" << currPart << "was not found!";
             else if (!foundBottomBarAct)
-                qCWarning(OkularReadingModeDebug) << "Pointer to bottom bar of" << currPart << "was not found!";
+                qCWarning(OkularDistfreeModeDebug) << "Pointer to bottom bar of" << currPart << "was not found!";
             return;
         }
-        if (readingModeActivated) { // Handle GUI state when Reading Mode is activated
+        if (distfreeModeActivated) { // Handle GUI state when Distraction-free Mode is activated
             /*
              * Remember visibility state of bottom bar of the current tab. So that the
-             * state can be restored once Reading Mode is deactivated.
+             * state can be restored once Distraction-free Mode is deactivated.
              */
-            tabs[i].btmBarVisBeforeReadingMode = show_bottomBar->isChecked();
+            tabs[i].btmBarVisBeforeDistfreeMode = show_bottomBar->isChecked();
             // Show the bottom bar.
             show_bottomBar->setChecked(true);
             /*
              * Remember visibility state of side panel of the current tab. So that the
-             * state can be restored once Reading Mode is deactivated.
+             * state can be restored once Distraction-free Mode is deactivated.
              */
-            tabs[i].lftPnlVisBeforeReadingMode = show_leftPanel->isChecked();
+            tabs[i].lftPnlVisBeforeDistfreeMode = show_leftPanel->isChecked();
             // Hide the left panel.
             show_leftPanel->setChecked(false);
 
-        } else { // Handle GUI state when Reading Mode is deactivated.
-            // Restore the bottom bar and left panel visibility state prior to Reading Mode activation for the current tab.
-            show_bottomBar->setChecked(tabs[i].btmBarVisBeforeReadingMode);
-            show_leftPanel->setChecked(tabs[i].lftPnlVisBeforeReadingMode);
+        } else { // Handle GUI state when Distraction-free Mode is deactivated.
+            // Restore the bottom bar and left panel visibility state prior to Distraction-free Mode activation for the current tab.
+            show_bottomBar->setChecked(tabs[i].btmBarVisBeforeDistfreeMode);
+            show_leftPanel->setChecked(tabs[i].lftPnlVisBeforeDistfreeMode);
         }
     }
 }
 
-void ReadingModeAction::initalizeTabInReadingMode(TabState &newTab, const TabState currTab)
+void DistFreeModeAction::initalizeTabInDistfreeMode(TabState &newTab, const TabState currTab)
 {
     // Copy the left panel visibility state from the passed currTab reference
-    newTab.lftPnlVisBeforeReadingMode = currTab.lftPnlVisBeforeReadingMode;
+    newTab.lftPnlVisBeforeDistfreeMode = currTab.lftPnlVisBeforeDistfreeMode;
     // Copy the bottom bar visibility state from the passed currTab reference
-    newTab.btmBarVisBeforeReadingMode = currTab.btmBarVisBeforeReadingMode;
+    newTab.btmBarVisBeforeDistfreeMode = currTab.btmBarVisBeforeDistfreeMode;
 }
 } // namespace Okular
 
-Q_LOGGING_CATEGORY(OkularReadingModeDebug, "org.kde.okular.readingmode", QtWarningMsg);
+Q_LOGGING_CATEGORY(OkularDistfreeModeDebug, "org.kde.okular.distfreemode", QtWarningMsg);

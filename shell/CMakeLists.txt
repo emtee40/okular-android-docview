@@ -11,7 +11,7 @@ set(okular_SRCS
    okular_main.cpp
    shell.cpp
    shellutils.cpp
-   readingmodeaction.cpp
+   distfreemodeaction.cpp
 )
 
 file(GLOB ICONS_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/../icons/*-apps-okular.png")

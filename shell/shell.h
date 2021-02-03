@@ -33,7 +33,7 @@ class KPluginFactory;
 
 namespace Okular
 {
-class ReadingModeAction;
+class DistFreeModeAction;
 }
 
 #ifndef Q_OS_WIN
@@ -49,14 +49,14 @@ struct TabState {
         , printEnabled(false)
         , closeEnabled(false)
     {
-        lftPnlVisBeforeReadingMode = false;
-        btmBarVisBeforeReadingMode = false;
+        lftPnlVisBeforeDistfreeMode = false;
+        btmBarVisBeforeDistfreeMode = false;
     }
     KParts::ReadWritePart *part;
     bool printEnabled;
     bool closeEnabled;
-    bool lftPnlVisBeforeReadingMode;
-    bool btmBarVisBeforeReadingMode;
+    bool lftPnlVisBeforeDistfreeMode;
+    bool btmBarVisBeforeDistfreeMode;
 };
 
 /**
@@ -74,7 +74,7 @@ class Shell : public KParts::MainWindow
 
     friend class MainShellTest;
     friend class AnnotationToolBarTest;
-    friend class ReadingModeTest;
+    friend class DistfreeModeTest;
 
 public:
     /**
@@ -183,7 +183,7 @@ private Q_SLOTS:
 
     void slotFitWindowToPage(const QSize pageViewSize, const QSize pageSize);
 
-    void slotShowReadingMode();
+    void slotShowDistfreeMode();
 
 Q_SIGNALS:
     void moveSplitter(int sideWidgetSize);
@@ -210,7 +210,7 @@ private:
     QAction *m_closeAction;
     KToggleAction *m_fullScreenAction;
     KToggleAction *m_showMenuBarAction;
-    Okular::ReadingModeAction *m_showReadingModeAction;
+    Okular::DistFreeModeAction *m_showDistfreeModeAction;
     bool m_menuBarWasShown, m_toolBarWasShown;
     bool m_unique;
     QTabWidget *m_tabWidget;

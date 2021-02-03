@@ -13,7 +13,7 @@
   </Menu-->
   <Menu name="view" >
     <DefineGroup append="fullscreen" name="view_main" />
-    <Action append="view_main" name="reading_mode" />
+    <Action append="view_main" name="distfree_mode" />
   </Menu>
   <Menu name="settings" >
    <DefineGroup append="show_merge" name="show_merge" />
