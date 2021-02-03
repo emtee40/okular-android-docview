@@ -4275,17 +4275,14 @@ void PageView::zoomWithFixedCenter(PageView::ZoomMode newZoomMode, QPointF zoomC
     d->blockPixmapsRequest = false;
 
     const QRect afterGeometry = page->croppedGeometry();
-    const double vpZoomY = (double)afterGeometry.height() / (double)beginGeometry.height();
-    const double vpZoomX = (double)afterGeometry.width() / (double)beginGeometry.width();
+    QTransform zoomFactor = QTransform::fromScale((double)afterGeometry.width() / beginGeometry.width(), (double)afterGeometry.height() / beginGeometry.height());
 
-    QPointF newScroll;
     // The calculation for newScroll is taken from Gwenview class Abstractimageview::setZoom
-    newScroll.setY(vpZoomY * (oldScroll.y() + zoomCenter.y()) - zoomCenter.y());
-    newScroll.setX(vpZoomX * (oldScroll.x() + zoomCenter.x()) - zoomCenter.x());
+    QPointF newScroll = zoomFactor.map(oldScroll + zoomCenter) - zoomCenter;
 
-    // add the remaining scroll from the previous zoom event
-    newScroll.setX(newScroll.x() + d->remainingScroll.x() * vpZoomX);
-    newScroll.setY(newScroll.y() + d->remainingScroll.y() * vpZoomY);
+    // The remaining scrolling distance from the previous zoom event;
+    // in content area coordinates at the zoom factor of that event
+    newScroll = zoomFactor.map(newScroll + d->remainingScroll);
 
     // adjust newScroll to the new margins after zooming
     offset = QPoint {afterGeometry.left(), afterGeometry.top()};
@@ -4294,30 +4291,28 @@ void PageView::zoomWithFixedCenter(PageView::ZoomMode newZoomMode, QPointF zoomC
     // adjust newScroll for appearance and disappearance of the scrollbars
     if (Okular::Settings::showScrollBars()) {
         if (hScrollBarMaximum == 0 && horizontalScrollBar()->maximum() > 0)
-            newScroll.setY(newScroll.y() - (horizontalScrollBar()->height() / 2.0));
+            newScroll.ry() -= horizontalScrollBar()->height() / 2.0;
 
         if (hScrollBarMaximum > 0 && horizontalScrollBar()->maximum() == 0)
-            newScroll.setY(newScroll.y() + (horizontalScrollBar()->height() / 2.0));
+            newScroll.ry() += horizontalScrollBar()->height() / 2.0;
 
         if (vScrollBarMaximum == 0 && verticalScrollBar()->maximum() > 0)
-            newScroll.setX(newScroll.x() - (verticalScrollBar()->width() / 2.0));
+            newScroll.rx() -= verticalScrollBar()->width() / 2.0;
 
         if (vScrollBarMaximum > 0 && verticalScrollBar()->maximum() == 0)
-            newScroll.setX(newScroll.x() + (verticalScrollBar()->width() / 2.0));
+            newScroll.rx() += verticalScrollBar()->width() / 2.0;
     }
 
-    const int newScrollX = std::round(newScroll.x());
-    const int newScrollY = std::round(newScroll.y());
-    d->scroller->scrollTo(QPoint(newScrollX, newScrollY), 0);
+    d->scroller->scrollTo(newScroll.toPoint(), 0);
 
     viewport()->setUpdatesEnabled(true);
     viewport()->update();
 
     // test if target scroll position was reached, if not save
-    // the difference in d->scrollRest for later use
+    // the difference in d->remainingScroll for later use
     const QPointF diffF = newScroll - contentAreaPosition();
     if (abs(diffF.x()) < 0.5 && abs(diffF.y()) < 0.5) {
-        // scroll target reached set d->scrollRest to 0.0
+        // scroll target reached set d->remainingScroll to 0.0
         d->remainingScroll = QPointF(0.0, 0.0);
     } else {
         d->remainingScroll = diffF;
