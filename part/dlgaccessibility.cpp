@@ -13,6 +13,7 @@
 
 #include <KColorButton>
 #include <KLocalizedString>
+#include <KMessageWidget>
 
 #include <QCheckBox>
 #include <QComboBox>
@@ -47,32 +48,31 @@ DlgAccessibility::DlgAccessibility(QWidget *parent)
 
     // BEGIN Change colors section
     // Checkbox: enable Change Colors feature
-    QCheckBox *enableChangeColors = new QCheckBox(this);
-    enableChangeColors->setText(i18nc("@option:check Config dialog, accessibility page", "Change colors"));
-    enableChangeColors->setObjectName(QStringLiteral("kcfg_ChangeColors"));
-    layout->addRow(QString(), enableChangeColors);
-
-    // Label: Performance warning
-    QLabel *warningLabel = new QLabel(this);
-    warningLabel->setText(i18nc("@info Config dialog, accessibility page", "<b>Warning:</b> these options can badly affect drawing speed."));
-    warningLabel->setWordWrap(true);
-    layout->addRow(warningLabel);
+    m_enableChangeColors = new QCheckBox(this);
+    m_enableChangeColors->setText(i18nc("@option:check Config dialog, accessibility page", "Change colors"));
+    m_enableChangeColors->setObjectName(QStringLiteral("kcfg_ChangeColors"));
+    layout->addRow(QString(), m_enableChangeColors);
 
     // Combobox: color modes
-    QComboBox *colorMode = new QComboBox(this);
-    colorMode->addItem(i18nc("@item:inlistbox Config dialog, accessibility page", "Invert colors"));
-    colorMode->addItem(i18nc("@item:inlistbox Config dialog, accessibility page", "Change paper color"));
-    colorMode->addItem(i18nc("@item:inlistbox Config dialog, accessibility page", "Change dark & light colors"));
-    colorMode->addItem(i18nc("@item:inlistbox Config dialog, accessibility page", "Convert to black & white"));
-    colorMode->addItem(i18nc("@item:inlistbox Config dialog, accessibility page", "Invert lightness"));
-    colorMode->addItem(i18nc("@item:inlistbox Config dialog, accessibility page", "Invert luma (sRGB linear)"));
-    colorMode->addItem(i18nc("@item:inlistbox Config dialog, accessibility page", "Invert luma (symmetric)"));
-    colorMode->addItem(i18nc("@item:inlistbox Config dialog, accessibility page", "Shift hue positive"));
-    colorMode->addItem(i18nc("@item:inlistbox Config dialog, accessibility page", "Shift hue negative"));
-    colorMode->setObjectName(QStringLiteral("kcfg_RenderMode"));
-    layout->addRow(i18nc("@label:listbox Config dialog, accessibility page", "Color mode:"), colorMode);
+    m_colorMode = new QComboBox(this);
+    m_colorMode->addItem(i18nc("@item:inlistbox Config dialog, accessibility page", "Invert colors"));
+    m_colorMode->addItem(i18nc("@item:inlistbox Config dialog, accessibility page", "Change paper color"));
+    m_colorMode->addItem(i18nc("@item:inlistbox Config dialog, accessibility page", "Change dark & light colors"));
+    m_colorMode->addItem(i18nc("@item:inlistbox Config dialog, accessibility page", "Convert to black & white"));
+    m_colorMode->addItem(i18nc("@item:inlistbox Config dialog, accessibility page", "Invert lightness"));
+    m_colorMode->addItem(i18nc("@item:inlistbox Config dialog, accessibility page", "Invert luma (sRGB linear)"));
+    m_colorMode->addItem(i18nc("@item:inlistbox Config dialog, accessibility page", "Invert luma (symmetric)"));
+    m_colorMode->addItem(i18nc("@item:inlistbox Config dialog, accessibility page", "Shift hue positive"));
+    m_colorMode->addItem(i18nc("@item:inlistbox Config dialog, accessibility page", "Shift hue negative"));
+    m_colorMode->setObjectName(QStringLiteral("kcfg_RenderMode"));
+    layout->addRow(i18nc("@label:listbox Config dialog, accessibility page", "Color mode:"), m_colorMode);
 
     m_colorModeConfigStack->setSizePolicy({QSizePolicy::Preferred, QSizePolicy::Fixed});
+
+    // Message widget: Performance warning
+    m_warningMessage = new KMessageWidget(i18nc("@info Config dialog, accessibility page", "This option can badly affect drawing speed."), this);
+    m_warningMessage->setMessageType(KMessageWidget::Warning);
+    layout->addRow(m_warningMessage);
 
     // BEGIN Empty page (Only needed to hide the other pages, but it shouldn’t be huge...)
     QWidget *pageWidget = new QWidget(this);
@@ -135,15 +135,16 @@ DlgAccessibility::DlgAccessibility(QWidget *parent)
     layout->addRow(QString(), m_colorModeConfigStack);
 
     // Setup controls enabled states:
-    colorMode->setCurrentIndex(0);
-    slotColorModeSelected(0);
-    connect(colorMode, qOverload<int>(&QComboBox::currentIndexChanged), this, &DlgAccessibility::slotColorModeSelected);
+    m_colorMode->setCurrentIndex(0);
+    slotColorModeSelected();
+    connect(m_colorMode, qOverload<int>(&QComboBox::currentIndexChanged), this, &DlgAccessibility::slotColorModeSelected);
 
-    enableChangeColors->setChecked(false);
-    colorMode->setEnabled(false);
-    connect(enableChangeColors, &QCheckBox::toggled, colorMode, &QComboBox::setEnabled);
+    m_enableChangeColors->setChecked(false);
+    m_colorMode->setEnabled(false);
+    connect(m_enableChangeColors, &QCheckBox::toggled, m_colorMode, &QComboBox::setEnabled);
     m_colorModeConfigStack->setEnabled(false);
-    connect(enableChangeColors, &QCheckBox::toggled, m_colorModeConfigStack, &QWidget::setEnabled);
+    connect(m_enableChangeColors, &QCheckBox::toggled, m_colorModeConfigStack, &QWidget::setEnabled);
+    connect(m_enableChangeColors, &QCheckBox::toggled, this, &DlgAccessibility::slotColorModeSelected);
     // END Change colors section
 
 #ifdef HAVE_SPEECH
@@ -163,8 +164,16 @@ DlgAccessibility::DlgAccessibility(QWidget *parent)
 #endif
 }
 
-void DlgAccessibility::slotColorModeSelected(int mode)
+void DlgAccessibility::slotColorModeSelected()
 {
+    int mode = m_colorMode->currentIndex();
+
+    if (m_enableChangeColors->isChecked() && mode != Okular::Settings::EnumRenderMode::Paper) {
+        m_warningMessage->animatedShow();
+    } else {
+        m_warningMessage->animatedHide();
+    }
+
     if (mode == Okular::Settings::EnumRenderMode::Paper) {
         m_colorModeConfigStack->setCurrentIndex(1);
     } else if (mode == Okular::Settings::EnumRenderMode::Recolor) {

@@ -12,6 +12,10 @@
 
 #include <QWidget>
 
+class KMessageWidget;
+
+class QCheckBox;
+class QComboBox;
 class QStackedWidget;
 
 class DlgAccessibility : public QWidget
@@ -22,9 +26,13 @@ public:
     explicit DlgAccessibility(QWidget *parent = nullptr);
 
 protected Q_SLOTS:
-    void slotColorModeSelected(int mode);
+    // TODO Give `int mode` parameter back, when checkbox removed.
+    void slotColorModeSelected();
 
 protected:
+    QCheckBox *m_enableChangeColors;
+    QComboBox *m_colorMode;
+    KMessageWidget *m_warningMessage;
     QStackedWidget *m_colorModeConfigStack;
 };
 
