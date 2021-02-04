@@ -5,6 +5,9 @@
       http://www.kde.org/standards/kcfg/1.0/kcfg.xsd" >
  <include>kuser.h</include>
  <kcfgfile arg="true" />
+ <signal name="colorModeChanged" >
+  <argument type="Enum">colorMode</argument>
+ </signal>
  <group name="Core Performance" >
   <entry key="MemoryLevel" type="Enum" >
    <default>Normal</default>
@@ -44,12 +47,11 @@
   <entry key="PaperColor" type="Color" >
    <default code="true" >Qt::white</default>
   </entry>
-  <entry key="ChangeColors" type="Bool" >
-   <default>false</default>
-  </entry>
-  <entry key="RenderMode" type="Enum" >
-   <default>Inverted</default>
-   <choices>
+  <entry key="ColorMode" type="Enum" >
+   <default>Normal</default>
+   <emit signal="colorModeChanged" />
+   <choices name="EnumColorMode" >
+    <choice name="Normal" />
     <choice name="Inverted" />
     <choice name="Paper" />
     <choice name="Recolor" />
@@ -60,6 +62,10 @@
     <choice name="HueShiftPositive" />
     <choice name="HueShiftNegative" />
    </choices>
+  </entry>
+  <entry key="LastColorMode" type="Enum" >
+   <choices name="EnumColorMode" />
+   <default>Inverted</default>
   </entry>
  </group>
  <group name="Core General" >

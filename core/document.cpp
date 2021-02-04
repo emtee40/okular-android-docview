@@ -1893,7 +1893,7 @@ QVariant DocumentPrivate::documentMetaData(const Generator::DocumentMetaDataKey 
     case Generator::PaperColorMetaData: {
         bool giveDefault = option.toBool();
         QColor color;
-        if ((SettingsCore::renderMode() == SettingsCore::EnumRenderMode::Paper) && SettingsCore::changeColors()) {
+        if (SettingsCore::colorMode() == SettingsCore::EnumColorMode::Paper) {
             color = SettingsCore::paperColor();
         } else if (giveDefault) {
             color = Qt::white;

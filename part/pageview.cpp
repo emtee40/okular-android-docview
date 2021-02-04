@@ -492,6 +492,10 @@ PageView::PageView(QWidget *parent, Okular::Document *document)
     connect(document, &Okular::Document::processMovieAction, this, &PageView::slotProcessMovieAction);
     connect(document, &Okular::Document::processRenditionAction, this, &PageView::slotProcessRenditionAction);
 
+    // Not in setup...Actions(), because this slot also needs to listen to the config dialog.
+    // This slot would fit better in the config skeleton itself.
+    connect(Okular::SettingsCore::self(), &Okular::SettingsCore::colorModeChanged, this, &PageView::slotColorModeChanged);
+
     // schedule the welcome message
     QMetaObject::invokeMethod(this, "slotShowWelcome", Qt::QueuedConnection);
 }
@@ -5138,14 +5142,25 @@ void PageView::slotProcessRenditionAction(const Okular::RenditionAction *action)
 
 void PageView::slotSetChangeColors(bool active)
 {
-    Okular::SettingsCore::setChangeColors(active);
+    if (active) {
+        Okular::SettingsCore::setColorMode(Okular::SettingsCore::lastColorMode());
+    } else {
+        Okular::SettingsCore::setColorMode(Okular::SettingsCore::EnumColorMode::Normal);
+    }
     Okular::Settings::self()->save();
-    viewport()->update();
 }
 
 void PageView::slotToggleChangeColors()
 {
-    slotSetChangeColors(!Okular::SettingsCore::changeColors());
+    slotSetChangeColors(Okular::SettingsCore::colorMode() == Okular::SettingsCore::EnumColorMode::Normal);
+}
+
+void PageView::slotColorModeChanged(int newColorMode)
+{
+    if (newColorMode != Okular::SettingsCore::EnumColorMode::Normal) {
+        Okular::SettingsCore::setLastColorMode(newColorMode);
+        // Better not call save() here, because this slot responds to a config notify signal.
+    }
 }
 
 void PageView::slotFitWindowToPage()

@@ -47,14 +47,9 @@ DlgAccessibility::DlgAccessibility(QWidget *parent)
     layout->addRow(new QLabel(this));
 
     // BEGIN Change colors section
-    // Checkbox: enable Change Colors feature
-    m_enableChangeColors = new QCheckBox(this);
-    m_enableChangeColors->setText(i18nc("@option:check Config dialog, accessibility page", "Change colors"));
-    m_enableChangeColors->setObjectName(QStringLiteral("kcfg_ChangeColors"));
-    layout->addRow(QString(), m_enableChangeColors);
-
     // Combobox: color modes
     m_colorMode = new QComboBox(this);
+    m_colorMode->addItem(i18nc("@item:inlistbox Config dialog, accessibility page", "Normal colors"));
     m_colorMode->addItem(i18nc("@item:inlistbox Config dialog, accessibility page", "Invert colors"));
     m_colorMode->addItem(i18nc("@item:inlistbox Config dialog, accessibility page", "Change paper color"));
     m_colorMode->addItem(i18nc("@item:inlistbox Config dialog, accessibility page", "Change dark & light colors"));
@@ -64,7 +59,7 @@ DlgAccessibility::DlgAccessibility(QWidget *parent)
     m_colorMode->addItem(i18nc("@item:inlistbox Config dialog, accessibility page", "Invert luma (symmetric)"));
     m_colorMode->addItem(i18nc("@item:inlistbox Config dialog, accessibility page", "Shift hue positive"));
     m_colorMode->addItem(i18nc("@item:inlistbox Config dialog, accessibility page", "Shift hue negative"));
-    m_colorMode->setObjectName(QStringLiteral("kcfg_RenderMode"));
+    m_colorMode->setObjectName(QStringLiteral("kcfg_ColorMode"));
     layout->addRow(i18nc("@label:listbox Config dialog, accessibility page", "Color mode:"), m_colorMode);
 
     m_colorModeConfigStack->setSizePolicy({QSizePolicy::Preferred, QSizePolicy::Fixed});
@@ -134,17 +129,10 @@ DlgAccessibility::DlgAccessibility(QWidget *parent)
 
     layout->addRow(QString(), m_colorModeConfigStack);
 
-    // Setup controls enabled states:
+    // Setup color mode page switching:
     m_colorMode->setCurrentIndex(0);
-    slotColorModeSelected();
+    slotColorModeSelected(0);
     connect(m_colorMode, qOverload<int>(&QComboBox::currentIndexChanged), this, &DlgAccessibility::slotColorModeSelected);
-
-    m_enableChangeColors->setChecked(false);
-    m_colorMode->setEnabled(false);
-    connect(m_enableChangeColors, &QCheckBox::toggled, m_colorMode, &QComboBox::setEnabled);
-    m_colorModeConfigStack->setEnabled(false);
-    connect(m_enableChangeColors, &QCheckBox::toggled, m_colorModeConfigStack, &QWidget::setEnabled);
-    connect(m_enableChangeColors, &QCheckBox::toggled, this, &DlgAccessibility::slotColorModeSelected);
     // END Change colors section
 
 #ifdef HAVE_SPEECH
@@ -164,21 +152,19 @@ DlgAccessibility::DlgAccessibility(QWidget *parent)
 #endif
 }
 
-void DlgAccessibility::slotColorModeSelected()
+void DlgAccessibility::slotColorModeSelected(int mode)
 {
-    int mode = m_colorMode->currentIndex();
-
-    if (m_enableChangeColors->isChecked() && mode != Okular::Settings::EnumRenderMode::Paper) {
-        m_warningMessage->animatedShow();
-    } else {
+    if (mode == Okular::Settings::EnumColorMode::Normal || mode == Okular::Settings::EnumColorMode::Paper) {
         m_warningMessage->animatedHide();
+    } else {
+        m_warningMessage->animatedShow();
     }
 
-    if (mode == Okular::Settings::EnumRenderMode::Paper) {
+    if (mode == Okular::Settings::EnumColorMode::Paper) {
         m_colorModeConfigStack->setCurrentIndex(1);
-    } else if (mode == Okular::Settings::EnumRenderMode::Recolor) {
+    } else if (mode == Okular::Settings::EnumColorMode::Recolor) {
         m_colorModeConfigStack->setCurrentIndex(2);
-    } else if (mode == Okular::Settings::EnumRenderMode::BlackWhite) {
+    } else if (mode == Okular::Settings::EnumColorMode::BlackWhite) {
         m_colorModeConfigStack->setCurrentIndex(3);
     } else {
         m_colorModeConfigStack->setCurrentIndex(0);

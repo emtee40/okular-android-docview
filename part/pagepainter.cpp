@@ -80,20 +80,18 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
 
     QColor paperColor = Qt::white;
     QColor backgroundColor = paperColor;
-    if (Okular::SettingsCore::changeColors()) {
-        switch (Okular::SettingsCore::renderMode()) {
-        case Okular::SettingsCore::EnumRenderMode::Inverted:
-            backgroundColor = Qt::black;
-            break;
-        case Okular::SettingsCore::EnumRenderMode::Paper:
-            paperColor = Okular::SettingsCore::paperColor();
-            backgroundColor = paperColor;
-            break;
-        case Okular::SettingsCore::EnumRenderMode::Recolor:
-            backgroundColor = Okular::Settings::recolorBackground();
-            break;
-        default:;
-        }
+    switch (Okular::SettingsCore::colorMode()) {
+    case Okular::SettingsCore::EnumColorMode::Inverted:
+        backgroundColor = Qt::black;
+        break;
+    case Okular::SettingsCore::EnumColorMode::Paper:
+        paperColor = Okular::SettingsCore::paperColor();
+        backgroundColor = paperColor;
+        break;
+    case Okular::SettingsCore::EnumColorMode::Recolor:
+        backgroundColor = Okular::Settings::recolorBackground();
+        break;
+    default:;
     }
     destPainter->fillRect(limits, backgroundColor);
 
@@ -226,7 +224,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
     }
 
     /** 3 - ENABLE BACKBUFFERING IF DIRECT IMAGE MANIPULATION IS NEEDED **/
-    bool bufferAccessibility = (flags & Accessibility) && Okular::SettingsCore::changeColors() && (Okular::SettingsCore::renderMode() != Okular::SettingsCore::EnumRenderMode::Paper);
+    bool bufferAccessibility = (flags & Accessibility) && (Okular::SettingsCore::colorMode() != Okular::SettingsCore::EnumColorMode::Normal) && (Okular::SettingsCore::colorMode() != Okular::SettingsCore::EnumColorMode::Paper);
     bool useBackBuffer = bufferAccessibility || bufferedHighlights || bufferedAnnotations || viewPortPoint;
     QPixmap *backPixmap = nullptr;
     QPainter *mixedPainter = nullptr;
@@ -314,30 +312,32 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
 
         // 4B.2. modify pixmap following accessibility settings
         if (bufferAccessibility) {
-            switch (Okular::SettingsCore::renderMode()) {
-            case Okular::SettingsCore::EnumRenderMode::Inverted:
+            switch (Okular::SettingsCore::colorMode()) {
+            case Okular::SettingsCore::EnumColorMode::Normal:
+                break;
+            case Okular::SettingsCore::EnumColorMode::Inverted:
                 // Invert image pixels using QImage internal function
                 backImage.invertPixels(QImage::InvertRgb);
                 break;
-            case Okular::SettingsCore::EnumRenderMode::Recolor:
+            case Okular::SettingsCore::EnumColorMode::Recolor:
                 recolor(&backImage, Okular::Settings::recolorForeground(), Okular::Settings::recolorBackground());
                 break;
-            case Okular::SettingsCore::EnumRenderMode::BlackWhite:
+            case Okular::SettingsCore::EnumColorMode::BlackWhite:
                 blackWhite(&backImage, Okular::Settings::bWContrast(), Okular::Settings::bWThreshold());
                 break;
-            case Okular::SettingsCore::EnumRenderMode::InvertLightness:
+            case Okular::SettingsCore::EnumColorMode::InvertLightness:
                 invertLightness(&backImage);
                 break;
-            case Okular::SettingsCore::EnumRenderMode::InvertLuma:
+            case Okular::SettingsCore::EnumColorMode::InvertLuma:
                 invertLuma(&backImage, 0.2126, 0.7152, 0.0722); // sRGB / Rec. 709 luma coefficients
                 break;
-            case Okular::SettingsCore::EnumRenderMode::InvertLumaSymmetric:
+            case Okular::SettingsCore::EnumColorMode::InvertLumaSymmetric:
                 invertLuma(&backImage, 0.3333, 0.3334, 0.3333); // Symmetric coefficients, to keep colors saturated.
                 break;
-            case Okular::SettingsCore::EnumRenderMode::HueShiftPositive:
+            case Okular::SettingsCore::EnumColorMode::HueShiftPositive:
                 hueShiftPositive(&backImage);
                 break;
-            case Okular::SettingsCore::EnumRenderMode::HueShiftNegative:
+            case Okular::SettingsCore::EnumColorMode::HueShiftNegative:
                 hueShiftNegative(&backImage);
                 break;
             }

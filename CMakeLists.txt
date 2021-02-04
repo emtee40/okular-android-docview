@@ -273,7 +273,7 @@ ki18n_wrap_ui(okularcore_SRCS
    core/chooseenginewidget.ui
 )
 
-kconfig_add_kcfg_files(okularcore_SRCS conf/settings_core.kcfgc)
+kconfig_add_kcfg_files(okularcore_SRCS GENERATE_MOC conf/settings_core.kcfgc)
 
 add_library(okularcore SHARED ${okularcore_SRCS})
 generate_export_header(okularcore BASE_NAME okularcore EXPORT_FILE_NAME "${CMAKE_CURRENT_BINARY_DIR}/core/okularcore_export.h")

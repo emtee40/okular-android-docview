@@ -26,11 +26,9 @@ public:
     explicit DlgAccessibility(QWidget *parent = nullptr);
 
 protected Q_SLOTS:
-    // TODO Give `int mode` parameter back, when checkbox removed.
-    void slotColorModeSelected();
+    void slotColorModeSelected(int mode);
 
 protected:
-    QCheckBox *m_enableChangeColors;
     QComboBox *m_colorMode;
     KMessageWidget *m_warningMessage;
     QStackedWidget *m_colorModeConfigStack;

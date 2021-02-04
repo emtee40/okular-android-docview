@@ -126,7 +126,9 @@ public Q_SLOTS:
     void openAnnotationWindow(Okular::Annotation *annotation, int pageNumber);
     void reloadForms();
 
+    /** Toggles Settings::colorMode between Normal and last used color mode. */
     void slotToggleChangeColors();
+    /** Toggles Settings::colorMode between Normal and last used color mode. */
     void slotSetChangeColors(bool active);
 
     void slotSelectPage();
@@ -290,6 +292,8 @@ private Q_SLOTS:
     void slotProcessMovieAction(const Okular::MovieAction *action);
     void slotProcessRenditionAction(const Okular::RenditionAction *action);
     void slotFitWindowToPage();
+    /** Necessary to make “Toggle Change Colors” action work. */
+    void slotColorModeChanged(int newColorMode);
 };
 
 #endif
