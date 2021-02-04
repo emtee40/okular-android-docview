@@ -645,8 +645,20 @@ void Part::setupConfigSkeleton(const QVariantList &args, const QString &componen
         slidesConfigGroup.writeEntry("SlidesTransition", "NoTransitions");
     }
     slidesConfigGroup.deleteEntry("SlidesTransitionsEnabled");
-    config.data()->sync();
 
+    // Configuration update: ChangeColors & RenderMode -> ColorMode & LastColorMode.
+    // See https://invent.kde.org/graphics/okular/-/merge_requests/366
+    KConfigGroup DocumentConfigGroup = config.data()->group("Document");
+    if (DocumentConfigGroup.readEntry<bool>("ChangeColors", false) == true) {
+        DocumentConfigGroup.writeEntry("ColorMode", DocumentConfigGroup.readEntry<QString>("RenderMode", "Inverted"));
+    }
+    if (DocumentConfigGroup.hasKey("RenderMode")) {
+        DocumentConfigGroup.writeEntry("LastColorMode", DocumentConfigGroup.readEntry<QString>("RenderMode", "Inverted"));
+    }
+    DocumentConfigGroup.deleteEntry("ChangeColors");
+    DocumentConfigGroup.deleteEntry("RenderMode");
+
+    config.data()->sync();
     Okular::Settings::instance(config);
 }
 
