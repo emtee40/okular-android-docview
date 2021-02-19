@@ -806,6 +806,11 @@ void PresentationWidget::paintEvent(QPaintEvent *pe)
         return;
     }
 
+    // force rerendering if screen resolution has changed
+    if (m_lastRenderedPixmap.devicePixelRatio() != dpr) {
+        generatePage(true /* no transitions */);
+    }
+
     // blit the pixmap to the screen
     QPainter painter(this);
     for (const QRect &r : pe->region()) {
@@ -1018,8 +1023,8 @@ void PresentationWidget::changePage(int newPage)
 
 void PresentationWidget::generatePage(bool disableTransition)
 {
-    if (m_lastRenderedPixmap.isNull()) {
-        qreal dpr = devicePixelRatioF();
+    qreal dpr = devicePixelRatioF();
+    if (m_lastRenderedPixmap.isNull() || m_lastRenderedPixmap.devicePixelRatio() != dpr) {
         m_lastRenderedPixmap = QPixmap(m_width * dpr, m_height * dpr);
         m_lastRenderedPixmap.setDevicePixelRatio(dpr);
 
