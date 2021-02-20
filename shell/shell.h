@@ -95,23 +95,6 @@ public:
     bool isValid() const;
 
     bool openDocument(const QUrl &url, const QString &serializedOptions);
-    template<typename T> static inline bool findActionInPart(KParts::ReadWritePart &part, const QString &actionName, T *&foundAction)
-    {
-        static_assert(std::is_base_of<QAction, T>::value || std::is_same<QAction, T>::value, "Found action should be of type QAction or inherit from QAction");
-
-        KActionCollection *ac = nullptr;
-        QAction *act = nullptr;
-
-        ac = part.actionCollection();
-        act = ac->action(actionName);
-
-        if (ac && qobject_cast<T *>(act)) {
-            foundAction = qobject_cast<T *>(act);
-            return true;
-        }
-
-        return false;
-    }
 
 public Q_SLOTS:
     Q_SCRIPTABLE Q_NOREPLY void tryRaise();
@@ -163,6 +146,7 @@ private Q_SLOTS:
 
     void slotUpdateFullScreen();
     void slotShowMenubar();
+    void slotShowDistfreeMode();
 
     void openUrl(const QUrl &url, const QString &serializedOptions = QString());
     void showOpenRecentMenu();
@@ -182,8 +166,6 @@ private Q_SLOTS:
     void moveTabData(int from, int to);
 
     void slotFitWindowToPage(const QSize pageViewSize, const QSize pageSize);
-
-    void slotShowDistfreeMode();
 
 Q_SIGNALS:
     void moveSplitter(int sideWidgetSize);
@@ -225,10 +207,6 @@ private:
     KActivities::ResourceInstance *m_activityResource;
 #endif
     bool m_isValid;
-
-public:
-    static const QString SHOWLEFTPANELACTIONNAME;
-    static const QString SHOWBOTTOMBARACTIONNAME;
 };
 
 #endif

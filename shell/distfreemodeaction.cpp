@@ -8,6 +8,7 @@
  ***************************************************************************/
 
 #include <KToolBar>
+#include <QMenuBar>
 
 #include "debug_distfreemode.h"
 #include "distfreemodeaction.h"
@@ -15,9 +16,67 @@
 
 namespace Okular
 {
-DistFreeModeAction::DistFreeModeAction(QObject *parent, const QPointer<Shell> &okularShell)
+void DistFreeModeAction::showDistfreeMode(KToggleAction *showMenuBarAction, QList<TabState> &tabs)
+{
+    // Reload pointers just in case some have become null.
+    reloadLinks();
+
+    // Handle the activated trigger
+    if (isChecked()) {
+        // Store the state of menu bar prior to Distraction-free Mode activation.
+        setWasMenuBarVisible(showMenuBarAction->isChecked());
+        // Hide the menu bar
+        showMenuBarAction->setChecked(false);
+        m_okularShell->menuBar()->setVisible(false);
+
+        // Hide the toolbars
+        handleToolBarVisibility(false);
+
+    } else { // Handle deactivated trigger
+        // Restore the state of the menu bar prior to Distraction-free Mode activation.
+        showMenuBarAction->setChecked(getWasMenuBarVisible());
+        m_okularShell->menuBar()->setVisible(getWasMenuBarVisible());
+        // Restore the state of the tool bars prior to Distraction-free Mode activation.
+        handleToolBarVisibility(true);
+    }
+
+    /*
+     * Depending upon the checked state of the DistfreeModeAction, synchronize the GUI state across the open tabs if Distraction-free Mode is activated or
+     * restore the GUI state of all open tabs to the state prior to Distraction-free Mode activation.
+     */
+    synchronizeTabs(tabs, isChecked());
+}
+
+void DistFreeModeAction::handleShellClose(const QList<TabState> &shellTabs, int currTabIndex, KToggleAction *showMenuBarAction)
+{
+    /*
+     * Distraction-free Mode should be deactivated so that the GUI is restored to the state
+     * prior to Distraction-free Mode activation, the next time Okular is started. This is if the user
+     * tries to close the Shell while in the Distraction-free Mode
+     */
+    if (isChecked() && shellTabs.count() == 1)
+        setChecked(false);
+    /*
+     * Distraction-free Mode is deactivated in a different way when there are multiple
+     * tabs open. The idea is that GUI state is restored and saved for the current activated tab
+     * so that it is the last active tab's GUI state that is restored next time Okular is launched.
+     */
+    else if (isChecked() && shellTabs.count() > 1) {
+        // Restore the menu bar state prior to Distraction-free Mode activation.
+        showMenuBarAction->setChecked(getWasMenuBarVisible());
+        m_okularShell->menuBar()->setVisible(getWasMenuBarVisible());
+        // Restore the tool bars states prior to Distraction-free Mode activation.
+        handleToolBarVisibility(true);
+        QList<TabState> tabs;
+        // Restore the part GUI states only for the currently activated tab.
+        tabs.append(shellTabs[currTabIndex]);
+        synchronizeTabs(tabs, false);
+    }
+}
+
+DistFreeModeAction::DistFreeModeAction(Shell *parent)
     : KToggleAction(parent)
-    , m_okularShell(okularShell)
+    , m_okularShell(parent)
 {
 }
 
@@ -29,16 +88,6 @@ bool DistFreeModeAction::getWasMenuBarVisible() const
 void DistFreeModeAction::setWasMenuBarVisible(bool wasMenuBarVisible)
 {
     m_wasMenuBarVisible = wasMenuBarVisible;
-}
-
-QPointer<Shell> DistFreeModeAction::getOkularShell() const
-{
-    return m_okularShell;
-}
-
-void DistFreeModeAction::setOkularShell(const QPointer<Shell> &value)
-{
-    m_okularShell = value;
 }
 
 void DistFreeModeAction::reloadLinks()
@@ -98,14 +147,16 @@ void DistFreeModeAction::synchronizeTabs(QList<TabState> &tabs, bool distfreeMod
         currPart = tabs[i].part;
 
         // Extract pointer to bottom bar action
-        bool foundBottomBarAct = Shell::findActionInPart<KToggleAction>(*currPart, Shell::SHOWBOTTOMBARACTIONNAME, show_bottomBar);
-        // Extract pointer to left panel action
-        bool foundLeftPanelAct = Shell::findActionInPart<KToggleAction>(*currPart, Shell::SHOWLEFTPANELACTIONNAME, show_leftPanel);
+        KActionCollection *ac = currPart->actionCollection();
+        show_bottomBar = qobject_cast<KToggleAction *>(ac->action(SHOWBOTTOMBARACTIONNAME));
+        show_leftPanel = qobject_cast<KToggleAction *>(ac->action(SHOWLEFTPANELACTIONNAME));
         // If pointers to left panel and bottom bar are found then continue otherwise return from the function
-        if (!foundLeftPanelAct || !foundBottomBarAct) {
-            if (!foundLeftPanelAct)
+        if (!ac || !show_bottomBar || !show_leftPanel) {
+            if (!ac)
+                qCWarning(OkularDistfreeModeDebug) << "Pointer to Action Collection of" << currPart << "was not found!";
+            else if (!show_leftPanel)
                 qCWarning(OkularDistfreeModeDebug) << "Pointer to left panel of" << currPart << "was not found!";
-            else if (!foundBottomBarAct)
+            else if (!show_bottomBar)
                 qCWarning(OkularDistfreeModeDebug) << "Pointer to bottom bar of" << currPart << "was not found!";
             return;
         }

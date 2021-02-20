@@ -4344,7 +4344,7 @@ void PageView::slotRelayoutPages()
                 actualX = (fullWidth - item->croppedWidth()) / 2;
             } else if (facingPages) {
                 if (Okular::Settings::rtlReadingDirection()) {
-                    // RTL reading mode
+                    // RTL distraction-free mode
                     actualX = ((centerFirstPage && item->pageNumber() % 2 == 0) || (!centerFirstPage && item->pageNumber() % 2 == 1)) ? (fullWidth / 2) - item->croppedWidth() - 1 : (fullWidth / 2) + 1;
                 } else {
                     // page edges 'touch' the center of the viewport
