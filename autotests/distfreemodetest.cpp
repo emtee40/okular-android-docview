@@ -10,8 +10,8 @@
 #include "../part/part.h"
 #include "../part/sidebar.h"
 #include "../settings.h"
-#include "../shell/okular_main.h"
 #include "../shell/distfreemodeaction.h"
+#include "../shell/okular_main.h"
 #include "../shell/shell.h"
 #include <KToolBar>
 #include <QMenuBar>
@@ -143,9 +143,7 @@ void DistfreeModeTest::checkDistfreeMode()
         QCOMPARE(shell->m_showDistfreeModeAction->isEnabled(), true);
         storePriorDistfreeModeState(shell);
         shell->m_showDistfreeModeAction->setChecked(true);
-        QTest::qWait(750);
         shell->m_showDistfreeModeAction->setChecked(false);
-        QTest::qWait(750);
         checkAfterDistfreeModeState(shell);
     } else if (QString::compare(QTest::currentDataTag(), TWO_TAB_TEST) == 0) {
         QCOMPARE(shell->m_tabs.count(), 2);
@@ -156,10 +154,8 @@ void DistfreeModeTest::checkDistfreeMode()
             QCOMPARE(currPart->url().url(), QStringLiteral("file://%1").arg(paths[i]));
         }
         shell->m_showDistfreeModeAction->setChecked(true);
-        QTest::qWait(750);
         checkDistfreeModeState(shell);
         shell->m_showDistfreeModeAction->setChecked(false);
-        QTest::qWait(750);
         checkAfterDistfreeModeState(shell);
     } else if (QString::compare(QTest::currentDataTag(), TWO_TAB_SAVESTATE_TEST) == 0) {
         QCOMPARE(shell->m_tabs.count(), 2);
@@ -186,17 +182,14 @@ void DistfreeModeTest::checkDistfreeMode()
          * Activate different tabs to be able to check later that Okular restores the GUI elements states
          * of the tab that was active when Okular was closed while in Distraction-free Mode.
          */
-        QTest::qWait(750);
         shell->activatePrevTab();
-        QTest::qWait(750);
         shell->activateNextTab();
-        QTest::qWait(750);
         // Store the index of the currently activated tab before closing the shell
         activeTabIndex = shell->m_tabWidget->currentIndex();
         delete shell;
         // Create a new shell and check its status.
         Okular::Status status = Okular::main(QStringList(), QString());
-        QCOMPARE(status, Okular::Success);
+        QTRY_COMPARE(status, Okular::Success);
         Shell *shell = findShell();
         QVERIFY(shell);
         // Check that Okular restored the state of the activated tab when Okular was closed during last run while in Distraction-free Mode.
@@ -231,7 +224,7 @@ void DistfreeModeTest::storePriorDistfreeModeState(const Shell *shell)
 void DistfreeModeTest::checkAfterDistfreeModeState(const Shell *shell)
 {
     // Check the visibility state of the menubar compared with the state prior to Distraction-free Mode activation.
-    QCOMPARE(shell->menuBar()->isVisible(), menuBarState);
+    QTRY_COMPARE(shell->menuBar()->isVisible(), menuBarState);
     // Check the QList<KToolBar *> element count as not changed after Distraction-free Mode de-activation.
     QCOMPARE(shell->toolBars().count(), toolBarState.count());
     // Check the visibility states of the toolbars compared with the states prior to Distraction-free Mode activation.
@@ -261,7 +254,7 @@ void DistfreeModeTest::checkAfterDistfreeModeState(const Shell *shell)
 void DistfreeModeTest::checkDistfreeModeState(Shell *shell)
 {
     // Menubar should be hidden when Distraction-free Mode is activated.
-    QCOMPARE(shell->menuBar()->isVisible(), false);
+    QTRY_COMPARE(shell->menuBar()->isVisible(), false);
     // All toolbars should be hidden when Distraction-free Mode is activated.
     const QList<KToolBar *> toolBars = shell->toolBars();
     for (int i = 0; i < toolBars.count(); ++i) {
@@ -272,9 +265,8 @@ void DistfreeModeTest::checkDistfreeModeState(Shell *shell)
     for (int i = 0; i < iter; ++i) {
         Okular::Part *currPart = dynamic_cast<Okular::Part *>(shell->m_tabs[i].part);
         shell->setActiveTab(i);
-        QTest::qWait(750);
         Sidebar *currSideBar = getSidebar(currPart);
-        QCOMPARE(currSideBar->isSidebarVisible(), false);
+        QTRY_COMPARE(currSideBar->isSidebarVisible(), false);
         QWidget *currBottomBar = getBottombar(currPart);
         QCOMPARE(currBottomBar->isVisible(), true);
     }
