@@ -7,6 +7,8 @@
  *   (at your option) any later version.                                   *
  ***************************************************************************/
 
+// clazy:excludeall=qstring-allocations
+
 #include "../part/part.h"
 #include "../part/sidebar.h"
 #include "../settings.h"
@@ -189,7 +191,7 @@ void DistfreeModeTest::checkDistfreeMode()
         delete shell;
         // Create a new shell and check its status.
         Okular::Status status = Okular::main(QStringList(), QString());
-        QTRY_COMPARE(status, Okular::Success);
+        QTRY_COMPARE_WITH_TIMEOUT(status, Okular::Success, 5000);
         Shell *shell = findShell();
         QVERIFY(shell);
         // Check that Okular restored the state of the activated tab when Okular was closed during last run while in Distraction-free Mode.
@@ -224,7 +226,7 @@ void DistfreeModeTest::storePriorDistfreeModeState(const Shell *shell)
 void DistfreeModeTest::checkAfterDistfreeModeState(const Shell *shell)
 {
     // Check the visibility state of the menubar compared with the state prior to Distraction-free Mode activation.
-    QTRY_COMPARE(shell->menuBar()->isVisible(), menuBarState);
+    QTRY_COMPARE_WITH_TIMEOUT(shell->menuBar()->isVisible(), menuBarState, 5000);
     // Check the QList<KToolBar *> element count as not changed after Distraction-free Mode de-activation.
     QCOMPARE(shell->toolBars().count(), toolBarState.count());
     // Check the visibility states of the toolbars compared with the states prior to Distraction-free Mode activation.
