@@ -236,14 +236,9 @@ void MouseAnnotation::routePaint(QPainter *painter, const QRect paintRect)
     if (!isFocused()) {
         return;
     }
-    /*
-     * Get annotation bounding rectangle in uncropped page coordinates.
-     * Distinction between AnnotationUtils::annotationGeometry() and AnnotationObjectRect::boundingRect() is,
-     * that boundingRect would enlarge the QRect to a minimum size of 14 x 14.
-     * This is useful for getting focus an a very small annotation,
-     * but for drawing and modification we want the real size.
-     */
-    const QRect boundingRect = Okular::AnnotationUtils::annotationGeometry(m_focusedAnnotation.annotation, m_focusedAnnotation.pageViewItem->uncroppedWidth(), m_focusedAnnotation.pageViewItem->uncroppedHeight());
+
+    /* Get annotation bounding rectangle in uncropped page coordinates */
+    const QRect boundingRect = m_focusedAnnotation.annotation->transformedBoundingRectangle().geometry(m_focusedAnnotation.pageViewItem->uncroppedWidth(), m_focusedAnnotation.pageViewItem->uncroppedHeight());
 
     if (!paintRect.intersects(boundingRect.translated(m_focusedAnnotation.pageViewItem->uncroppedGeometry().topLeft()).adjusted(-handleSizeHalf, -handleSizeHalf, handleSizeHalf, handleSizeHalf))) {
         /* Our selection rectangle is not in a region that needs to be (re-)drawn. */

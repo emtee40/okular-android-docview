@@ -39,6 +39,7 @@
 #include "core/document.h"
 #include "core/page.h"
 #include "core/signatureutils.h"
+#include "core/utils.h"
 #include "editannottooldialog.h"
 #include "gui/debug_ui.h"
 #include "gui/guiutils.h"
@@ -224,12 +225,14 @@ public:
             ann = ta;
             ta->setTextType(Okular::TextAnnotation::Linked);
             ta->setTextIcon(iconName);
-            // ta->window.flags &= ~(Okular::Annotation::Hidden);
-            const double iconhei = 0.03;
+            // Calculate annotation width so that icon will be 1/3 inch (i.e., 24 pts) on screen.
+            // This is required so that painted rectangles match around icons rendered by Poppler.
+            // Poppler enforces 24x24 pts for embedded appearance icons regardless of what we set here.
+            double iconWidth = Okular::Utils::realDpi(nullptr).width() / (3. * pagewidth);
             rect.left = point.x;
             rect.top = point.y;
-            rect.right = rect.left + iconhei;
-            rect.bottom = rect.top + iconhei * xscale / yscale;
+            rect.right = rect.left + iconWidth;
+            rect.bottom = rect.top + iconWidth * xscale / yscale;
             ta->window().setSummary(i18n("Pop-up Note"));
         }
         // create StampAnnotation from path
