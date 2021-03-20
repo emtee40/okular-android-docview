@@ -50,7 +50,7 @@
   <entry key="ColorMode" type="Enum" >
    <default>Normal</default>
    <emit signal="colorModeChanged" />
-   <choices name="EnumColorMode" >
+   <choices >
     <choice name="Normal" />
     <choice name="Inverted" />
     <choice name="Paper" />
@@ -64,8 +64,9 @@
    </choices>
   </entry>
   <entry key="LastColorMode" type="Enum" >
-   <choices name="EnumColorMode" />
-   <default>Inverted</default>
+   <!-- Workaround to use same enum as above. Still saves `6` instead of `InvertLuma`. -->
+   <choices name="Okular::SettingsCore::EnumColorMode" />
+   <default>Okular::SettingsCore::EnumColorMode::Inverted</default>
   </entry>
  </group>
  <group name="Core General" >
