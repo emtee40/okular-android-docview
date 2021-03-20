@@ -94,6 +94,7 @@
 #include "core/page_p.h"
 #include "core/sourcereference.h"
 #include "core/tile.h"
+#include "kscroller.h"
 #include "magnifierview.h"
 #include "settings.h"
 #include "settings_core.h"
@@ -426,16 +427,7 @@ PageView::PageView(QWidget *parent, Okular::Document *document)
     viewport()->setMouseTracking(true);
     viewport()->setAutoFillBackground(false);
 
-    d->scroller = QScroller::scroller(viewport());
-
-    QScrollerProperties prop;
-    prop.setScrollMetric(QScrollerProperties::DecelerationFactor, 0.3);
-    prop.setScrollMetric(QScrollerProperties::MaximumVelocity, 1);
-    prop.setScrollMetric(QScrollerProperties::AcceleratingFlickMaximumTime, 0.2); // Workaround for QTBUG-88249 (non-flick gestures recognized as accelerating flick)
-    prop.setScrollMetric(QScrollerProperties::HorizontalOvershootPolicy, QScrollerProperties::OvershootAlwaysOff);
-    prop.setScrollMetric(QScrollerProperties::VerticalOvershootPolicy, QScrollerProperties::OvershootAlwaysOff);
-    prop.setScrollMetric(QScrollerProperties::DragStartDistance, 0.0);
-    d->scroller->setScrollerProperties(prop);
+    d->scroller = createKScroller(viewport());
 
     connect(d->scroller, &QScroller::stateChanged, this, &PageView::slotRequestVisiblePixmaps);
 

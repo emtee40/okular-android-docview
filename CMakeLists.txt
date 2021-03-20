@@ -385,6 +385,7 @@ if(BUILD_DESKTOP)
     part/findbar.cpp
     part/formwidgets.cpp
     part/guiutils.cpp
+    part/kscroller.cpp
     part/ktreeviewsearchline.cpp
     part/latexrenderer.cpp
     part/minibar.cpp
