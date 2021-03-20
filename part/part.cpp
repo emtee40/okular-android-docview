@@ -650,10 +650,10 @@ void Part::setupConfigSkeleton(const QVariantList &args, const QString &componen
     // See https://invent.kde.org/graphics/okular/-/merge_requests/366
     KConfigGroup DocumentConfigGroup = config.data()->group("Document");
     if (DocumentConfigGroup.readEntry<bool>("ChangeColors", false) == true) {
-        DocumentConfigGroup.writeEntry("ColorMode", DocumentConfigGroup.readEntry<QString>("RenderMode", "Inverted"));
+        DocumentConfigGroup.writeEntry("ColorMode", DocumentConfigGroup.readEntry<QString>("RenderMode", QStringLiteral("Inverted")));
     }
     if (DocumentConfigGroup.hasKey("RenderMode")) {
-        DocumentConfigGroup.writeEntry("LastColorMode", DocumentConfigGroup.readEntry<QString>("RenderMode", "Inverted"));
+        DocumentConfigGroup.writeEntry("LastColorMode", DocumentConfigGroup.readEntry<QString>("RenderMode", QStringLiteral("Inverted")));
     }
     DocumentConfigGroup.deleteEntry("ChangeColors");
     DocumentConfigGroup.deleteEntry("RenderMode");
