@@ -155,6 +155,7 @@ public:
     float vanillaZoom;
     float zoomFactor;
     int rotations;
+    bool touchZooming;
     QPoint mouseGrabOffset;
     QPoint mousePressPos;
     QPoint mouseSelectPos;
@@ -273,6 +274,7 @@ PageViewPrivate::PageViewPrivate(PageView *qq)
 #ifdef HAVE_SPEECH
     , m_tts(nullptr)
 #endif
+    , touchZooming(false)
     , scroller(qq->viewport())
 {
     // Only the Browse tool should scroll
@@ -1673,9 +1675,18 @@ bool PageView::gestureEvent(QGestureEvent *event)
         // Viewport zoom level at the moment where the pinch gesture starts.
         // The viewport zoom level _during_ the gesture will be this value
         // times the relative zoom reported by QGestureEvent.
-        if (pinch->state() == Qt::GestureStarted) {
+        switch (pinch->state()) {
+        case Qt::GestureStarted:
             d->vanillaZoom = d->zoomFactor;
             d->rotations = 0;
+            Q_FALLTHROUGH();
+        case Qt::GestureUpdated:
+            d->touchZooming = true;
+            break;
+        default:
+            // FIXME Find why we sometimes unset this flag when pressing down and lifting fingers even though we are still zooming
+            d->touchZooming = false;
+            break;
         }
 
         const QPinchGesture::ChangeFlags changeFlags = pinch->changeFlags();
@@ -2174,7 +2185,7 @@ void PageView::mouseMoveEvent(QMouseEvent *e)
                 d->mouseAnnotation->routeMouseMoveEvent(pageItem, eventPos, leftButton);
             }
             // drag page
-            else {
+            else if (!d->touchZooming) {
                 if (d->scroller.state() == QScroller::Inactive || d->scroller.state() == QScroller::Scrolling) {
                     d->mouseGrabOffset = QPoint(0, 0);
                     d->scroller.handleInput(QScroller::InputPress, e->pos(), e->timestamp() - 1);
@@ -2310,16 +2321,8 @@ void PageView::mousePressEvent(QMouseEvent *e)
     case Okular::Settings::EnumMouseMode::Browse: // drag start / click / link following
     {
         PageViewItem *pageItem = pickItemOnPoint(eventPos.x(), eventPos.y());
-        if (leftButton) {
-            if (pageItem) {
-                d->mouseAnnotation->routeMousePressEvent(pageItem, eventPos);
-            }
-
-            if (!d->mouseOnRect) {
-                d->mouseGrabOffset = QPoint(0, 0);
-                d->scroller.handleInput(QScroller::InputPress, e->pos(), e->timestamp());
-                d->leftClickTimer.start(QApplication::doubleClickInterval() + 10);
-            }
+        if (leftButton && pageItem) {
+            d->mouseAnnotation->routeMousePressEvent(pageItem, eventPos);
         }
     } break;
 
