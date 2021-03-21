@@ -152,7 +152,9 @@ public:
 
     // view layout (columns and continuous in Settings), zoom and mouse
     PageView::ZoomMode zoomMode;
+    float vanillaZoom;
     float zoomFactor;
+    int rotations;
     QPoint mouseGrabOffset;
     QPoint mousePressPos;
     QPoint mouseSelectPos;
@@ -1671,17 +1673,16 @@ bool PageView::gestureEvent(QGestureEvent *event)
         // Viewport zoom level at the moment where the pinch gesture starts.
         // The viewport zoom level _during_ the gesture will be this value
         // times the relative zoom reported by QGestureEvent.
-        static qreal vanillaZoom = d->zoomFactor;
-
         if (pinch->state() == Qt::GestureStarted) {
-            vanillaZoom = d->zoomFactor;
+            d->vanillaZoom = d->zoomFactor;
+            d->rotations = 0;
         }
 
         const QPinchGesture::ChangeFlags changeFlags = pinch->changeFlags();
 
         // Zoom
         if (pinch->changeFlags() & QPinchGesture::ScaleFactorChanged) {
-            d->zoomFactor = vanillaZoom * pinch->totalScaleFactor();
+            d->zoomFactor = d->vanillaZoom * pinch->totalScaleFactor();
 
             d->blockPixmapsRequest = true;
             updateZoom(ZoomRefreshCurrent);
@@ -1691,24 +1692,18 @@ bool PageView::gestureEvent(QGestureEvent *event)
 
         // Count the number of 90-degree rotations we did since the start of the pinch gesture.
         // Otherwise a pinch turned to 90 degrees and held there will rotate the page again and again.
-        static int rotations = 0;
-
         if (changeFlags & QPinchGesture::RotationAngleChanged) {
             // Rotation angle relative to the accumulated page rotations triggered by the current pinch
             // We actually turn at 80 degrees rather than at 90 degrees.  That's less strain on the hands.
-            const qreal relativeAngle = pinch->rotationAngle() - rotations * 90;
+            const qreal relativeAngle = pinch->rotationAngle() - d->rotations * 90;
             if (relativeAngle > 80) {
                 slotRotateClockwise();
-                rotations++;
+                d->rotations++;
             }
             if (relativeAngle < -80) {
                 slotRotateCounterClockwise();
-                rotations--;
+                d->rotations--;
             }
-        }
-
-        if (pinch->state() == Qt::GestureFinished) {
-            rotations = 0;
         }
 
         return true;
