@@ -42,6 +42,7 @@ public:
     QPointF finalPosition() const;
     void scrollTo(const QPointF &pos);
     void scrollTo(const QPointF &pos, int scrollTime);
+
 private:
     QScroller *m_scroller;
     bool m_isSmoothScrolling;

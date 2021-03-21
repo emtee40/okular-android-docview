@@ -76,7 +76,7 @@ QScroller::State KScroller::state() const
     return m_scroller->state();
 }
 
-bool KScroller::handleInput(QScroller::Input input, const QPointF &position, qint64 timestamp)
+bool KScroller::handleInput(QScroller::Input input, const QPointF &position, qint64 timestamp) // clazy:exclude=function-args-by-value
 {
     return m_scroller->handleInput(input, position, timestamp);
 }
@@ -91,12 +91,12 @@ QPointF KScroller::finalPosition() const
     return m_scroller->finalPosition();
 }
 
-void KScroller::scrollTo(const QPointF &pos)
+void KScroller::scrollTo(const QPointF &pos) // clazy:exclude=function-args-by-value
 {
     m_scroller->scrollTo(pos);
 }
 
-void KScroller::scrollTo(const QPointF &pos, int scrollTime)
+void KScroller::scrollTo(const QPointF &pos, int scrollTime) // clazy:exclude=function-args-by-value
 {
     m_scroller->scrollTo(pos, scrollTime);
 }

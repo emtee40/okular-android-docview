@@ -271,10 +271,10 @@ public:
 
 PageViewPrivate::PageViewPrivate(PageView *qq)
     : q(qq)
+    , touchZooming(false)
 #ifdef HAVE_SPEECH
     , m_tts(nullptr)
 #endif
-    , touchZooming(false)
     , scroller(qq->viewport())
 {
     // Only the Browse tool should scroll

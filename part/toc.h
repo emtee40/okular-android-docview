@@ -12,9 +12,9 @@
 
 #include "core/document.h"
 #include "core/observer.h"
+#include "kscroller.h"
 #include <QModelIndex>
 #include <qwidget.h>
-#include "kscroller.h"
 
 #include "okularpart_export.h"
 

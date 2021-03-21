@@ -10,8 +10,8 @@
 #ifndef BOOKMARKLIST_H
 #define BOOKMARKLIST_H
 
-#include <qwidget.h>
 #include "kscroller.h"
+#include <qwidget.h>
 
 #include "core/observer.h"
 

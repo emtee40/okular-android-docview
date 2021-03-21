@@ -727,7 +727,8 @@ void ThumbnailWidget::setVisibleRect(const Okular::NormalizedRect &rect)
 
 void ThumbnailListPrivate::mousePressEvent(QMouseEvent *e)
 {
-    if (m_scroller.shouldIgnoreMousePress()) return;
+    if (m_scroller.shouldIgnoreMousePress())
+        return;
     ThumbnailWidget *item = itemFor(e->pos());
     if (!item) { // mouse on the spacing between items
         e->ignore();
@@ -753,7 +754,8 @@ void ThumbnailListPrivate::mousePressEvent(QMouseEvent *e)
 
 void ThumbnailListPrivate::mouseReleaseEvent(QMouseEvent *e)
 {
-    if (m_scroller.shouldIgnoreMouseRelease()) return;
+    if (m_scroller.shouldIgnoreMouseRelease())
+        return;
     ThumbnailWidget *item = itemFor(e->pos());
     m_mouseGrabItem = item;
     if (!item) { // mouse on the spacing between items
@@ -781,7 +783,8 @@ void ThumbnailListPrivate::mouseReleaseEvent(QMouseEvent *e)
 
 void ThumbnailListPrivate::mouseMoveEvent(QMouseEvent *e)
 {
-    if (m_scroller.shouldIgnoreMouseMove()) return;
+    if (m_scroller.shouldIgnoreMouseMove())
+        return;
     if (e->buttons() == Qt::NoButton) {
         ThumbnailWidget *item = itemFor(e->pos());
         if (!item) { // mouse on the spacing between items

@@ -121,8 +121,8 @@ public:
 BookmarkList::BookmarkList(Okular::Document *document, QWidget *parent)
     : QWidget(parent)
     , m_document(document)
-    , m_currentDocumentItem(nullptr)
     , m_tree(new QTreeWidget(this))
+    , m_currentDocumentItem(nullptr)
     , m_scroller(m_tree->viewport())
 {
     QVBoxLayout *mainlay = new QVBoxLayout(this);
@@ -211,7 +211,8 @@ void BookmarkList::slotFilterBookmarks(bool on)
 void BookmarkList::slotSelectionChanged()
 {
     QList<QTreeWidgetItem *> items = m_tree->selectedItems();
-    if (items.length() != 1) return;
+    if (items.length() != 1)
+        return;
     QTreeWidgetItem *item = items.first();
 
     BookmarkItem *bmItem = dynamic_cast<BookmarkItem *>(item);
