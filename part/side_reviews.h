@@ -15,6 +15,7 @@
 #include <QWidget>
 
 #include "core/observer.h"
+#include "kscroller.h"
 
 class QModelIndex;
 
@@ -57,7 +58,7 @@ Q_SIGNALS:
     void openAnnotationWindow(Okular::Annotation *annotation, int pageNumber);
 
 private Q_SLOTS:
-    void activated(const QModelIndex &);
+    void activated(const QModelIndex &, const QModelIndex &);
     void contextMenuRequested(const QPoint);
     void saveSearchOptions();
 
@@ -67,6 +68,7 @@ private:
     // data fields (GUI)
     KTreeViewSearchLine *m_searchLine;
     TreeView *m_view;
+    KScroller m_scroller;
     // internal storage
     Okular::Document *m_document;
     AnnotationModel *m_model;

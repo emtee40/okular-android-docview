@@ -90,6 +90,8 @@ private:
 
 Reviews::Reviews(QWidget *parent, Okular::Document *document)
     : QWidget(parent)
+    , m_view(new TreeView(document, this))
+    , m_scroller(m_view->viewport())
     , m_document(document)
 {
     // create widgets and layout them vertically
@@ -100,9 +102,9 @@ Reviews::Reviews(QWidget *parent, Okular::Document *document)
     titleWidget->setLevel(2);
     titleWidget->setText(i18n("Annotations"));
 
-    m_view = new TreeView(m_document, this);
     m_view->setAlternatingRowColors(true);
     m_view->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    m_view->setVerticalScrollMode(QTreeView::ScrollPerPixel);
     m_view->header()->hide();
 
     QToolBar *toolBar = new QToolBar(this);
@@ -165,7 +167,7 @@ Reviews::Reviews(QWidget *parent, Okular::Document *document)
     QAction *collapseAll = toolBar->addAction(QIcon::fromTheme(QStringLiteral("collapse-all")), i18n("Collapse all elements"));
     connect(collapseAll, &QAction::triggered, this, &Reviews::slotCollapseAll);
 
-    connect(m_view, &TreeView::activated, this, &Reviews::activated);
+    connect(m_view->selectionModel(), &QItemSelectionModel::currentChanged, this, &Reviews::activated);
 
     m_view->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_view, &TreeView::customContextMenuRequested, this, &Reviews::contextMenuRequested);
@@ -231,8 +233,9 @@ void Reviews::slotCollapseAll()
 }
 // END GUI Slots
 
-void Reviews::activated(const QModelIndex &index)
+void Reviews::activated(const QModelIndex &index, const QModelIndex &previous)
 {
+    Q_UNUSED(previous);
     const QModelIndex authorIndex = m_authorProxy->mapToSource(index);
     const QModelIndex filterIndex = m_groupProxy->mapToSource(authorIndex);
     const QModelIndex annotIndex = m_filterProxy->mapToSource(filterIndex);

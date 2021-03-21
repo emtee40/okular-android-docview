@@ -34,6 +34,7 @@
 #include "core/document.h"
 #include "core/generator.h"
 #include "core/page.h"
+#include "kscroller.h"
 #include "pagepainter.h"
 #include "priorities.h"
 #include "settings.h"
@@ -79,6 +80,7 @@ public:
     QPoint m_mouseGrabPos;
     ThumbnailWidget *m_mouseGrabItem;
     int m_pageCurrentlyGrabbed;
+    KScroller m_scroller;
 
     // resize thumbnails to fit the width
     void viewportResizeEvent(QResizeEvent *);
@@ -205,6 +207,7 @@ ThumbnailListPrivate::ThumbnailListPrivate(ThumbnailList *qq, Okular::Document *
     , m_delayTimer(nullptr)
     , m_bookmarkOverlay(nullptr)
     , m_vectorIndex(0)
+    , m_scroller(qq->viewport())
 {
     setMouseTracking(true);
     m_mouseGrabItem = nullptr;
@@ -724,6 +727,7 @@ void ThumbnailWidget::setVisibleRect(const Okular::NormalizedRect &rect)
 
 void ThumbnailListPrivate::mousePressEvent(QMouseEvent *e)
 {
+    if (m_scroller.shouldIgnoreMousePress()) return;
     ThumbnailWidget *item = itemFor(e->pos());
     if (!item) { // mouse on the spacing between items
         e->ignore();
@@ -749,6 +753,7 @@ void ThumbnailListPrivate::mousePressEvent(QMouseEvent *e)
 
 void ThumbnailListPrivate::mouseReleaseEvent(QMouseEvent *e)
 {
+    if (m_scroller.shouldIgnoreMouseRelease()) return;
     ThumbnailWidget *item = itemFor(e->pos());
     m_mouseGrabItem = item;
     if (!item) { // mouse on the spacing between items
@@ -776,6 +781,7 @@ void ThumbnailListPrivate::mouseReleaseEvent(QMouseEvent *e)
 
 void ThumbnailListPrivate::mouseMoveEvent(QMouseEvent *e)
 {
+    if (m_scroller.shouldIgnoreMouseMove()) return;
     if (e->buttons() == Qt::NoButton) {
         ThumbnailWidget *item = itemFor(e->pos());
         if (!item) { // mouse on the spacing between items

@@ -24,8 +24,27 @@
 
 // TODO move to KWidgetsAddons
 
-class QScroller;
+#include <QScroller>
 
-QScroller *createKScroller(QObject *target);
+class KScroller
+{
+public:
+    KScroller(QObject *target);
+    QScroller *qScroller() const;
+
+    bool shouldIgnoreMousePress();
+    bool shouldIgnoreMouseMove() const;
+    bool shouldIgnoreMouseRelease();
+
+    QScroller::State state() const;
+    bool handleInput(QScroller::Input input, const QPointF &position, qint64 timestamp = 0);
+    void stop();
+    QPointF finalPosition() const;
+    void scrollTo(const QPointF &pos);
+    void scrollTo(const QPointF &pos, int scrollTime);
+private:
+    QScroller *m_scroller;
+    bool m_isSmoothScrolling;
+};
 
 #endif

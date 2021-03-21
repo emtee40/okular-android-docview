@@ -32,6 +32,8 @@
 TOC::TOC(QWidget *parent, Okular::Document *document)
     : QWidget(parent)
     , m_document(document)
+    , m_treeView(new QTreeView(this))
+    , m_scroller(m_treeView->viewport())
 {
     QVBoxLayout *mainlay = new QVBoxLayout(this);
     mainlay->setSpacing(6);
@@ -48,7 +50,6 @@ TOC::TOC(QWidget *parent, Okular::Document *document)
     m_searchLine->setRegularExpression(Okular::Settings::self()->contentsSearchRegularExpression());
     connect(m_searchLine, &KTreeViewSearchLine::searchOptionsChanged, this, &TOC::saveSearchOptions);
 
-    m_treeView = new QTreeView(this);
     mainlay->addWidget(m_treeView);
     m_model = new TOCModel(document, m_treeView);
     m_treeView->setModel(m_model);
@@ -58,6 +59,7 @@ TOC::TOC(QWidget *parent, Okular::Document *document)
     m_treeView->setItemDelegate(new PageItemDelegate(m_treeView));
     m_treeView->header()->hide();
     m_treeView->setSelectionBehavior(QAbstractItemView::SelectRows);
+    m_treeView->setVerticalScrollMode(QTreeView::ScrollPerPixel);
     connect(m_treeView, &QTreeView::clicked, this, &TOC::slotExecuted);
     connect(m_treeView, &QTreeView::activated, this, &TOC::slotExecuted);
     m_searchLine->setTreeView(m_treeView);

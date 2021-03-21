@@ -14,6 +14,7 @@
 #include "core/observer.h"
 #include <QModelIndex>
 #include <qwidget.h>
+#include "kscroller.h"
 
 #include "okularpart_export.h"
 
@@ -71,6 +72,7 @@ private:
     QTreeView *m_treeView;
     KTreeViewSearchLine *m_searchLine;
     TOCModel *m_model;
+    KScroller m_scroller;
 };
 
 #endif

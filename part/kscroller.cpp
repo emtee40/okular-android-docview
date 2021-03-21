@@ -19,10 +19,15 @@
  ***************************************************************************/
 // This file follows coding style described in kdebase/kicker/HACKING
 
+#include "kscroller.h"
 #include <QScroller>
 
-QScroller *createKScroller(QObject *target) {
-    QScroller *scroller = QScroller::scroller(target);
+// FIXME Sometimes the scroller goes out of control and the scroll position jumps back and forth rapidly
+
+KScroller::KScroller(QObject *target)
+{
+    m_scroller = QScroller::scroller(target);
+    QScroller::grabGesture(target);
 
     QScrollerProperties prop;
     prop.setScrollMetric(QScrollerProperties::DecelerationFactor, 0.3);
@@ -31,7 +36,67 @@ QScroller *createKScroller(QObject *target) {
     prop.setScrollMetric(QScrollerProperties::HorizontalOvershootPolicy, QScrollerProperties::OvershootAlwaysOff);
     prop.setScrollMetric(QScrollerProperties::VerticalOvershootPolicy, QScrollerProperties::OvershootAlwaysOff);
     prop.setScrollMetric(QScrollerProperties::DragStartDistance, 0.0);
-    scroller->setScrollerProperties(prop);
+    m_scroller->setScrollerProperties(prop);
+}
 
-    return scroller;
+QScroller *KScroller::qScroller() const
+{
+    return m_scroller;
+}
+
+// TODO Ensure this works with multiple pointing devices used simultaneously
+
+bool KScroller::shouldIgnoreMousePress()
+{
+    bool result = m_scroller->state() != QScroller::Inactive;
+    if (result) {
+        m_isSmoothScrolling = true;
+    }
+    return result;
+}
+
+bool KScroller::shouldIgnoreMouseMove() const
+{
+    return m_isSmoothScrolling;
+}
+
+// FIXME Make it much easier to not scroll and tap on an item
+// Currently you can sort of tap by trying very hard to keep you finger in one place and tapping twice
+// This can possibly be done by taking the code from Dolphin
+
+bool KScroller::shouldIgnoreMouseRelease()
+{
+    bool result = m_isSmoothScrolling;
+    m_isSmoothScrolling = false;
+    return result;
+}
+
+QScroller::State KScroller::state() const
+{
+    return m_scroller->state();
+}
+
+bool KScroller::handleInput(QScroller::Input input, const QPointF &position, qint64 timestamp)
+{
+    return m_scroller->handleInput(input, position, timestamp);
+}
+
+void KScroller::stop()
+{
+    m_scroller->stop();
+}
+
+QPointF KScroller::finalPosition() const
+{
+    return m_scroller->finalPosition();
+}
+
+void KScroller::scrollTo(const QPointF &pos)
+{
+    m_scroller->scrollTo(pos);
+}
+
+void KScroller::scrollTo(const QPointF &pos, int scrollTime)
+{
+    m_scroller->scrollTo(pos, scrollTime);
 }

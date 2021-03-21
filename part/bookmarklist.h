@@ -11,6 +11,7 @@
 #define BOOKMARKLIST_H
 
 #include <qwidget.h>
+#include "kscroller.h"
 
 #include "core/observer.h"
 
@@ -40,7 +41,7 @@ public:
 
 private Q_SLOTS:
     void slotFilterBookmarks(bool);
-    void slotExecuted(QTreeWidgetItem *item);
+    void slotSelectionChanged();
     void slotChanged(QTreeWidgetItem *item);
     void slotContextMenu(const QPoint p);
     void slotBookmarksChanged(const QUrl &url);
@@ -58,6 +59,7 @@ private:
     KTreeWidgetSearchLine *m_searchLine;
     QAction *m_showBoomarkOnlyAction;
     QTreeWidgetItem *m_currentDocumentItem;
+    KScroller m_scroller;
 };
 
 #endif

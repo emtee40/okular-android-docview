@@ -122,6 +122,8 @@ BookmarkList::BookmarkList(Okular::Document *document, QWidget *parent)
     : QWidget(parent)
     , m_document(document)
     , m_currentDocumentItem(nullptr)
+    , m_tree(new QTreeWidget(this))
+    , m_scroller(m_tree->viewport())
 {
     QVBoxLayout *mainlay = new QVBoxLayout(this);
     mainlay->setSpacing(6);
@@ -135,7 +137,6 @@ BookmarkList::BookmarkList(Okular::Document *document, QWidget *parent)
     mainlay->addWidget(m_searchLine);
     m_searchLine->setPlaceholderText(i18n("Search..."));
 
-    m_tree = new QTreeWidget(this);
     mainlay->addWidget(m_tree);
     QStringList cols;
     cols.append(QStringLiteral("Bookmarks"));
@@ -148,7 +149,8 @@ BookmarkList::BookmarkList(Okular::Document *document, QWidget *parent)
     m_tree->header()->hide();
     m_tree->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_tree->setEditTriggers(QAbstractItemView::EditKeyPressed);
-    connect(m_tree, &QTreeWidget::itemActivated, this, &BookmarkList::slotExecuted);
+    m_tree->setVerticalScrollMode(QTreeView::ScrollPerPixel);
+    connect(m_tree, &QTreeWidget::itemSelectionChanged, this, &BookmarkList::slotSelectionChanged);
     connect(m_tree, &QTreeWidget::customContextMenuRequested, this, &BookmarkList::slotContextMenu);
     m_searchLine->addTreeWidget(m_tree);
 
@@ -206,8 +208,12 @@ void BookmarkList::slotFilterBookmarks(bool on)
     rebuildTree(on);
 }
 
-void BookmarkList::slotExecuted(QTreeWidgetItem *item)
+void BookmarkList::slotSelectionChanged()
 {
+    QList<QTreeWidgetItem *> items = m_tree->selectedItems();
+    if (items.length() != 1) return;
+    QTreeWidgetItem *item = items.first();
+
     BookmarkItem *bmItem = dynamic_cast<BookmarkItem *>(item);
     if (!bmItem || !bmItem->viewport().isValid())
         return;
