@@ -22,8 +22,6 @@
 #include "kscroller.h"
 #include <QScroller>
 
-// FIXME Sometimes the scroller goes out of control and the scroll position jumps back and forth rapidly
-
 KScroller::KScroller(QObject *target)
 {
     m_scroller = QScroller::scroller(target);
