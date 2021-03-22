@@ -37,11 +37,11 @@ public:
     bool shouldIgnoreMouseRelease();
 
     QScroller::State state() const;
-    bool handleInput(QScroller::Input input, const QPointF &position, qint64 timestamp = 0);
+    bool handleInput(QScroller::Input input, const QPointF position, qint64 timestamp = 0);
     void stop();
     QPointF finalPosition() const;
-    void scrollTo(const QPointF &pos);
-    void scrollTo(const QPointF &pos, int scrollTime);
+    void scrollTo(const QPointF pos);
+    void scrollTo(const QPointF pos, int scrollTime);
 
 private:
     QScroller *m_scroller;
