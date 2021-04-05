@@ -10,7 +10,7 @@
 #ifndef _KDOCUMENTVIEWER_H_
 #define _KDOCUMENTVIEWER_H_
 
-#include "okularpart_export.h"
+#include "part/okularpart_export.h"
 
 #include <QStringList>
 
