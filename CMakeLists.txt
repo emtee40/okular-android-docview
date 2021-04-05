@@ -164,9 +164,9 @@ if(BUILD_COVERAGE)
 endif()
 
 add_subdirectory( icons ) # an own directory for multi-size icons retrieved by KIconThemeLoader
-add_subdirectory( part )
 if(BUILD_DESKTOP)
     add_subdirectory( shell )
+    add_subdirectory( part )
 endif()
 add_subdirectory( generators )
 if(BUILD_TESTING)
@@ -193,126 +193,9 @@ add_subdirectory(interfaces)
 
 add_subdirectory(conf)
 
-if(BUILD_DESKTOP)
-  # okularpart
-  set(okularpart_SRCS
-    part/preferencesdialog.cpp
-    part/dlgaccessibility.cpp
-    part/dlgdebug.cpp
-    part/dlgeditor.cpp
-    part/dlggeneral.cpp
-    part/dlgannotations.cpp
-    part/dlgperformance.cpp
-    part/dlgpresentation.cpp
-    part/editannottooldialog.cpp
-    part/editdrawingtooldialog.cpp
-    part/widgetannottools.cpp
-    part/widgetconfigurationtoolsbase.cpp
-    part/widgetdrawingtools.cpp
-    part/part.cpp
-    part/xmlgui_helper.cpp
-    part/extensions.cpp
-    part/embeddedfilesdialog.cpp
-    part/annotationactionhandler.cpp
-    part/annotwindow.cpp
-    part/annotationmodel.cpp
-    part/annotationpopup.cpp
-    part/annotationpropertiesdialog.cpp
-    part/annotationproxymodels.cpp
-    part/annotationtools.cpp
-    part/annotationwidgets.cpp
-    part/bookmarklist.cpp
-    part/certificateviewer.cpp
-    part/cursorwraphelper.cpp
-    part/debug_ui.cpp
-    part/drawingtoolactions.cpp
-    part/fileprinterpreview.cpp
-    part/findbar.cpp
-    part/formwidgets.cpp
-    part/guiutils.cpp
-    part/ktreeviewsearchline.cpp
-    part/latexrenderer.cpp
-    part/minibar.cpp
-    part/okmenutitle.cpp
-    part/pageitemdelegate.cpp
-    part/pagepainter.cpp
-    part/pagesizelabel.cpp
-    part/pageviewannotator.cpp
-    part/pageviewmouseannotation.cpp
-    part/pageview.cpp
-    part/magnifierview.cpp
-    part/pageviewutils.cpp
-    part/presentationsearchbar.cpp
-    part/presentationwidget.cpp
-    part/propertiesdialog.cpp
-    part/revisionviewer.cpp
-    part/searchlineedit.cpp
-    part/searchwidget.cpp
-    part/sidebar.cpp
-    part/side_reviews.cpp
-    part/snapshottaker.cpp
-    part/thumbnaillist.cpp
-    part/toc.cpp
-    part/tocmodel.cpp
-    part/toggleactionmenu.cpp
-    part/videowidget.cpp
-    part/layers.cpp
-    part/signatureguiutils.cpp
-    part/signaturepropertiesdialog.cpp
-    part/signaturemodel.cpp
-    part/signaturepanel.cpp
-  )
-endif()
-
-if (Qt5TextToSpeech_FOUND)
-   set(okularpart_SRCS ${okularpart_SRCS}
-      part/tts.cpp)
-endif()
-
-kconfig_add_kcfg_files(okularpart_SRCS GENERATE_MOC conf/settings.kcfgc)
-
-add_library(okularpart SHARED ${okularpart_SRCS})
-generate_export_header(okularpart BASE_NAME okularpart)
-
-target_link_libraries(okularpart okularcore
-    ${MATH_LIB}
-    Qt5::Svg
-    Phonon::phonon4qt5
-    KF5::Archive
-    KF5::Bookmarks
-    KF5::I18n
-    KF5::IconThemes
-    KF5::ItemViews
-    KF5::KIOCore
-    KF5::KIOFileWidgets
-    KF5::KIOWidgets
-    KF5::Parts
-    KF5::Solid
-    KF5::WindowSystem
-)
-
-if(KF5Wallet_FOUND)
-    target_link_libraries(okularpart KF5::Wallet)
-endif()
-
-if (KF5Purpose_FOUND)
-    target_link_libraries(okularpart KF5::PurposeWidgets)
-endif()
-
-set_target_properties(okularpart PROPERTIES PREFIX "")
-
-if (Qt5TextToSpeech_FOUND)
-   target_link_libraries(okularpart Qt5::TextToSpeech)
-endif()
-install(TARGETS okularpart DESTINATION ${KDE_INSTALL_PLUGINDIR})
-
-
 ########### install files ###############
 
 install(FILES okular.upd DESTINATION ${KDE_INSTALL_KCONFUPDATEDIR})
-
-install( FILES okular_part.desktop  DESTINATION  ${KDE_INSTALL_KSERVICES5DIR} )
-install( FILES part/part.rc part/part-viewermode.rc DESTINATION ${KDE_INSTALL_KXMLGUI5DIR}/okular )
 
 if (${ECM_VERSION} STRGREATER "5.58.0")
     install(FILES okular.categories  DESTINATION  ${KDE_INSTALL_LOGGINGCATEGORIESDIR})
