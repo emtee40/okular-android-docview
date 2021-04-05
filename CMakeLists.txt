@@ -191,8 +191,7 @@ add_subdirectory(core)
 
 add_subdirectory(interfaces)
 
-install(FILES conf/okular.kcfg DESTINATION ${KDE_INSTALL_KCFGDIR})
-install(FILES conf/okular_core.kcfg DESTINATION ${KDE_INSTALL_KCFGDIR})
+add_subdirectory(conf)
 
 if(BUILD_DESKTOP)
   # okularpart

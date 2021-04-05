@@ -1,0 +1,2 @@
+install(FILES okular.kcfg DESTINATION ${KDE_INSTALL_KCFGDIR})
+install(FILES okular_core.kcfg DESTINATION ${KDE_INSTALL_KCFGDIR})
