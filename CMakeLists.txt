@@ -151,7 +151,7 @@ add_definitions(-DQT_NO_URL_CAST_FROM_STRING)
 add_definitions(-DQT_DEPRECATED_WARNINGS_SINCE=0x050C00)
 add_definitions(-DKF_DEPRECATED_WARNINGS_SINCE=0x054400)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${PHONON_INCLUDES} core/synctex ${CMAKE_BINARY_DIR}/core)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${PHONON_INCLUDES} core/synctex ${CMAKE_BINARY_DIR}/core)
 
 if(BUILD_MOBILE)
     add_subdirectory( mobile )
@@ -187,79 +187,7 @@ endif(NOT WIN32)
 
 # okularcore
 
-set(okularcore_SRCS
-   core/action.cpp
-   core/annotations.cpp
-   core/area.cpp
-   core/audioplayer.cpp
-   core/bookmarkmanager.cpp
-   core/chooseenginedialog.cpp
-   core/document.cpp
-   core/documentcommands.cpp
-   core/fontinfo.cpp
-   core/form.cpp
-   core/generator.cpp
-   core/generator_p.cpp
-   core/misc.cpp
-   core/movie.cpp
-   core/observer.cpp
-   core/debug.cpp
-   core/page.cpp
-   core/pagecontroller.cpp
-   core/pagesize.cpp
-   core/pagetransition.cpp
-   core/rotationjob.cpp
-   core/scripter.cpp
-   core/sound.cpp
-   core/sourcereference.cpp
-   core/textdocumentgenerator.cpp
-   core/textdocumentsettings.cpp
-   core/textpage.cpp
-   core/tilesmanager.cpp
-   core/utils.cpp
-   core/view.cpp
-   core/fileprinter.cpp
-   core/printoptionswidget.cpp
-   core/signatureutils.cpp
-   core/script/event.cpp
-   core/synctex/synctex_parser.c
-   core/synctex/synctex_parser_utils.c
-)
-qt5_add_resources(okularcore_SRCS
-   core/script/builtin.qrc
-)
-
-ki18n_wrap_ui(okularcore_SRCS
-   part/textdocumentsettings.ui
-)
-
-install( FILES
-           core/action.h
-           core/annotations.h
-           core/area.h
-           core/document.h
-           core/fontinfo.h
-           core/form.h
-           core/generator.h
-           core/global.h
-           core/page.h
-           core/pagesize.h
-           core/pagetransition.h
-           core/signatureutils.h
-           core/sound.h
-           core/sourcereference.h
-           core/textdocumentgenerator.h
-           core/textdocumentsettings.h
-           core/textpage.h
-           core/tile.h
-           core/utils.h
-           core/fileprinter.h
-           core/printoptionswidget.h
-           core/observer.h
-           ${CMAKE_CURRENT_BINARY_DIR}/core/version.h
-           ${CMAKE_CURRENT_BINARY_DIR}/core/okularcore_export.h
-           ${CMAKE_CURRENT_BINARY_DIR}/settings_core.h
-         DESTINATION ${KDE_INSTALL_INCLUDEDIR}/okular/core COMPONENT Devel)
+add_subdirectory(core)
 
 install( FILES
            interfaces/configinterface.h
@@ -269,85 +197,8 @@ install( FILES
            interfaces/viewerinterface.h
          DESTINATION ${KDE_INSTALL_INCLUDEDIR}/okular/interfaces COMPONENT Devel)
 
-ki18n_wrap_ui(okularcore_SRCS
-   core/chooseenginewidget.ui
-)
-
-kconfig_add_kcfg_files(okularcore_SRCS conf/settings_core.kcfgc)
-
-add_library(okularcore SHARED ${okularcore_SRCS})
-generate_export_header(okularcore BASE_NAME okularcore EXPORT_FILE_NAME "${CMAKE_CURRENT_BINARY_DIR}/core/okularcore_export.h")
-
-if (ANDROID)
-    set(fileName ${CMAKE_BINARY_DIR}/Okular5Core-android-dependencies.xml)
-    file(WRITE "${fileName}" "<rules><dependencies><lib name='Okular5Core'><depends>\n"
-                                "<bundled file='${KDE_INSTALL_PLUGINDIR}/okular/generators' />\n"
-                             "</depends></lib></dependencies></rules>\n")
-    install(FILES ${fileName} DESTINATION ${KDE_INSTALL_LIBDIR})
-endif()
-
-
-# Special handling for linking okularcore on OSX/Apple
-IF(APPLE)
-    SET(OKULAR_IOKIT "-framework IOKit" CACHE STRING "Apple IOKit framework")
-ENDIF(APPLE)
-
-# Extra library needed by imported synctex code on Windows
-if(WIN32)
-    set(SHLWAPI shlwapi)
-endif(WIN32)
-
-target_link_libraries(okularcore
-PRIVATE
-    ${OKULAR_IOKIT}
-    ${SHLWAPI}
-    KF5::Archive
-    KF5::KIOCore
-    KF5::KIOWidgets
-    KF5::I18n
-    KF5::ThreadWeaver
-    KF5::Bookmarks
-    Phonon::phonon4qt5
-    ${MATH_LIB}
-    ZLIB::ZLIB
-PUBLIC  # these are included from the installed headers
-    KF5::CoreAddons
-    KF5::XmlGui
-    KF5::ConfigGui
-    Qt5::PrintSupport
-    Qt5::Widgets
-)
-
-
-if (KF5Wallet_FOUND)
-    target_link_libraries(okularcore PRIVATE KF5::Wallet)
-endif()
-if (KF5JS_FOUND)
-    target_sources(okularcore PRIVATE
-            core/script/executor_kjs.cpp
-            core/script/kjs_app.cpp
-            core/script/kjs_console.cpp
-            core/script/kjs_data.cpp
-            core/script/kjs_display.cpp
-            core/script/kjs_document.cpp
-            core/script/kjs_field.cpp
-            core/script/kjs_fullscreen.cpp
-            core/script/kjs_field.cpp
-            core/script/kjs_spell.cpp
-            core/script/kjs_util.cpp
-            core/script/kjs_event.cpp
-            core/script/kjs_ocg.cpp
-    )
-    target_link_libraries(okularcore PRIVATE KF5::JS KF5::JSApi)
-endif()
-
-set_target_properties(okularcore PROPERTIES VERSION 9.0.0 SOVERSION 9 OUTPUT_NAME Okular5Core EXPORT_NAME Core)
-
-install(TARGETS okularcore EXPORT Okular5Targets ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
-
 install(FILES conf/okular.kcfg DESTINATION ${KDE_INSTALL_KCFGDIR})
 install(FILES conf/okular_core.kcfg DESTINATION ${KDE_INSTALL_KCFGDIR})
-install(FILES core/okularGenerator.desktop DESTINATION ${KDE_INSTALL_KSERVICETYPES5DIR})
 
 if(BUILD_DESKTOP)
   # okularpart
