@@ -23,7 +23,7 @@
 #include "../part/sidebar.h"
 #include "../part/toc.h"
 #include "../part/toggleactionmenu.h"
-#include "../settings.h"
+#include "settings.h"
 #include "closedialoghelper.h"
 
 #include "../generators/poppler/config-okular-poppler.h"

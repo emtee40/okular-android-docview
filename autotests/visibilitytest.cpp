@@ -9,7 +9,7 @@
 
 #include <QtTest>
 
-#include "../settings_core.h"
+#include "settings_core.h"
 #include "core/document.h"
 #include <QMap>
 #include <QMimeDatabase>

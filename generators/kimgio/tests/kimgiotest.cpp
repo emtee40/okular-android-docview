@@ -7,7 +7,7 @@
  *   (at your option) any later version.                                   *
  ***************************************************************************/
 
-#include "../../settings_core.h"
+#include "settings_core.h"
 #include "../generator_kimgio.h"
 
 #include <core/observer.h>

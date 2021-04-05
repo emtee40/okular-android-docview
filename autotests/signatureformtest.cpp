@@ -12,7 +12,7 @@
 #include <QMimeDatabase>
 #include <QMimeType>
 
-#include "../settings_core.h"
+#include "settings_core.h"
 #include <core/document.h>
 #include <core/form.h>
 #include <core/page.h>

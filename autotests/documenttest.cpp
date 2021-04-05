@@ -23,7 +23,7 @@
 #include "../core/observer.h"
 #include "../core/page.h"
 #include "../core/rotationjob_p.h"
-#include "../settings_core.h"
+#include "settings_core.h"
 
 class DocumentTest : public QObject
 {

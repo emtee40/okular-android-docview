@@ -22,7 +22,7 @@
 #include "../core/page.h"
 #include "../part/pageview.h"
 #include "../part/part.h"
-#include "../settings.h"
+#include "settings.h"
 #include "../shell/okular_main.h"
 #include "../shell/shell.h"
 #include "../shell/shellutils.h"

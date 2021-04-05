@@ -16,7 +16,7 @@
 #include "../core/document.h"
 #include "../core/page.h"
 #include "../core/textpage.h"
-#include "../settings_core.h"
+#include "settings_core.h"
 
 Q_DECLARE_METATYPE(Okular::Document::SearchStatus)
 

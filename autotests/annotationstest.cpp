@@ -13,7 +13,7 @@
 #include "../core/annotations.h"
 #include "../core/document.h"
 #include "../core/page.h"
-#include "../settings_core.h"
+#include "settings_core.h"
 
 Q_DECLARE_METATYPE(Okular::Annotation *)
 Q_DECLARE_METATYPE(Okular::LineAnnotation *)

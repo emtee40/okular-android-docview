@@ -9,7 +9,7 @@
 
 #include <QTest>
 
-#include "../settings_core.h"
+#include "settings_core.h"
 #include "core/annotations.h"
 #include "core/document.h"
 #include <QMimeDatabase>

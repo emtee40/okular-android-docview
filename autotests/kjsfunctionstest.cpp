@@ -9,7 +9,7 @@
 
 #include <QtTest>
 
-#include "../settings_core.h"
+#include "settings_core.h"
 #include "core/action.h"
 #include "core/document.h"
 #include "core/scripter.h"

@@ -24,7 +24,7 @@
 #include "../part/findbar.h"
 #include "../part/part.h"
 #include "../part/presentationwidget.h"
-#include "../settings.h"
+#include "settings.h"
 #include "../shell/okular_main.h"
 #include "../shell/shell.h"
 #include "../shell/shellutils.h"
