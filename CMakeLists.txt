@@ -189,13 +189,7 @@ endif(NOT WIN32)
 
 add_subdirectory(core)
 
-install( FILES
-           interfaces/configinterface.h
-           interfaces/guiinterface.h
-           interfaces/printinterface.h
-           interfaces/saveinterface.h
-           interfaces/viewerinterface.h
-         DESTINATION ${KDE_INSTALL_INCLUDEDIR}/okular/interfaces COMPONENT Devel)
+add_subdirectory(interfaces)
 
 install(FILES conf/okular.kcfg DESTINATION ${KDE_INSTALL_KCFGDIR})
 install(FILES conf/okular_core.kcfg DESTINATION ${KDE_INSTALL_KCFGDIR})
