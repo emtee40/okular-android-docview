@@ -128,6 +128,7 @@ Shell::Shell(const QString &serializedOptions)
         connectPart(firstPart);
 
         readSettings();
+        readRecentFiles();
 
         m_unique = ShellUtils::unique(serializedOptions);
         if (m_unique) {
@@ -211,6 +212,9 @@ void Shell::showOpenRecentMenu()
 Shell::~Shell()
 {
     if (!m_tabs.empty()) {
+        readRecentFiles(); // update configs file with info about other recent files
+                           // that may possibly have been opened by other
+                           // instances before writing the settings
         writeSettings();
         for (const TabState &tab : qAsConst(m_tabs)) {
             tab.part->closeUrl(false);
@@ -238,6 +242,7 @@ bool Shell::openDocument(const QUrl &url, const QString &serializedOptions)
     }
 
     openUrl(url, serializedOptions);
+    writeRecentFiles();
 
     return true;
 }
@@ -325,9 +330,6 @@ void Shell::closeUrl()
 
 void Shell::readSettings()
 {
-    m_recent->loadEntries(KSharedConfig::openConfig()->group("Recent Files"));
-    m_recent->setEnabled(true); // force enabling
-
     const KConfigGroup group = KSharedConfig::openConfig()->group("Desktop Entry");
     bool fullScreen = group.readEntry("FullScreen", false);
     setFullScreen(fullScreen);
@@ -338,15 +340,26 @@ void Shell::readSettings()
     }
 }
 
+void Shell::readRecentFiles()
+{
+    m_recent->loadEntries(KSharedConfig::openConfig()->group("Recent Files"));
+    m_recent->setEnabled(true); // force enabling
+}
+
 void Shell::writeSettings()
 {
-    m_recent->saveEntries(KSharedConfig::openConfig()->group("Recent Files"));
     KConfigGroup group = KSharedConfig::openConfig()->group("Desktop Entry");
     group.writeEntry("FullScreen", m_fullScreenAction->isChecked());
     if (m_fullScreenAction->isChecked()) {
         group.writeEntry(shouldShowMenuBarComingFromFullScreen, m_menuBarWasShown);
         group.writeEntry(shouldShowToolBarComingFromFullScreen, m_toolBarWasShown);
     }
+    KSharedConfig::openConfig()->sync();
+}
+
+void Shell::writeRecentFiles()
+{
+    m_recent->saveEntries(KSharedConfig::openConfig()->group("Recent Files"));
     KSharedConfig::openConfig()->sync();
 }
 
