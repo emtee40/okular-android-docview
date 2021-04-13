@@ -241,6 +241,7 @@ bool Shell::openDocument(const QUrl &url, const QString &serializedOptions)
         return false;
     }
 
+    readRecentFiles(); //sync recent files list with other possibly open instances
     openUrl(url, serializedOptions);
     writeRecentFiles();
 
@@ -279,9 +280,11 @@ void Shell::openUrl(const QUrl &url, const QString &serializedOptions)
             if (m_unique) {
                 applyOptionsToPart(activePart, serializedOptions);
                 activePart->openUrl(url);
+                writeRecentFiles();
             } else {
                 if (qobject_cast<Okular::ViewerInterface *>(activePart)->openNewFilesInTabs()) {
                     openNewTab(url, serializedOptions);
+                    writeRecentFiles();
                 } else {
                     Shell *newShell = new Shell(serializedOptions);
                     newShell->show();
@@ -307,6 +310,7 @@ void Shell::openUrl(const QUrl &url, const QString &serializedOptions)
                     closeTab(activeTab);
                 }
             }
+            writeRecentFiles();
         }
     }
 }
@@ -346,6 +350,10 @@ void Shell::readRecentFiles()
     m_recent->setEnabled(true); // force enabling
 }
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 void Shell::writeSettings()
 {
     KConfigGroup group = KSharedConfig::openConfig()->group("Desktop Entry");
@@ -528,6 +536,7 @@ void Shell::fileOpen()
     dlg->setWindowTitle(i18n("Open Document"));
     if (dlg->exec() && dlg) {
         const QList<QUrl> urlList = dlg->selectedUrls();
+        readRecentFiles(); //sync recent files list with other possibly open instances
         for (const QUrl &url : urlList) {
             openUrl(url);
         }
