@@ -212,9 +212,6 @@ void Shell::showOpenRecentMenu()
 Shell::~Shell()
 {
     if (!m_tabs.empty()) {
-        readRecentFiles(); // update configs file with info about other recent files
-                           // that may possibly have been opened by other
-                           // instances before writing the settings
         writeSettings();
         for (const TabState &tab : qAsConst(m_tabs)) {
             tab.part->closeUrl(false);
