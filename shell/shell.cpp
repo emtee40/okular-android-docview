@@ -350,10 +350,6 @@ void Shell::readRecentFiles()
     m_recent->setEnabled(true); // force enabling
 }
 
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
 void Shell::writeSettings()
 {
     KConfigGroup group = KSharedConfig::openConfig()->group("Desktop Entry");
