@@ -238,7 +238,7 @@ bool Shell::openDocument(const QUrl &url, const QString &serializedOptions)
         return false;
     }
 
-    readRecentFiles(); //sync recent files list with other possibly open instances
+    readRecentFiles(); // sync recent files list with other possibly open instances
     openUrl(url, serializedOptions);
     writeRecentFiles();
 
@@ -529,7 +529,7 @@ void Shell::fileOpen()
     dlg->setWindowTitle(i18n("Open Document"));
     if (dlg->exec() && dlg) {
         const QList<QUrl> urlList = dlg->selectedUrls();
-        readRecentFiles(); //sync recent files list with other possibly open instances
+        readRecentFiles(); // sync recent files list with other possibly open instances
         for (const QUrl &url : urlList) {
             openUrl(url);
         }
