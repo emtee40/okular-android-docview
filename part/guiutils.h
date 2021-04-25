@@ -50,10 +50,6 @@ QString prettyToolTip(const Okular::Annotation *annotation);
  */
 QPixmap loadStamp(const QString &nameOrPath, int size, bool keepAspectRatio = true);
 
-void addIconLoader(KIconLoader *loader);
-void removeIconLoader(KIconLoader *loader);
-KIconLoader *iconLoader();
-
 void saveEmbeddedFile(Okular::EmbeddedFile *ef, QWidget *parent);
 void writeEmbeddedFile(Okular::EmbeddedFile *ef, QWidget *parent, QFile &targetFile);
 
