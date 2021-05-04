@@ -250,6 +250,8 @@ QPair<Okular::Movie *, Okular::EmbeddedFile *> createMovieFromPopplerRichMedia(c
      * Flash/Video richmedia instance and parse the flashVars parameter for the 'source' identifier.
      * That identifier is then used to find the associated embedded file through the assets
      * mapping.
+     *
+     * For plain Video/Sound, we just get the asset directly from the instance.
      */
     const Poppler::RichMediaAnnotation::Content *content = popplerRichMedia->content();
     if (!content)
@@ -267,43 +269,49 @@ QPair<Okular::Movie *, Okular::EmbeddedFile *> createMovieFromPopplerRichMedia(c
 
     const Poppler::RichMediaAnnotation::Instance *instance = instances[0];
 
-    if ((instance->type() != Poppler::RichMediaAnnotation::Instance::TypeFlash) && (instance->type() != Poppler::RichMediaAnnotation::Instance::TypeVideo))
+    if ((instance->type() != Poppler::RichMediaAnnotation::Instance::TypeFlash)
+		    && (instance->type() != Poppler::RichMediaAnnotation::Instance::TypeVideo)
+		    && (instance->type() != Poppler::RichMediaAnnotation::Instance::TypeSound))
         return emptyResult;
 
     const Poppler::RichMediaAnnotation::Params *params = instance->params();
-    if (!params)
-        return emptyResult;
 
-    QString sourceId;
     bool playbackLoops = false;
-
-    const QStringList flashVars = params->flashVars().split(QLatin1Char('&'));
-    for (const QString &flashVar : flashVars) {
-        const int pos = flashVar.indexOf(QLatin1Char('='));
-        if (pos == -1)
-            continue;
-
-        const QString key = flashVar.left(pos);
-        const QString value = flashVar.mid(pos + 1);
-
-        if (key == QLatin1String("source"))
-            sourceId = value;
-        else if (key == QLatin1String("loop"))
-            playbackLoops = (value == QLatin1String("true") ? true : false);
-    }
-
-    if (sourceId.isEmpty())
-        return emptyResult;
-
-    const QList<Poppler::RichMediaAnnotation::Asset *> assets = content->assets();
-    if (assets.isEmpty())
-        return emptyResult;
-
     Poppler::RichMediaAnnotation::Asset *matchingAsset = nullptr;
-    for (Poppler::RichMediaAnnotation::Asset *asset : assets) {
-        if (asset->name() == sourceId) {
-            matchingAsset = asset;
-            break;
+
+    if (!params && instance->type() != Poppler::RichMediaAnnotation::Instance::TypeFlash) {
+        // Plain Audio/Video, we have the asset here
+        matchingAsset = instance->asset();
+    } else {
+        QString sourceId;
+
+        const QStringList flashVars = params->flashVars().split(QLatin1Char('&'));
+        for (const QString &flashVar : flashVars) {
+            const int pos = flashVar.indexOf(QLatin1Char('='));
+            if (pos == -1)
+                continue;
+
+            const QString key = flashVar.left(pos);
+            const QString value = flashVar.mid(pos + 1);
+
+            if (key == QLatin1String("source"))
+                sourceId = value;
+            else if (key == QLatin1String("loop"))
+                playbackLoops = (value == QLatin1String("true") ? true : false);
+        }
+
+        if (sourceId.isEmpty())
+            return emptyResult;
+
+        const QList<Poppler::RichMediaAnnotation::Asset *> assets = content->assets();
+        if (assets.isEmpty())
+            return emptyResult;
+
+        for (Poppler::RichMediaAnnotation::Asset *asset : assets) {
+            if (asset->name() == sourceId) {
+                matchingAsset = asset;
+                break;
+            }
         }
     }
 
