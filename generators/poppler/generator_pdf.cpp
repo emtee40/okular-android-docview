@@ -277,11 +277,11 @@ QPair<Okular::Movie *, Okular::EmbeddedFile *> createMovieFromPopplerRichMedia(c
     const Poppler::RichMediaAnnotation::Params *params = instance->params();
 
     bool playbackLoops = false;
-    Poppler::RichMediaAnnotation::Asset *matchingAsset = nullptr;
+    Poppler::EmbeddedFile *embeddedFile = nullptr;
 
     if (!params && instance->type() != Poppler::RichMediaAnnotation::Instance::TypeFlash) {
         // Plain Audio/Video, we have the asset here
-        matchingAsset = instance->asset();
+        embeddedFile = instance->asset();
     } else {
         QString sourceId;
 
@@ -303,22 +303,9 @@ QPair<Okular::Movie *, Okular::EmbeddedFile *> createMovieFromPopplerRichMedia(c
         if (sourceId.isEmpty())
             return emptyResult;
 
-        const QList<Poppler::RichMediaAnnotation::Asset *> assets = content->assets();
-        if (assets.isEmpty())
-            return emptyResult;
-
-        for (Poppler::RichMediaAnnotation::Asset *asset : assets) {
-            if (asset->name() == sourceId) {
-                matchingAsset = asset;
-                break;
-            }
-        }
+	embeddedFile = content->assets()[sourceId];
     }
 
-    if (!matchingAsset)
-        return emptyResult;
-
-    Poppler::EmbeddedFile *embeddedFile = matchingAsset->embeddedFile();
     if (!embeddedFile)
         return emptyResult;
 
