@@ -9,12 +9,17 @@
 #include <QApplication>
 #include <QList>
 #include <QTreeView>
+#include <QSize>
+#include <QRect>
+#include <QPoint>
+#include <QFontMetrics>
 #include <qdom.h>
 
 #include <QFont>
 
 #include "core/document.h"
 #include "core/page.h"
+#include "settings.h"
 
 Q_DECLARE_METATYPE(QModelIndex)
 
@@ -212,6 +217,17 @@ QVariant TOCModel::data(const QModelIndex &index, int role) const
     case Qt::DisplayRole:
     case Qt::ToolTipRole:
         return item->text;
+        break;
+    case Qt::SizeHintRole:
+        if(Okular::Settings::self()->tCOWordWrap()){
+            QSize baseSize(20, 10000);
+            QFontMetrics metrics(this->data(index, Qt::FontRole).value<QFont>());
+            QRect outRect = metrics.boundingRect(QRect(QPoint(0, 0), baseSize), Qt::AlignLeft, item->text);
+            baseSize.setHeight(outRect.height());
+            return baseSize;
+        } else {
+            return QVariant();
+        }
         break;
     case Qt::FontRole:
         if (item->highlight) {
