@@ -219,10 +219,11 @@ QVariant TOCModel::data(const QModelIndex &index, int role) const
         return item->text;
         break;
     case Qt::SizeHintRole:
-        if(Okular::Settings::self()->tCOWordWrap()){
-            QSize baseSize(20, 10000);
+        if (Okular::Settings::self()->tOCWordWrap()) {
+            int width = 100;
+            QSize baseSize(width, 10000);
             QFontMetrics metrics(this->data(index, Qt::FontRole).value<QFont>());
-            QRect outRect = metrics.boundingRect(QRect(QPoint(0, 0), baseSize), Qt::AlignLeft, item->text);
+            QRect outRect = metrics.boundingRect(QRect(QPoint(0, 0), baseSize), Qt::AlignLeft | Qt::TextWordWrap, item->text);
             baseSize.setHeight(outRect.height());
             return baseSize;
         } else {

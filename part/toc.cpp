@@ -52,7 +52,7 @@ TOC::TOC(QWidget *parent, Okular::Document *document)
     m_treeView->setSortingEnabled(false);
     m_treeView->setRootIsDecorated(true);
     m_treeView->setAlternatingRowColors(true);
-    if(Okular::Settings::self()->tCOWordWrap()){
+    if (Okular::Settings::self()->tOCWordWrap()) {
         m_treeView->setWordWrap(true);
         m_treeView->setTextElideMode(Qt::ElideNone);
     } else {
@@ -147,7 +147,7 @@ void TOC::reparseConfig()
 {
     m_searchLine->setCaseSensitivity(Okular::Settings::contentsSearchCaseSensitive() ? Qt::CaseSensitive : Qt::CaseInsensitive);
     m_searchLine->setRegularExpression(Okular::Settings::contentsSearchRegularExpression());
-    if(Okular::Settings::self()->tCOWordWrap()){
+    if (Okular::Settings::self()->tOCWordWrap()) {
         m_treeView->setWordWrap(true);
         m_treeView->setTextElideMode(Qt::ElideNone);
     } else {
