@@ -31,13 +31,14 @@ class TOCModel : public QAbstractItemModel
 public:
     enum Roles { HighlightRole = PageItemDelegate::PageLabelRole + 1, HighlightedParentRole };
 
-    explicit TOCModel(Okular::Document *document, QObject *parent = nullptr);
+    explicit TOCModel(Okular::Document *document, QTreeView *parent = nullptr);
     ~TOCModel() override;
 
     // reimplementations from QAbstractItemModel
     QHash<int, QByteArray> roleNames() const override;
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+    //    bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override;
     bool hasChildren(const QModelIndex &parent = QModelIndex()) const override;
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
     QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override;

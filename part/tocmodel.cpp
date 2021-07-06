@@ -7,12 +7,13 @@
 #include "tocmodel.h"
 
 #include <QApplication>
-#include <QList>
-#include <QTreeView>
-#include <QSize>
-#include <QRect>
-#include <QPoint>
 #include <QFontMetrics>
+#include <QHeaderView>
+#include <QList>
+#include <QPoint>
+#include <QRect>
+#include <QSize>
+#include <QTreeView>
 #include <qdom.h>
 
 #include <QFont>
@@ -55,6 +56,7 @@ public:
     TOCItem *root;
     bool dirty : 1;
     Okular::Document *document;
+    QTreeView *parent;
     QList<TOCItem *> itemsToOpen;
     QList<TOCItem *> currentPage;
     TOCModel *m_oldModel;
@@ -177,11 +179,12 @@ void TOCModelPrivate::findViewport(const Okular::DocumentViewport &viewport, TOC
     }
 }
 
-TOCModel::TOCModel(Okular::Document *document, QObject *parent)
+TOCModel::TOCModel(Okular::Document *document, QTreeView *parent)
     : QAbstractItemModel(parent)
     , d(new TOCModelPrivate(this))
 {
     d->document = document;
+    d->parent = parent;
 
     qRegisterMetaType<QModelIndex>();
 }
@@ -218,18 +221,19 @@ QVariant TOCModel::data(const QModelIndex &index, int role) const
     case Qt::ToolTipRole:
         return item->text;
         break;
-    case Qt::SizeHintRole:
-        if (Okular::Settings::self()->tOCWordWrap()) {
-            int width = 100;
-            QSize baseSize(width, 10000);
-            QFontMetrics metrics(this->data(index, Qt::FontRole).value<QFont>());
-            QRect outRect = metrics.boundingRect(QRect(QPoint(0, 0), baseSize), Qt::AlignLeft | Qt::TextWordWrap, item->text);
-            baseSize.setHeight(outRect.height());
-            return baseSize;
-        } else {
-            return QVariant();
-        }
-        break;
+        //    case Qt::SizeHintRole:
+        //        if (Okular::Settings::self()->tOCWordWrap()) {
+        ////            qDebug() << d->parent->visualRect(index);
+        //            int width = 10;
+        //            QSize baseSize(width, 10000);
+        //            QFontMetrics metrics(this->data(index, Qt::FontRole).value<QFont>());
+        //            QRect outRect = metrics.boundingRect(QRect(QPoint(0, 0), baseSize), Qt::AlignLeft | Qt::TextWordWrap, item->text);
+        //            baseSize.setHeight(outRect.height());
+        //            return baseSize;
+        //        } else {
+        //            return QVariant();
+        //        }
+        //        break;
     case Qt::FontRole:
         if (item->highlight) {
             QFont font;
@@ -268,6 +272,18 @@ QVariant TOCModel::data(const QModelIndex &index, int role) const
     }
     return QVariant();
 }
+
+// bool TOCModel::setData(const QModelIndex &index, const QVariant &value, int role)
+//{
+//    if (!index.isValid())
+//        return false;
+//    switch (role) {
+//        case Qt::SizeHintRole:
+//            QAbstractItemModel::setData(index, value, role);
+//            return true;
+//    }
+//    return false;
+//}
 
 bool TOCModel::hasChildren(const QModelIndex &parent) const
 {

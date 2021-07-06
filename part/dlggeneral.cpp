@@ -39,11 +39,11 @@ DlgGeneral::DlgGeneral(QWidget *parent, Okular::EmbedMode embedMode)
     showScrollbars->setObjectName(QStringLiteral("kcfg_ShowScrollBars"));
     layout->addRow(QString(), showScrollbars);
 
-    // Checkbox: show TCO as elided or word wrap
-    QCheckBox *TCOWordWrap = new QCheckBox(this);
-    TCOWordWrap->setText(i18nc("@option:check Config dialog, general page", "Word Wrap TOC"));
-    TCOWordWrap->setObjectName(QStringLiteral("kcfg_TCOWordWrap"));
-    layout->addRow(QString(), TCOWordWrap);
+    // Checkbox: show TOC as elided or word wrap
+    QCheckBox *TOCWordWrap = new QCheckBox(this);
+    TOCWordWrap->setText(i18nc("@option:check Config dialog, general page", "Word Wrap TOC"));
+    TOCWordWrap->setObjectName(QStringLiteral("kcfg_TOCWordWrap"));
+    layout->addRow(QString(), TOCWordWrap);
 
     if (embedMode != Okular::ViewerWidgetMode) {
         // Checkbox: scroll thumbnails automatically

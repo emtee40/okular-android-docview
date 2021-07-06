@@ -7,7 +7,10 @@
 #include "pageitemdelegate.h"
 
 // qt/kde includes
+#include <QAbstractItemDelegate>
 #include <QApplication>
+#include <QDebug>
+#include <QHeaderView>
 #include <QModelIndex>
 #include <QTextDocument>
 #include <QVariant>
@@ -25,12 +28,14 @@ public:
     }
 
     QModelIndex index;
+    QTreeView *parent;
 };
 
-PageItemDelegate::PageItemDelegate(QObject *parent)
+PageItemDelegate::PageItemDelegate(QTreeView *parent)
     : QItemDelegate(parent)
     , d(new Private)
 {
+    d->parent = parent;
 }
 
 PageItemDelegate::~PageItemDelegate()
@@ -67,10 +72,32 @@ void PageItemDelegate::drawDisplay(QPainter *painter, const QStyleOptionViewItem
         newRect.translate(pageRectWidth + PAGEITEMDELEGATE_INTERNALMARGIN, 0);
     else
         pageRect.translate(newRect.width() + PAGEITEMDELEGATE_INTERNALMARGIN - 2 * margindelta, 0);
+    // Apply word wrapping if applicable
+    //    if (Okular::Settings::self()->tOCWordWrap()) {
+    //        QSize sz = newRect.size();
+    //        QFontMetrics metrics(option.font);
+    //        QRect outRect = metrics.boundingRect(QRect(QPoint(0, 0), sz), Qt::AlignLeft | Qt::TextWordWrap, text);
+    //        sz.setHeight(outRect.height());
+
+    //        newRect.setSize(sz);
+    //    }
     QItemDelegate::drawDisplay(painter, option, newRect, text);
     QStyleOptionViewItem newoption(option);
     newoption.displayAlignment = (option.displayAlignment & ~Qt::AlignHorizontal_Mask) | Qt::AlignRight;
     QItemDelegate::drawDisplay(painter, newoption, pageRect, page);
+}
+
+QSize PageItemDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
+{
+    QSize sz = QItemDelegate::sizeHint(option, index);
+    // https://stackoverflow.com/questions/8932966/how-to-get-qtreeview-cell-width-inside-qitemdelegate-sizehint
+    //    QSize sz = QSize(d->parent->header()->sectionSize(0), 10000);
+    //    qDebug() << d->parent->header()->sectionSize(0);
+    //    qDebug() << index.data().toString() << sz;
+    //    QFontMetrics metrics(index.data(Qt::FontRole).value<QFont>());
+    //    QRect outRect = metrics.boundingRect(QRect(QPoint(0, 0), sz), Qt::AlignLeft | Qt::TextWordWrap, index.data().toString());
+    //    sz.setHeight(outRect.height());
+    return sz;
 }
 
 #include "moc_pageitemdelegate.cpp"
