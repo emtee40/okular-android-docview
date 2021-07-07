@@ -29,13 +29,15 @@ public:
 
     QModelIndex index;
     QTreeView *parent;
+    QAbstractItemModel *model;
 };
 
-PageItemDelegate::PageItemDelegate(QTreeView *parent)
+PageItemDelegate::PageItemDelegate(QTreeView *parent, QAbstractItemModel *model)
     : QItemDelegate(parent)
     , d(new Private)
 {
     d->parent = parent;
+    d->model = model;
 }
 
 PageItemDelegate::~PageItemDelegate()
@@ -46,6 +48,7 @@ PageItemDelegate::~PageItemDelegate()
 void PageItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
     d->index = index;
+    d->model->setData(index, option.rect.width(), ItemModelWidth);
     QItemDelegate::paint(painter, option, index);
 }
 
@@ -90,14 +93,19 @@ void PageItemDelegate::drawDisplay(QPainter *painter, const QStyleOptionViewItem
 QSize PageItemDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
     QSize sz = QItemDelegate::sizeHint(option, index);
-    // https://stackoverflow.com/questions/8932966/how-to-get-qtreeview-cell-width-inside-qitemdelegate-sizehint
-    //    QSize sz = QSize(d->parent->header()->sectionSize(0), 10000);
-    //    qDebug() << d->parent->header()->sectionSize(0);
+    //     https://stackoverflow.com/questions/34623036/implementing-a-delegate-for-wordwrap-in-a-qtreeview-qt-pyside-pyqt
+    //    QSize sz = QSize(index.data(ItemModelWidth).toInt(), 10000);
     //    qDebug() << index.data().toString() << sz;
     //    QFontMetrics metrics(index.data(Qt::FontRole).value<QFont>());
     //    QRect outRect = metrics.boundingRect(QRect(QPoint(0, 0), sz), Qt::AlignLeft | Qt::TextWordWrap, index.data().toString());
     //    sz.setHeight(outRect.height());
     return sz;
+}
+
+void PageItemDelegate::updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const
+{
+    qDebug() << "PageItemDelegate " << option;
+    QItemDelegate::updateEditorGeometry(editor, option, index);
 }
 
 #include "moc_pageitemdelegate.cpp"

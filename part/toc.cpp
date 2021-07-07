@@ -58,7 +58,7 @@ TOC::TOC(QWidget *parent, Okular::Document *document)
     } else {
         m_treeView->setTextElideMode(Qt::ElideRight);
     }
-    m_treeView->setItemDelegate(new PageItemDelegate(m_treeView));
+    m_treeView->setItemDelegate(new PageItemDelegate(m_treeView, m_model));
     m_treeView->header()->hide();
     m_treeView->setSelectionBehavior(QAbstractItemView::SelectRows);
     connect(m_treeView, &QTreeView::clicked, this, &TOC::slotExecuted);
