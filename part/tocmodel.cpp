@@ -222,20 +222,20 @@ QVariant TOCModel::data(const QModelIndex &index, int role) const
     case Qt::ToolTipRole:
         return item->text;
         break;
-    case Qt::SizeHintRole:
-        if (Okular::Settings::self()->tOCWordWrap()) {
-            qDebug() << "From index data: " << index.data(PageItemDelegate::ItemModelWidth);
-            int width = index.data(PageItemDelegate::ItemModelWidth).toInt();
-            width = (width == 0) ? 1000 : width;
-            QSize baseSize(width, 10000);
-            QFontMetrics metrics(this->data(index, Qt::FontRole).value<QFont>());
-            QRect outRect = metrics.boundingRect(QRect(QPoint(0, 0), baseSize), Qt::AlignLeft | Qt::TextWordWrap, item->text);
-            baseSize.setHeight(outRect.height());
-            return baseSize;
-        } else {
-            return QVariant();
-        }
-        break;
+//    case Qt::SizeHintRole:
+//        if (Okular::Settings::self()->tOCWordWrap()) {
+//            qDebug() << "TOCModel::data width" << d->parent->header()->width() << "For Index " << index.data().toString();
+//            int width = index.data(d->parent->header()->width()*0.5).toInt();
+//            width = (width == 0) ? 1000 : width;
+//            QSize baseSize(width, 10000);
+//            QFontMetrics metrics(this->data(index, Qt::FontRole).value<QFont>());
+//            QRect outRect = metrics.boundingRect(QRect(QPoint(0, 0), baseSize), Qt::AlignLeft | Qt::TextWordWrap, item->text);
+//            baseSize.setHeight(outRect.height());
+//            return baseSize;
+//        } else {
+//            return QVariant();
+//        }
+//        break;
     case Qt::FontRole:
         if (item->highlight) {
             QFont font;
@@ -271,25 +271,25 @@ QVariant TOCModel::data(const QModelIndex &index, int role) const
         if (item->viewport.isValid() && item->viewport.pageNumber < int(d->document->pages()))
             return d->document->page(item->viewport.pageNumber)->label();
         break;
-    case PageItemDelegate::ItemModelWidth:
-        return item->item_show_width;
+//    case PageItemDelegate::ItemModelWidth:
+//        return item->item_show_width;
     }
     return QVariant();
 }
 
-bool TOCModel::setData(const QModelIndex &index, const QVariant &value, int role)
-{
-    if (!index.isValid())
-        return false;
-    TOCItem *item = static_cast<TOCItem *>(index.internalPointer());
-    switch (role) {
-    case PageItemDelegate::ItemModelWidth:
-        qDebug() << "Received: " << value.toInt();
-        item->item_show_width = value.toInt();
-        return true;
-    }
-    return false;
-}
+//bool TOCModel::setData(const QModelIndex &index, const QVariant &value, int role)
+//{
+//    if (!index.isValid())
+//        return false;
+//    TOCItem *item = static_cast<TOCItem *>(index.internalPointer());
+//    switch (role) {
+//    case PageItemDelegate::ItemModelWidth:
+//        qDebug() << "Received: " << value.toInt();
+//        item->item_show_width = value.toInt();
+//        return true;
+//    }
+//    return false;
+//}
 
 bool TOCModel::hasChildren(const QModelIndex &parent) const
 {

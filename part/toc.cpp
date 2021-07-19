@@ -26,6 +26,18 @@
 #include "settings.h"
 #include "tocmodel.h"
 
+QTOC::QTOC(QWidget *parent)
+    :QTreeView(parent)
+{
+}
+
+void QTOC::resizeEvent(QResizeEvent *event){
+    qDebug() << event;
+    QTreeView::resizeEvent(event);
+    qDebug() << this->model()->index(0, 0) << this->model()->index(this->model()->rowCount(), 0);
+    QTreeView::dataChanged(this->model()->index(0, 0), this->model()->index(this->model()->rowCount()-1, 0));
+}
+
 TOC::TOC(QWidget *parent, Okular::Document *document)
     : QWidget(parent)
     , m_document(document)
@@ -45,7 +57,7 @@ TOC::TOC(QWidget *parent, Okular::Document *document)
     m_searchLine->setRegularExpression(Okular::Settings::self()->contentsSearchRegularExpression());
     connect(m_searchLine, &KTreeViewSearchLine::searchOptionsChanged, this, &TOC::saveSearchOptions);
 
-    m_treeView = new QTreeView(this);
+    m_treeView = new QTOC(this);
     mainlay->addWidget(m_treeView);
     m_model = new TOCModel(document, m_treeView);
     m_treeView->setModel(m_model);
