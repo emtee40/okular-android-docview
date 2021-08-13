@@ -54,7 +54,10 @@ ecm_setup_version(${PROJECT_VERSION}
                   VERSION_HEADER "${CMAKE_CURRENT_BINARY_DIR}/core/version.h"
                   PACKAGE_VERSION_FILE "${CMAKE_CURRENT_BINARY_DIR}/Okular5ConfigVersion.cmake")
 
-find_package(Qt5 ${QT_REQUIRED_VERSION} CONFIG REQUIRED COMPONENTS Core DBus Test Widgets PrintSupport Svg Qml Quick)
+find_package(Qt5 ${QT_REQUIRED_VERSION} CONFIG REQUIRED COMPONENTS Core Test Widgets PrintSupport Svg Qml Quick)
+if (BUILD_DESKTOP)
+    find_package(Qt5 ${QT_REQUIRED_VERSION} CONFIG REQUIRED COMPONENTS DBus)
+endif()
 find_package(Qt5 ${QT_REQUIRED_VERSION} OPTIONAL_COMPONENTS TextToSpeech)
 if (NOT Qt5TextToSpeech_FOUND)
     message(STATUS "Qt5TextToSpeech not found, speech features will be disabled")
@@ -421,7 +424,6 @@ if(BUILD_DESKTOP)
     part/signaturemodel.cpp
     part/signaturepanel.cpp
   )
-endif()
 
 if (Qt5TextToSpeech_FOUND)
    set(okularpart_SRCS ${okularpart_SRCS}
@@ -436,6 +438,7 @@ generate_export_header(okularpart BASE_NAME okularpart)
 target_link_libraries(okularpart okularcore
     ${MATH_LIB}
     Qt5::Svg
+    Qt5::DBus
     Phonon::phonon4qt5
     KF5::Archive
     KF5::Bookmarks
@@ -465,6 +468,7 @@ if (Qt5TextToSpeech_FOUND)
    target_link_libraries(okularpart Qt5::TextToSpeech)
 endif()
 install(TARGETS okularpart DESTINATION ${KDE_INSTALL_PLUGINDIR})
+endif()
 
 
 ########### install files ###############
