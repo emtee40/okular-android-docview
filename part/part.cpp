@@ -1512,10 +1512,15 @@ bool Part::openFile()
     }
 
     bool canSearch = m_document->supportsSearching();
-    emit mimeTypeChanged(mime);
 
     // update one-time actions
     const bool ok = openResult == Document::OpenSuccess;
+
+    if ( ok )
+    {
+        emit mimeTypeChanged( mime );
+    }
+
     emit enableCloseAction(ok);
     m_find->setEnabled(ok && canSearch);
     m_findNext->setEnabled(ok && canSearch);
