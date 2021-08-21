@@ -23,7 +23,7 @@ class QPainter;
 class pageInfo
 {
 public:
-    pageInfo(const QString &_PostScriptString);
+    explicit pageInfo(const QString &_PostScriptString);
     ~pageInfo();
 
     pageInfo(const pageInfo &) = delete;
