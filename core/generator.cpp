@@ -8,6 +8,7 @@
     SPDX-License-Identifier: GPL-2.0-or-later
 */
 
+#include "config-okular.h"
 #include "generator.h"
 #include "generator_p.h"
 #include "observer.h"
