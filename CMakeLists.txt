@@ -76,11 +76,10 @@ ecm_setup_qtplugin_macro_names(
         PACKAGE_SETUP_AUTOMOC_VARIABLES
 )
 
-set(optionalComponents)
-if (ANDROID)
+if(NOT ANDROID)
 #   we want to make sure that generally all components are found
-
-    set(optionalComponents "OPTIONAL_COMPONENTS")
+    option(WITH_KWALLET "Build with desktop-wide storage for password support" ON)
+    option(WITH_KJS "Build with scripting support" ON)
 endif()
 
 find_package(KF5 ${KF5_REQUIRED_VERSION} REQUIRED COMPONENTS
@@ -98,17 +97,15 @@ find_package(KF5 ${KF5_REQUIRED_VERSION} REQUIRED COMPONENTS
     TextWidgets
     ThreadWeaver
     WindowSystem
-    ${optionalComponents}
+    OPTIONAL_COMPONENTS
     DocTools
-    JS
-    Wallet
 )
 
-if(KF5Wallet_FOUND)
-    add_definitions(-DWITH_KWALLET=1)
+if(WITH_KWALLET)
+    find_package(KF5Wallet ${KF5_REQUIRED_VERSION} REQUIRED)
 endif()
-if(KF5JS_FOUND)
-    add_definitions(-DWITH_KJS=1)
+if(WITH_KJS)
+    find_package(KF5JS ${KF5_REQUIRED_VERSION} REQUIRED)
 endif()
 
 if(NOT WIN32 AND NOT ANDROID)
