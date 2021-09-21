@@ -58,6 +58,16 @@
     </layout>
    </item>
    <item>
+    <widget class="QCheckBox" name="kcfg_CheckOCSPServers">
+     <property name="toolTip">
+      <string>Enabling this option may contact third party servers to check if the certificates used for signing have been revoked since their creation</string>
+     </property>
+     <property name="text">
+      <string>Contact OCSP servers to check for digital certificate revocation </string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QGroupBox" name="certDBGroupBox">
      <property name="title">
       <string>Certificate Database</string>
