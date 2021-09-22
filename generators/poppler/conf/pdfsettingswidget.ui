@@ -60,7 +60,7 @@
    <item>
     <widget class="QCheckBox" name="kcfg_CheckOCSPServers">
      <property name="toolTip">
-      <string>Enabling this option may contact third party servers to check if the certificates used for signing have been revoked since their creation</string>
+      <string>Enabling this option will allow Okular to contact 3rd-party OCSP servers to check if the certificates used for digital signing have been revoked since their creation.</string>
      </property>
      <property name="text">
       <string>Contact OCSP servers to check for digital certificate revocation </string>
