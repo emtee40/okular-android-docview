@@ -125,6 +125,7 @@ public:
     QAction *aAdvancedSettings;
     QAction *aHideToolBar;
     QAction *aShowToolBar;
+    QAction *aToggleFullToolBar;
     KToggleAction *aToolBarVisibility;
 
     QAction *aCustomStamp;
@@ -396,10 +397,17 @@ void AnnotationActionHandlerPrivate::populateQuickAnnotations()
 
     // set the default action
     if (quickTools.isEmpty()) {
-        aQuickTools->setDefaultAction(aQuickTools);
+        aShowToolBar->setVisible(false);
+        aToggleFullToolBar->setEnabled(true);
+        aQuickTools->addAction(aToggleFullToolBar);
+        aQuickTools->setDefaultAction(aToggleFullToolBar);
         Okular::Settings::setQuickAnnotationDefaultAction(0);
         Okular::Settings::self()->save();
     } else {
+        aShowToolBar->setVisible(true);
+        aToggleFullToolBar->setEnabled(false);
+        aQuickTools->removeAction(aToggleFullToolBar);
+        aQuickTools->setDefaultAction(aQuickTools);
         int defaultAction = Okular::Settings::quickAnnotationDefaultAction();
         if (isFirstTimePopulated && defaultAction < quickTools.count()) {
             // we can reach here also if no quick tools were defined before, in that case defaultAction is correctly equal to zero
