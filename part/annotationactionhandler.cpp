@@ -129,6 +129,7 @@ public:
     QAction *aAdvancedSettings;
     QAction *aHideToolBar;
     QAction *aShowToolBar;
+    QAction *aToggleFullToolBar;
     KToggleAction *aToolBarVisibility;
 
     QAction *aCustomStamp;
@@ -403,10 +404,17 @@ void AnnotationActionHandlerPrivate::populateQuickAnnotations()
 
     // set the default action
     if (quickTools.isEmpty()) {
-        aQuickTools->setDefaultAction(aQuickTools);
+        aShowToolBar->setVisible(false);
+        aToggleFullToolBar->setEnabled(true);
+        aQuickTools->addAction(aToggleFullToolBar);
+        aQuickTools->setDefaultAction(aToggleFullToolBar);
         Okular::Settings::setQuickAnnotationDefaultAction(0);
         Okular::Settings::self()->save();
     } else {
+        aShowToolBar->setVisible(true);
+        aToggleFullToolBar->setEnabled(false);
+        aQuickTools->removeAction(aToggleFullToolBar);
+        aQuickTools->setDefaultAction(aQuickTools);
         int defaultAction = Okular::Settings::quickAnnotationDefaultAction();
         if (isFirstTimePopulated && defaultAction < quickTools.count()) {
             // we can reach here also if no quick tools were defined before, in that case defaultAction is correctly equal to zero
@@ -548,6 +556,9 @@ AnnotationActionHandler::AnnotationActionHandler(PageViewAnnotator *parent, KAct
     d->aToolBarVisibility = new KToggleAction(QIcon::fromTheme(QStringLiteral("draw-freehand")), i18n("&Annotations"), this);
     d->aHideToolBar = new QAction(QIcon::fromTheme(QStringLiteral("dialog-close")), i18nc("@action:intoolbar Hide the toolbar", "Hide"), this);
     d->aShowToolBar = new QAction(QIcon::fromTheme(QStringLiteral("draw-freehand")), i18nc("@action:intoolbar Show the builtin annotation toolbar", "Show more annotation tools"), this);
+    d->aToggleFullToolBar = new QAction(QIcon::fromTheme(QStringLiteral("draw-freehand")), i18nc("@action:intoolbar Toggle the builtin annotation toolbar", "Annotate"), this);
+    d->aToggleFullToolBar->setCheckable(true);
+    d->aToggleFullToolBar->setEnabled(true);
 
     // Text markup actions
     KToggleAction *aHighlighter = new KToggleAction(QIcon::fromTheme(QStringLiteral("draw-highlight")), i18nc("@action:intoolbar Annotation tool", "Highlighter"), this);
@@ -799,6 +810,9 @@ void AnnotationActionHandler::setupAnnotationToolBarVisibilityAction()
     connect(d->aShowToolBar, &QAction::triggered, annotationToolBar, &KToolBar::show, Qt::UniqueConnection);
     // hide action
     connect(d->aHideToolBar, &QAction::triggered, annotationToolBar, &KToolBar::hide, Qt::UniqueConnection);
+
+    connect(d->aToggleFullToolBar, &QAction::toggled, annotationToolBar, &KToolBar::setVisible, Qt::UniqueConnection);
+    connect(annotationToolBar, &QToolBar::visibilityChanged, d->aToggleFullToolBar, &QAction::setChecked, Qt::UniqueConnection);
 
     KToolBar *primaryAnnotationToolBar = annotationToolBar;
     if (Okular::Settings::primaryAnnotationToolBar() == Okular::Settings::EnumPrimaryAnnotationToolBar::QuickAnnotationToolBar) {
