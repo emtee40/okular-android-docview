@@ -3384,12 +3384,12 @@ void PageView::drawDocumentOnPainter(const QRect contentsRect, QPainter *p)
         // get item and item's outline geometries
         QRect itemGeometry = item->croppedGeometry();
 
-        // move the painter to the top-left corner of the real page
-        p->save();
-        p->translate(itemGeometry.left(), itemGeometry.top());
-
         // draw the page using the PagePainter with all flags active
         if (contentsRect.intersects(itemGeometry)) {
+            // move the painter to the top-left corner of the uncropped page
+            p->save();
+            p->translate(itemGeometry.topLeft());
+
             Okular::NormalizedPoint *viewPortPoint = nullptr;
             Okular::NormalizedPoint point(d->lastSourceLocationViewportNormalizedX, d->lastSourceLocationViewportNormalizedY);
             if (Okular::Settings::showSourceLocationsGraphically() && item->pageNumber() == d->lastSourceLocationViewportPageNumber) {
@@ -3397,12 +3397,15 @@ void PageView::drawDocumentOnPainter(const QRect contentsRect, QPainter *p)
             }
             QRect pixmapRect = contentsRect.intersected(itemGeometry);
             pixmapRect.translate(-item->croppedGeometry().topLeft());
-            PagePainter::paintCroppedPageOnPainter(p, item->page(), this, pageflags, item->uncroppedWidth(), item->uncroppedHeight(), pixmapRect, item->crop(), viewPortPoint);
-        }
+            // TODO We will call this with item->uncroppedGeometry().topLeft() as painter origin.
+            // Then we use the item geometry - origin as cropRect, which is equivalent to item->crop().geometry().
+            PagePainter::paintPageOnPainter(p, item->page(), this, pixmapRect, item->zoomFactor());
+            //             PagePainter::paintCroppedPageOnPainter(p, item->page(), this, pageflags, item->uncroppedWidth(), item->uncroppedHeight(), pixmapRect, item->crop(), viewPortPoint);
 
-        // remove painted area from 'remainingArea' and restore painter
-        remainingArea -= itemGeometry;
-        p->restore();
+            // remove painted area from 'remainingArea' and restore painter
+            remainingArea -= itemGeometry;
+            p->restore();
+        }
     }
 
     // fill the visible area around the page with the background color

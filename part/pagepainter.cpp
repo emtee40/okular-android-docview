@@ -50,6 +50,142 @@ void PagePainter::paintPageOnPainter(QPainter *destPainter, const Okular::Page *
     paintCroppedPageOnPainter(destPainter, page, observer, flags, scaledWidth, scaledHeight, limits, Okular::NormalizedRect(0, 0, 1, 1), nullptr);
 }
 
+void PagePainter::paintPageOnPainter(QPainter *destPainter,
+                                     const Okular::Page *page,
+                                     Okular::DocumentObserver *observer,
+                                     const QRectF &cropRect,
+                                     qreal scale,
+                                     PagePainter::PagePainterFlags flags,
+                                     const Okular::NormalizedPoint &viewPortPoint)
+{
+    // Variables prefixed with d are scaled to device pixels,
+    // i. e. multiplied with the device pixel ratio of the target PaintDevice.
+    // Variables prefixed with n are normalized to the page at current rotation.
+    // Other geometry variables are in destPainter coordinates.
+
+    destPainter->save();
+    const qreal dpr = destPainter->device()->devicePixelRatioF();
+
+    // Clipping
+    const QRect dPaintingLimits = QRectF(cropRect.topLeft() * dpr, cropRect.bottomRight() * dpr).toAlignedRect();
+    /** clipRect parameter expanded to snap at device pixels. */
+    const QRectF paintingLimits(dPaintingLimits.topLeft() / dpr, dPaintingLimits.bottomRight() / dpr);
+    destPainter->setClipRect(paintingLimits);
+
+    // Paper background color
+    QColor paperColor = Qt::white; // TODO not necessary?
+    QColor backgroundColor = paperColor;
+    if (Okular::SettingsCore::changeColors()) {
+        switch (Okular::SettingsCore::renderMode()) {
+        case Okular::SettingsCore::EnumRenderMode::Inverted:
+        case Okular::SettingsCore::EnumRenderMode::InvertLightness:
+        case Okular::SettingsCore::EnumRenderMode::InvertLuma:
+        case Okular::SettingsCore::EnumRenderMode::InvertLumaSymmetric:
+            backgroundColor = Qt::black;
+            break;
+        case Okular::SettingsCore::EnumRenderMode::Paper:
+            paperColor = Okular::SettingsCore::paperColor();
+            backgroundColor = paperColor;
+            break;
+        case Okular::SettingsCore::EnumRenderMode::Recolor:
+            backgroundColor = Okular::Settings::recolorBackground();
+            break;
+        default:;
+        }
+    }
+    destPainter->fillRect(paintingLimits, backgroundColor);
+
+    // Draw page pixmaps which are prerendered by Generator
+    drawPagePixmapsOnPainter(destPainter, page, observer, cropRect, scale);
+
+    destPainter->restore();
+}
+
+PagePainter::DrawPagePixmapsResult PagePainter::drawPagePixmapsOnPainter(QPainter *destPainter, const Okular::Page *page, Okular::DocumentObserver *observer, const QRectF &cropRect, qreal scale, PagePainterFlags flags)
+{
+    Q_UNUSED(flags)
+
+    const qreal dpr = destPainter->device()->devicePixelRatioF();
+    DrawPagePixmapsResult result = Fine;
+
+    const QRect dPaintingLimits = QRectF(cropRect.topLeft() * dpr, cropRect.bottomRight() * dpr).toAlignedRect();
+    const QSize dPageSize(int(page->width() * dpr * scale), int(page->height() * dpr * scale));
+    const Okular::NormalizedRect ndPaintingLimits(dPaintingLimits, dPageSize.width(), dPageSize.height());
+
+    if (!page->hasTilesManager(observer)) {
+        return drawPagePixmapOnPainter(destPainter, page, observer, dPageSize);
+    }
+
+    // Get available tiles
+    const QList<Okular::Tile> tiles = page->tilesAt(observer, ndPaintingLimits);
+
+    // Check whether the tiles cover the entire region
+    QRegion paintingRegion(dPaintingLimits);
+    for (const Okular::Tile tile : tiles) {
+        paintingRegion -= tile.rect().geometry(dPageSize.width(), dPageSize.height());
+    }
+    if (!paintingRegion.isEmpty()) {
+        // Tiles do not cover the entire region, draw the non-tile pixmap as background.
+        DrawPagePixmapsResult nonTileResult = drawPagePixmapOnPainter(destPainter, page, observer, dPageSize);
+        result = DrawPagePixmapsResult(result | TilesMissing | nonTileResult);
+        if (!tiles.isEmpty()) {
+            result = DrawPagePixmapsResult(result & ~NoPixmap);
+        }
+    }
+
+    // Draw tiles
+    for (const Okular::Tile tile : tiles) {
+        tile.pixmap()->setDevicePixelRatio(dpr);
+
+        // Tile position: Appears to be correct with geometry() instead of roundedGeometry().
+        const QRect dTileGeometry = tile.rect().geometry(dPageSize.width(), dPageSize.height());
+
+        // Calculate tile size, prefer rounding up to avoid gaps between tiles.
+        // We can accept up to 1px tolerance per axis, since rescaling would not have an effect then.
+        const qreal tileSizeIs = tile.pixmap()->width() + tile.pixmap()->height();
+        const qreal tileSizeShould = ceil(qreal(dPageSize.width()) * tile.rect().width()) + ceil(qreal(dPageSize.height()) * tile.rect().height());
+        if (qAbs(tileSizeIs - tileSizeShould) > 2) {
+            const qreal tileScale = tileSizeShould / tileSizeIs;
+            destPainter->save();
+            destPainter->scale(tileScale, tileScale);
+            destPainter->drawPixmap(QPointF(dTileGeometry.topLeft()) / dpr / tileScale, *tile.pixmap());
+            destPainter->restore();
+
+            result = DrawPagePixmapsResult(result | PixmapsOfIncorrectSize);
+        } else {
+            destPainter->drawPixmap(QPointF(dTileGeometry.topLeft()) / dpr, *tile.pixmap());
+        }
+    }
+    return result;
+}
+
+PagePainter::DrawPagePixmapsResult PagePainter::drawPagePixmapOnPainter(QPainter *destPainter, const Okular::Page *page, Okular::DocumentObserver *observer, QSize dSize, PagePainterFlags flags)
+{
+    Q_UNUSED(flags)
+
+    // Get pixmap:
+    const QPixmap *nearestPixmap = page->_o_nearestPixmap(observer, dSize.width(), dSize.height());
+    if (!nearestPixmap) {
+        return NoPixmap;
+    }
+
+    // Draw:
+    QPixmap pixmap(*nearestPixmap);
+    pixmap.setDevicePixelRatio(destPainter->device()->devicePixelRatioF());
+
+    if (pixmap.width() == dSize.width()) {
+        destPainter->drawPixmap(QPoint(0, 0), pixmap);
+        return Fine;
+    } else {
+        const qreal pixmapRescaleRatio = qreal(dSize.width()) / qreal(nearestPixmap->width());
+        destPainter->save();
+        destPainter->scale(pixmapRescaleRatio, pixmapRescaleRatio);
+        destPainter->drawPixmap(QPoint(0, 0), pixmap);
+        destPainter->restore();
+        return PixmapsOfIncorrectSize;
+    }
+}
+
 void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                                             const Okular::Page *page,
                                             Okular::DocumentObserver *observer,
