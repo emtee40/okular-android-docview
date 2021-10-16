@@ -67,10 +67,11 @@ void PagePainter::paintPageOnPainter(QPainter *destPainter,
     const qreal dpr = destPainter->device()->devicePixelRatioF();
 
     // Clipping
+    // Remember that QRect::bottomRight is misaligned by 1 pixel.
     const QRect dPaintingLimits = QRectF(cropRect.topLeft() * dpr, cropRect.bottomRight() * dpr).toAlignedRect();
     /** clipRect parameter expanded to snap at device pixels. */
-    const QRectF paintingLimits(dPaintingLimits.topLeft() / dpr, dPaintingLimits.bottomRight() / dpr);
-    destPainter->setClipRect(paintingLimits);
+    const QRectF paintingLimits(dPaintingLimits.topLeft() / dpr, (dPaintingLimits.bottomRight() + QPoint(1, 1)) / dpr);
+    destPainter->setClipRect(paintingLimits, Qt::IntersectClip);
 
     // Paper background color
     QColor paperColor = Qt::white; // TODO not necessary?
