@@ -180,6 +180,7 @@ private:
      * This means the paint device should have the device pixel ratio of the output device.
      *
      * @param destPainter Coordinate system should start at top left of uncropped @p page.
+     * @param page Which page.
      * @param observer Request pixmaps generated for this observer.
      * @param cropRect Where to paint.
      * @param scale The scale from Page::width() to @p destPainter coordinates. Higher values to zoom in.
@@ -194,11 +195,21 @@ private:
      * This means the paint device should have the device pixel ratio of the output device.
      *
      * @param destPainter Coordinate system should start at top left of uncropped @p page.
+     * @param page Which page.
      * @param observer Request pixmap generated for this observer.
      * @param dSize The size at which the pixmap shall be painted in @p destPainter device pixels.
      * @param flags (Does nothing yet.)
      */
     static DrawPagePixmapsResult drawPagePixmapOnPainter(QPainter *destPainter, const Okular::Page *page, Okular::DocumentObserver *observer, QSize dSize, PagePainterFlags flags = Accessibility);
+
+    /**
+     * Draws a placeholder pixmap on @p destPainter,
+     * to visualize that a page is still being loaded.
+     *
+     * @param destPainter
+     * @param pagePosition The geometry of the page (in @p destPainter coordinates) as it will be visible to the user.
+     */
+    static void drawLoadingPixmapOnPainter(QPainter *destPainter, QRectF pagePosition);
 
     // BEGIN Change Colors feature
     /**

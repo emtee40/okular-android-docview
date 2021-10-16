@@ -68,8 +68,9 @@ void PagePainter::paintPageOnPainter(QPainter *destPainter,
 
     // Clipping
     // Remember that QRect::bottomRight is misaligned by 1 pixel.
+    /** cropRect parameter expanded to snap at device pixels. */
     const QRect dPaintingLimits = QRectF(cropRect.topLeft() * dpr, cropRect.bottomRight() * dpr).toAlignedRect();
-    /** clipRect parameter expanded to snap at device pixels. */
+    /** cropRect parameter expanded to snap at device pixels. */
     const QRectF paintingLimits(dPaintingLimits.topLeft() / dpr, (dPaintingLimits.bottomRight() + QPoint(1, 1)) / dpr);
     destPainter->setClipRect(paintingLimits, Qt::IntersectClip);
 
@@ -97,7 +98,11 @@ void PagePainter::paintPageOnPainter(QPainter *destPainter,
     destPainter->fillRect(paintingLimits, backgroundColor);
 
     // Draw page pixmaps which are prerendered by Generator
-    drawPagePixmapsOnPainter(destPainter, page, observer, cropRect, scale);
+    const DrawPagePixmapsResult drawPixmapsResult = drawPagePixmapsOnPainter(destPainter, page, observer, cropRect, scale);
+
+    if (drawPixmapsResult & NoPixmap) {
+        drawLoadingPixmapOnPainter(destPainter, QRectF(QPointF(0.0, 0.0), QSizeF(page->width(), page->height()) * dpr));
+    }
 
     destPainter->restore();
 }
@@ -189,6 +194,19 @@ PagePainter::DrawPagePixmapsResult PagePainter::drawPagePixmapOnPainter(QPainter
         destPainter->drawPixmap(QPoint(0, 0), pixmap);
         destPainter->restore();
         return PixmapsOfIncorrectSize;
+    }
+}
+
+void PagePainter::drawLoadingPixmapOnPainter(QPainter *destPainter, QRectF pagePosition)
+{
+    // draw something on the blank page: the okular icon or a cross (as a fallback)
+    if (!busyPixmap()->isNull()) {
+        busyPixmap->setDevicePixelRatio(destPainter->device()->devicePixelRatioF());
+        destPainter->drawPixmap(pagePosition.topLeft() + QPointF(10.0, 10.0), *busyPixmap());
+    } else {
+        destPainter->setPen(Qt::gray);
+        destPainter->drawLine(pagePosition.topLeft(), pagePosition.bottomRight());
+        destPainter->drawLine(pagePosition.topRight(), pagePosition.bottomLeft());
     }
 }
 
