@@ -139,17 +139,22 @@ PagePainter::DrawPagePixmapsResult PagePainter::drawPagePixmapsOnPainter(QPainte
         tile.pixmap()->setDevicePixelRatio(dpr);
 
         // Tile position: Appears to be correct with geometry() instead of roundedGeometry().
+        // TODO This is still not 100% correct. Okular::Tile needs to be adjusted.
+        // Tiles have different sizes if the page size is not even.
+        // But the normalized geometry stored in the tile is not adjusted to their actual size.
         const QRect dTileGeometry = tile.rect().geometry(dPageSize.width(), dPageSize.height());
 
         // Calculate tile size, prefer rounding up to avoid gaps between tiles.
-        // We can accept up to 1px tolerance per axis, since rescaling would not have an effect then.
-        const qreal tileSizeIs = tile.pixmap()->width() + tile.pixmap()->height();
-        const qreal tileSizeShould = ceil(qreal(dPageSize.width()) * tile.rect().width()) + ceil(qreal(dPageSize.height()) * tile.rect().height());
-        if (qAbs(tileSizeIs - tileSizeShould) > 2) {
-            const qreal tileScale = tileSizeShould / tileSizeIs;
+        // We can accept up to 1px tolerance per axis, because tiles have 1px margins.
+        // In such cases, drawing with an overlap of 1px looks better than scaling by 1px.
+        const QSize tileSizeIs = tile.pixmap()->size();
+        const QSize tileSizeShould = QSize(ceil(qreal(dPageSize.width()) * tile.rect().width()), ceil(qreal(dPageSize.height()) * tile.rect().height()));
+        const QSize tileSizeMismatch = tileSizeIs - tileSizeShould;
+        if (qAbs(tileSizeMismatch.width()) > 1 || qAbs(tileSizeMismatch.height()) > 1) {
             destPainter->save();
-            destPainter->scale(tileScale, tileScale);
-            destPainter->drawPixmap(QPointF(dTileGeometry.topLeft()) / dpr / tileScale, *tile.pixmap());
+            destPainter->translate(QPointF(dTileGeometry.topLeft()) / dpr);
+            destPainter->scale(qreal(tileSizeShould.width()) / qreal(tileSizeIs.width()), qreal(tileSizeShould.height()) / qreal(tileSizeIs.height()));
+            destPainter->drawPixmap(QPointF(0.0, 0.0), *tile.pixmap());
             destPainter->restore();
 
             result = DrawPagePixmapsResult(result | PixmapsOfIncorrectSize);
