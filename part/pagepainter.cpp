@@ -127,7 +127,7 @@ PagePainter::DrawPagePixmapsResult PagePainter::drawPagePixmapsOnPainter(QPainte
     }
     if (!paintingRegion.isEmpty()) {
         // Tiles do not cover the entire region, draw the non-tile pixmap as background.
-        DrawPagePixmapsResult nonTileResult = drawPagePixmapOnPainter(destPainter, page, observer, dPageSize);
+        const DrawPagePixmapsResult nonTileResult = drawPagePixmapOnPainter(destPainter, page, observer, dPageSize);
         result = DrawPagePixmapsResult(result | TilesMissing | nonTileResult);
         if (!tiles.isEmpty()) {
             result = DrawPagePixmapsResult(result & ~NoPixmap);
