@@ -3399,7 +3399,7 @@ void PageView::drawDocumentOnPainter(const QRect contentsRect, QPainter *p)
             pixmapRect.translate(-item->croppedGeometry().topLeft());
             // TODO We will call this with item->uncroppedGeometry().topLeft() as painter origin.
             // Then we use the item geometry - origin as cropRect, which is equivalent to item->crop().geometry().
-            PagePainter::paintPageOnPainter(p, item->page(), this, pixmapRect, item->zoomFactor());
+            PagePainter::paintPageOnPainter(p, item->page(), this, pixmapRect, item->zoomFactor(), PagePainter::PagePainterFlags(pageflags));
             //             PagePainter::paintCroppedPageOnPainter(p, item->page(), this, pageflags, item->uncroppedWidth(), item->uncroppedHeight(), pixmapRect, item->crop(), viewPortPoint);
 
             // remove painted area from 'remainingArea' and restore painter

@@ -212,13 +212,18 @@ private:
     static void drawLoadingPixmapOnPainter(QPainter *destPainter, QRectF pagePosition);
 
     /**
-     * Fetches highlight objects from @p page and paints them on @p destPainter.
+     * Fetches different highlight objects from @p page and paints them on @p destPainter.
+     *
+     * Highlights may be
+     * \li Highlights,
+     * \li Text Selection.
      *
      * @param destPainter Coordinate system should start at top left of uncropped @p page.
      * @param page Which page.
      * @param scale The scale from Page::width() to @p destPainter coordinates. Higher values to zoom in.
+     * @param flags Which highlight objects to draw.
      */
-    static void drawPageHighlightsOnPainter(QPainter *destPainter, const Okular::Page *page, qreal scale);
+    static void drawPageHighlightsOnPainter(QPainter *destPainter, const Okular::Page *page, qreal scale, PagePainterFlags flags);
 
     // BEGIN Change Colors feature
     /**

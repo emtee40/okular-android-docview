@@ -105,7 +105,7 @@ void PagePainter::paintPageOnPainter(QPainter *destPainter,
     }
 
     // Draw other objects of the page
-    drawPageHighlightsOnPainter(destPainter, page, scale);
+    drawPageHighlightsOnPainter(destPainter, page, scale, flags);
 
     /*
      * TODO
@@ -229,7 +229,7 @@ void PagePainter::drawLoadingPixmapOnPainter(QPainter *destPainter, QRectF pageP
     }
 }
 
-void PagePainter::drawPageHighlightsOnPainter(QPainter *destPainter, const Okular::Page *page, qreal scale)
+void PagePainter::drawPageHighlightsOnPainter(QPainter *destPainter, const Okular::Page *page, qreal scale, PagePainterFlags flags)
 {
     // Highlight rects are painted in a device pixel coordinate system for two reasons:
     // * The outlines shall be pixel aligned.
@@ -247,11 +247,21 @@ void PagePainter::drawPageHighlightsOnPainter(QPainter *destPainter, const Okula
 
     destPainter->setCompositionMode(QPainter::CompositionMode_Multiply);
 
-    for (const Okular::HighlightAreaRect *highlight : qAsConst(page->m_highlights)) {
-        destPainter->setPen(highlight->color.darker(150));
-        destPainter->setBrush(highlight->color);
+    if (flags & Highlights) {
+        for (const Okular::HighlightAreaRect *highlight : qAsConst(page->m_highlights)) {
+            destPainter->setPen(highlight->color.darker(150));
+            destPainter->setBrush(highlight->color);
 
-        const QList<QRect> dRects = highlight->geometry(dPageSize.width(), dPageSize.height());
+            const QList<QRect> dRects = highlight->geometry(dPageSize.width(), dPageSize.height());
+            destPainter->drawRects(QVector<QRect>(dRects.cbegin(), dRects.cend()));
+        }
+    }
+
+    if (flags & TextSelection && page->textSelection()) {
+        destPainter->setPen(page->textSelectionColor().darker(150));
+        destPainter->setBrush(page->textSelectionColor());
+
+        const QList<QRect> dRects = page->textSelection()->geometry(dPageSize.width(), dPageSize.height());
         destPainter->drawRects(QVector<QRect>(dRects.cbegin(), dRects.cend()));
     }
 
