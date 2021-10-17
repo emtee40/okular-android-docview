@@ -225,6 +225,20 @@ private:
      */
     static void drawPageHighlightsOnPainter(QPainter *destPainter, const Okular::Page *page, qreal scale, PagePainterFlags flags);
 
+    /**
+     * Fetches different object borders from @p page and paints them on @p destPainter.
+     *
+     * Object borders may be
+     * \li EnhanceLinks,
+     * \li EnhanceImages.
+     *
+     * @param destPainter Coordinate system should start at top left of uncropped @p page.
+     * @param page Which page.
+     * @param scale The scale from Page::width() to @p destPainter coordinates. Higher values to zoom in.
+     * @param flags Which object outliness to draw.
+     */
+    static void drawPageObjectBordersOnPainter(QPainter *destPainter, const Okular::Page *page, qreal scale, PagePainterFlags flags);
+
     // BEGIN Change Colors feature
     /**
      * Collapse color space (from white to black) to a line from @p foreground to @p background.

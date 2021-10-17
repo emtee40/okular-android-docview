@@ -106,6 +106,7 @@ void PagePainter::paintPageOnPainter(QPainter *destPainter,
 
     // Draw other objects of the page
     drawPageHighlightsOnPainter(destPainter, page, scale, flags);
+    drawPageObjectBordersOnPainter(destPainter, page, scale, flags);
 
     /*
      * TODO
@@ -263,6 +264,33 @@ void PagePainter::drawPageHighlightsOnPainter(QPainter *destPainter, const Okula
 
         const QList<QRect> dRects = page->textSelection()->geometry(dPageSize.width(), dPageSize.height());
         destPainter->drawRects(QVector<QRect>(dRects.cbegin(), dRects.cend()));
+    }
+
+    destPainter->restore();
+}
+
+void PagePainter::drawPageObjectBordersOnPainter(QPainter *destPainter, const Okular::Page *page, qreal scale, PagePainter::PagePainterFlags flags)
+{
+    const bool enhanceLinks = (flags & EnhanceLinks) && Okular::Settings::highlightLinks();
+    const bool enhanceImages = (flags & EnhanceImages) && Okular::Settings::highlightImages();
+
+    if (!(enhanceLinks || enhanceImages)) {
+        return;
+    }
+
+    // Object borders are painted in the normalized page coordinate system with hairline outlines,
+    // because ObjectRect::region() thinks in normalized coordinates.
+
+    destPainter->save();
+    destPainter->scale(scale * page->width(), scale * page->height());
+
+    destPainter->setPen(QPen(QApplication::palette().color(QPalette::Active, QPalette::Highlight), 0));
+    destPainter->setBrush(Qt::NoBrush);
+
+    for (const Okular::ObjectRect *object : qAsConst(page->m_rects)) {
+        if ((enhanceLinks && object->objectType() == Okular::ObjectRect::Action) || (enhanceImages && object->objectType() == Okular::ObjectRect::Image)) {
+            destPainter->drawPath(object->region());
+        }
     }
 
     destPainter->restore();
