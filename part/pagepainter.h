@@ -184,7 +184,7 @@ private:
      * @param observer Request pixmaps generated for this observer.
      * @param cropRect Where to paint.
      * @param scale The scale from Page::width() to @p destPainter coordinates. Higher values to zoom in.
-     * @param accessibility (Does nothing yet.)
+     * @param flags (Does nothing yet.)
      */
     static DrawPagePixmapsResult drawPagePixmapsOnPainter(QPainter *destPainter, const Okular::Page *page, Okular::DocumentObserver *observer, const QRectF &cropRect, qreal scale, PagePainterFlags flags = Accessibility);
 
@@ -206,10 +206,19 @@ private:
      * Draws a placeholder pixmap on @p destPainter,
      * to visualize that a page is still being loaded.
      *
-     * @param destPainter
+     * @param destPainter The QPainter to paint on.
      * @param pagePosition The geometry of the page (in @p destPainter coordinates) as it will be visible to the user.
      */
     static void drawLoadingPixmapOnPainter(QPainter *destPainter, QRectF pagePosition);
+
+    /**
+     * Fetches highlight objects from @p page and paints them on @p destPainter.
+     *
+     * @param destPainter Coordinate system should start at top left of uncropped @p page.
+     * @param page Which page.
+     * @param scale The scale from Page::width() to @p destPainter coordinates. Higher values to zoom in.
+     */
+    static void drawPageHighlightsOnPainter(QPainter *destPainter, const Okular::Page *page, qreal scale);
 
     // BEGIN Change Colors feature
     /**

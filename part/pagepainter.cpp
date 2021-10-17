@@ -104,6 +104,24 @@ void PagePainter::paintPageOnPainter(QPainter *destPainter,
         drawLoadingPixmapOnPainter(destPainter, QRectF(QPointF(0.0, 0.0), QSizeF(page->width(), page->height()) * dpr));
     }
 
+    // Draw other objects of the page
+    drawPageHighlightsOnPainter(destPainter, page, scale);
+
+    /*
+     * TODO
+     * These need to be painted:
+     *  * Page::m_highlights
+     *  * Page::textSelection()
+     *  * Page::m_annotations
+     *  * Up to one boundingRectOnlyAnnotation
+     *  * highlight links accesibility feature
+     *  * highlight images accessibility feature
+     *  * change colors feature
+     *  * viewport point feature
+     *
+     * Verify page rotation and trim margins features.
+     */
+
     destPainter->restore();
 }
 
@@ -115,7 +133,7 @@ PagePainter::DrawPagePixmapsResult PagePainter::drawPagePixmapsOnPainter(QPainte
     DrawPagePixmapsResult result = Fine;
 
     const QRect dPaintingLimits = QRectF(cropRect.topLeft() * dpr, cropRect.bottomRight() * dpr).toAlignedRect();
-    const QSize dPageSize(int(page->width() * dpr * scale), int(page->height() * dpr * scale));
+    const QSize dPageSize = QSize(int(page->width() * dpr * scale), int(page->height() * dpr * scale));
     const Okular::NormalizedRect ndPaintingLimits(dPaintingLimits, dPageSize.width(), dPageSize.height());
 
     if (!page->hasTilesManager(observer)) {
@@ -169,6 +187,7 @@ PagePainter::DrawPagePixmapsResult PagePainter::drawPagePixmapsOnPainter(QPainte
     }
     return result;
 }
+// TODO Disable automatic painting of single pixmap, that would be a new feature!
 
 PagePainter::DrawPagePixmapsResult PagePainter::drawPagePixmapOnPainter(QPainter *destPainter, const Okular::Page *page, Okular::DocumentObserver *observer, QSize dSize, PagePainterFlags flags)
 {
@@ -208,6 +227,35 @@ void PagePainter::drawLoadingPixmapOnPainter(QPainter *destPainter, QRectF pageP
         destPainter->drawLine(pagePosition.topLeft(), pagePosition.bottomRight());
         destPainter->drawLine(pagePosition.topRight(), pagePosition.bottomLeft());
     }
+}
+
+void PagePainter::drawPageHighlightsOnPainter(QPainter *destPainter, const Okular::Page *page, qreal scale)
+{
+    // Highlight rects are painted in a device pixel coordinate system for two reasons:
+    // * The outlines shall be pixel aligned.
+    // * RegularArea::geometry() thinks in integers.
+
+    // TODO The geometry transformation in RegularArea::geometry() could be skipped
+    // if NormalizedRect was a QRectF, so RegularArea could be used as QVector<QRectF>.
+
+    const qreal dpr = destPainter->device()->devicePixelRatioF();
+
+    const QSize dPageSize = QSize(int(page->width() * dpr * scale), int(page->height() * dpr * scale));
+
+    destPainter->save();
+    destPainter->scale(1.0 / dpr, 1.0 / dpr);
+
+    destPainter->setCompositionMode(QPainter::CompositionMode_Multiply);
+
+    for (const Okular::HighlightAreaRect *highlight : qAsConst(page->m_highlights)) {
+        destPainter->setPen(highlight->color.darker(150));
+        destPainter->setBrush(highlight->color);
+
+        const QList<QRect> dRects = highlight->geometry(dPageSize.width(), dPageSize.height());
+        destPainter->drawRects(QVector<QRect>(dRects.cbegin(), dRects.cend()));
+    }
+
+    destPainter->restore();
 }
 
 void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
