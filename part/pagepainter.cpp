@@ -107,6 +107,7 @@ void PagePainter::paintPageOnPainter(QPainter *destPainter,
     // Draw other objects of the page
     drawPageHighlightsOnPainter(destPainter, page, scale, flags);
     drawPageObjectBordersOnPainter(destPainter, page, scale, flags);
+    drawPageAnnotationsOnPainter(destPainter, page, scale, flags);
 
     /*
      * TODO
@@ -301,6 +302,55 @@ void PagePainter::drawPageObjectBordersOnPainter(QPainter *destPainter, const Ok
     }
 
     destPainter->restore();
+}
+
+void PagePainter::drawPageAnnotationsOnPainter(QPainter *destPainter, const Okular::Page *page, qreal scale, PagePainter::PagePainterFlags flags)
+{
+    if (!(flags & Annotations)) {
+        return;
+    }
+
+    const QSizeF pageSize = QSizeF(page->width(), page->height()) * scale;
+
+    // Draw annotation moving outlines on top of other annotations.
+    QList<const Okular::Annotation *> boundingRectOnlyAnnotations;
+
+    for (const Okular::Annotation *annotation : qAsConst(page->m_annotations)) {
+        const Okular::Annotation::Flag flags = Okular::Annotation::Flag(annotation->flags());
+
+        if (flags & Okular::Annotation::Hidden) {
+            continue;
+        }
+
+        if (flags & Okular::Annotation::ExternallyDrawn) {
+            if ((flags & Okular::Annotation::BeingMoved) || (flags & Okular::Annotation::BeingResized)) {
+                boundingRectOnlyAnnotations.append(annotation);
+            }
+            continue;
+        }
+
+        drawAnnotationOnPainter(destPainter, annotation, pageSize);
+    }
+
+    for (const Okular::Annotation *annotation : qAsConst(boundingRectOnlyAnnotations)) {
+        drawAnnotationBoundingBoxOnPainter(destPainter, annotation, pageSize);
+    }
+}
+
+void PagePainter::drawAnnotationBoundingBoxOnPainter(QPainter *destPainter, const Okular::Annotation *annotation, QSizeF pageSize)
+{
+    // The annotation outline is drawn as hairline to get pixel alignment.
+    destPainter->save();
+    destPainter->setPen(QPen(Qt::black, 0.0, Qt::DashLine));
+    destPainter->setBrush(Qt::NoBrush);
+
+    destPainter->drawRect(annotation->transformedBoundingRectangle().geometry(pageSize.width(), pageSize.height()));
+
+    destPainter->restore();
+}
+
+void PagePainter::drawAnnotationOnPainter(QPainter *destPainter, const Okular::Annotation *annotation, QSizeF pageSize)
+{
 }
 
 void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,

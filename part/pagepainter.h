@@ -207,7 +207,7 @@ private:
      * to visualize that a page is still being loaded.
      *
      * @param destPainter The QPainter to paint on.
-     * @param pagePosition The geometry of the page (in @p destPainter coordinates) as it will be visible to the user.
+     * @param pagePosition The geometry of the page (in @p destPainter coordinates) as it will be visible to the user. // TODO Verify trim margins feature.
      */
     static void drawLoadingPixmapOnPainter(QPainter *destPainter, QRectF pagePosition);
 
@@ -238,6 +238,34 @@ private:
      * @param flags Which object outliness to draw.
      */
     static void drawPageObjectBordersOnPainter(QPainter *destPainter, const Okular::Page *page, qreal scale, PagePainterFlags flags);
+
+    /**
+     * Fetches annotation objects from @p page and paints them on @p destPainter.
+     *
+     * @param destPainter Coordinate system should start at top left of uncropped @p page.
+     * @param page Which page.
+     * @param scale The scale from Page::width() to @p destPainter coordinates. Higher values to zoom in.
+     * @param flags Whether to draw annotations.
+     */
+    static void drawPageAnnotationsOnPainter(QPainter *destPainter, const Okular::Page *page, qreal scale, PagePainterFlags flags);
+
+    /**
+     * Draws @p annotation bounding box on @p destPainter.
+     *
+     * @param destPainter Coordinate system should start at top left of uncropped page.
+     * @param annotation Which annotation.
+     * @param pageSize Uncropped page size in @p destPainter coordinates.
+     */
+    static void drawAnnotationBoundingBoxOnPainter(QPainter *destPainter, const Okular::Annotation *annotation, QSizeF pageSize);
+
+    /**
+     * Draws @p annotation on @p destPainter.
+     *
+     * @param destPainter Coordinate system should start at top left of uncropped page.
+     * @param annotation Which annotation.
+     * @param pageSize Uncropped page size in @p destPainter coordinates.
+     */
+    static void drawAnnotationOnPainter(QPainter *destPainter, const Okular::Annotation *annotation, QSizeF pageSize);
 
     // BEGIN Change Colors feature
     /**
