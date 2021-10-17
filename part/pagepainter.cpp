@@ -232,6 +232,13 @@ void PagePainter::drawLoadingPixmapOnPainter(QPainter *destPainter, QRectF pageP
 
 void PagePainter::drawPageHighlightsOnPainter(QPainter *destPainter, const Okular::Page *page, qreal scale, PagePainterFlags flags)
 {
+    const bool drawHighlights = (flags & Highlights);
+    const bool drawTextSelection = (flags & TextSelection);
+
+    if (!(drawHighlights || drawTextSelection)) {
+        return;
+    }
+
     // Highlight rects are painted in a device pixel coordinate system for two reasons:
     // * The outlines shall be pixel aligned.
     // * RegularArea::geometry() thinks in integers.
@@ -248,7 +255,7 @@ void PagePainter::drawPageHighlightsOnPainter(QPainter *destPainter, const Okula
 
     destPainter->setCompositionMode(QPainter::CompositionMode_Multiply);
 
-    if (flags & Highlights) {
+    if (drawHighlights) {
         for (const Okular::HighlightAreaRect *highlight : qAsConst(page->m_highlights)) {
             destPainter->setPen(highlight->color.darker(150));
             destPainter->setBrush(highlight->color);
@@ -258,7 +265,7 @@ void PagePainter::drawPageHighlightsOnPainter(QPainter *destPainter, const Okula
         }
     }
 
-    if (flags & TextSelection && page->textSelection()) {
+    if (drawTextSelection && page->textSelection()) {
         destPainter->setPen(page->textSelectionColor().darker(150));
         destPainter->setBrush(page->textSelectionColor());
 
