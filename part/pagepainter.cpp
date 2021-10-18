@@ -354,7 +354,6 @@ void PagePainter::drawAnnotationOnPainter(QPainter *destPainter, const Okular::A
     const qreal dpr = destPainter->device()->devicePixelRatioF();
 
     const Okular::Annotation::SubType type = annotation->subType();
-
     const int mainOpacity = annotation->style().color().alpha() * annotation->style().opacity();
 
     if (mainOpacity <= 0.0 && annotation->subType() != Okular::Annotation::AText) {
@@ -362,10 +361,19 @@ void PagePainter::drawAnnotationOnPainter(QPainter *destPainter, const Okular::A
         return;
     }
 
+    // This `boundingBox` here is assumed to be accurate for annotations which
+    // create a graphical shape on the document.
     const QRect boundingBox = annotation->transformedBoundingRectangle().geometry(pageSize.width(), pageSize.height());
 
-    if (!destPainter->clipBoundingRect().intersects(boundingBox)) {
-        return;
+    if (type == Okular::Annotation::AText && static_cast<const Okular::TextAnnotation *>(annotation)->textType() == Okular::TextAnnotation::Linked) {
+        // `boundingBox` is not accurate for popup text annotations.
+        if (!destPainter->clipBoundingRect().intersects(QRectF(boundingBox.topLeft(), QSizeF(TEXTANNOTATION_ICONSIZE, TEXTANNOTATION_ICONSIZE)))) {
+            return;
+        }
+    } else {
+        if (!destPainter->clipBoundingRect().intersects(boundingBox)) {
+            return;
+        }
     }
 
     QColor mainColor = annotation->style().color();
