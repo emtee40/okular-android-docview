@@ -151,20 +151,6 @@ PagePainter::DrawPagePixmapsResult PagePainter::drawPagePixmapsOnPainter(QPainte
     // Get available tiles
     const QList<Okular::Tile> tiles = page->tilesAt(observer, ndPaintingLimits);
 
-    // Check whether the tiles cover the entire region
-    QRegion paintingRegion(dPaintingLimits);
-    for (const Okular::Tile tile : tiles) {
-        paintingRegion -= tile.rect().geometry(dPageSize.width(), dPageSize.height());
-    }
-    if (!paintingRegion.isEmpty()) {
-        // Tiles do not cover the entire region, draw the non-tile pixmap as background.
-        const DrawPagePixmapsResult nonTileResult = drawPagePixmapOnPainter(destPainter, page, observer, dPageSize);
-        result = DrawPagePixmapsResult(result | TilesMissing | nonTileResult);
-        if (!tiles.isEmpty()) {
-            result = DrawPagePixmapsResult(result & ~NoPixmap);
-        }
-    }
-
     // Draw tiles
     for (const Okular::Tile tile : tiles) {
         tile.pixmap()->setDevicePixelRatio(dpr);
@@ -195,7 +181,6 @@ PagePainter::DrawPagePixmapsResult PagePainter::drawPagePixmapsOnPainter(QPainte
     }
     return result;
 }
-// TODO Disable automatic painting of single pixmap, that would be a new feature!
 
 PagePainter::DrawPagePixmapsResult PagePainter::drawPagePixmapOnPainter(QPainter *destPainter, const Okular::Page *page, Okular::DocumentObserver *observer, QSize dSize, PagePainterFlags flags)
 {
