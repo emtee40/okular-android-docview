@@ -113,21 +113,6 @@ void PagePainter::paintPageOnPainter(QPainter *destPainter,
         drawViewPortPointOnPainter(destPainter, pageSize, viewPortPoint);
     }
 
-    /*
-     * TODO
-     * These need to be painted:
-     *  * Page::m_highlights
-     *  * Page::textSelection()
-     *  * Page::m_annotations
-     *  * Up to one boundingRectOnlyAnnotation
-     *  * highlight links accesibility feature
-     *  * highlight images accessibility feature
-     *  * change colors feature
-     *  * viewport point feature
-     *
-     * Verify page rotation and trim margins features.
-     */
-
     destPainter->restore();
 }
 
