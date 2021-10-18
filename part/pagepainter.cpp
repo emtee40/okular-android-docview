@@ -66,6 +66,8 @@ void PagePainter::paintPageOnPainter(QPainter *destPainter,
     destPainter->save();
     const qreal dpr = destPainter->device()->devicePixelRatioF();
 
+    const QSizeF pageSize = QSizeF(page->width(), page->height()) * scale;
+
     // Clipping
     // Remember that QRect::bottomRight is misaligned by 1 pixel.
     /** cropRect parameter expanded to snap at device pixels. */
@@ -101,13 +103,17 @@ void PagePainter::paintPageOnPainter(QPainter *destPainter,
     const DrawPagePixmapsResult drawPixmapsResult = drawPagePixmapsOnPainter(destPainter, page, observer, cropRect, scale);
 
     if (drawPixmapsResult & NoPixmap) {
-        drawLoadingPixmapOnPainter(destPainter, QRectF(QPointF(0.0, 0.0), QSizeF(page->width(), page->height()) * dpr));
+        drawLoadingPixmapOnPainter(destPainter, QRectF(QPointF(0.0, 0.0), pageSize));
     }
 
     // Draw other objects of the page
     drawPageHighlightsOnPainter(destPainter, page, scale, flags);
     drawPageObjectBordersOnPainter(destPainter, page, scale, flags);
     drawPageAnnotationsOnPainter(destPainter, page, scale, flags);
+
+    if (flags & ViewPortPoint) {
+        drawViewPortPointOnPainter(destPainter, pageSize, viewPortPoint);
+    }
 
     /*
      * TODO
@@ -546,6 +552,17 @@ void PagePainter::drawAnnotationOnPainter(QPainter *destPainter, const Okular::A
         destPainter->drawRect(boundingBox);
         destPainter->restore();
     }
+}
+
+void PagePainter::drawViewPortPointOnPainter(QPainter *destPainter, QSizeF pageSize, Okular::NormalizedPoint point)
+{
+    destPainter->save();
+    destPainter->setPen(QPen(QApplication::palette().color(QPalette::Active, QPalette::Highlight), 0.0));
+
+    const qreal y = point.y * pageSize.height();
+    destPainter->drawLine(QPointF(0.0, y), QPointF(pageSize.width(), y));
+
+    destPainter->restore();
 }
 
 void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,

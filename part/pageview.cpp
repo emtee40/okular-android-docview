@@ -101,7 +101,8 @@
 #include "url_utils.h"
 #include "videowidget.h"
 
-static const int pageflags = PagePainter::Accessibility | PagePainter::EnhanceLinks | PagePainter::EnhanceImages | PagePainter::Highlights | PagePainter::TextSelection | PagePainter::Annotations;
+static const PagePainter::PagePainterFlags defaultPageFlags =
+    PagePainter::PagePainterFlags(PagePainter::Accessibility | PagePainter::EnhanceLinks | PagePainter::EnhanceImages | PagePainter::Highlights | PagePainter::TextSelection | PagePainter::Annotations);
 
 static const std::array<float, 16> kZoomValues {0.12, 0.25, 0.33, 0.50, 0.66, 0.75, 1.00, 1.25, 1.50, 2.00, 4.00, 8.00, 16.00, 25.00, 50.00, 100.00};
 
@@ -3378,34 +3379,28 @@ void PageView::drawDocumentOnPainter(const QRect contentsRect, QPainter *p)
     // iterate over all items painting the ones intersecting contentsRect
     for (const PageViewItem *item : qAsConst(d->items)) {
         // check if a piece of the page intersects the contents rect
-        if (!item->isVisible() || !item->croppedGeometry().intersects(contentsRect))
+        if (!item->isVisible() || !item->croppedGeometry().intersects(contentsRect)) {
             continue;
-
-        // get item and item's outline geometries
-        QRect itemGeometry = item->croppedGeometry();
-
-        // draw the page using the PagePainter with all flags active
-        if (contentsRect.intersects(itemGeometry)) {
-            // move the painter to the top-left corner of the uncropped page
-            p->save();
-            p->translate(itemGeometry.topLeft());
-
-            Okular::NormalizedPoint *viewPortPoint = nullptr;
-            Okular::NormalizedPoint point(d->lastSourceLocationViewportNormalizedX, d->lastSourceLocationViewportNormalizedY);
-            if (Okular::Settings::showSourceLocationsGraphically() && item->pageNumber() == d->lastSourceLocationViewportPageNumber) {
-                viewPortPoint = &point;
-            }
-            QRect pixmapRect = contentsRect.intersected(itemGeometry);
-            pixmapRect.translate(-item->croppedGeometry().topLeft());
-            // TODO We will call this with item->uncroppedGeometry().topLeft() as painter origin.
-            // Then we use the item geometry - origin as cropRect, which is equivalent to item->crop().geometry().
-            PagePainter::paintPageOnPainter(p, item->page(), this, pixmapRect, item->zoomFactor(), PagePainter::PagePainterFlags(pageflags));
-            //             PagePainter::paintCroppedPageOnPainter(p, item->page(), this, pageflags, item->uncroppedWidth(), item->uncroppedHeight(), pixmapRect, item->crop(), viewPortPoint);
-
-            // remove painted area from 'remainingArea' and restore painter
-            remainingArea -= itemGeometry;
-            p->restore();
         }
+
+        p->save();
+        p->translate(item->uncroppedGeometry().topLeft());
+
+        const QRect visibleGeometry = item->croppedGeometry().intersected(contentsRect);
+        const QRect painterVisibleGeometry = visibleGeometry.translated(-item->uncroppedGeometry().topLeft());
+
+        if (Okular::Settings::showSourceLocationsGraphically() && item->pageNumber() == d->lastSourceLocationViewportPageNumber) {
+            const Okular::NormalizedPoint point(d->lastSourceLocationViewportNormalizedX, d->lastSourceLocationViewportNormalizedY);
+            const PagePainter::PagePainterFlags flags = PagePainter::PagePainterFlags(defaultPageFlags | PagePainter::ViewPortPoint);
+            PagePainter::paintPageOnPainter(p, item->page(), this, painterVisibleGeometry, item->zoomFactor(), flags, point);
+        } else {
+            PagePainter::paintPageOnPainter(p, item->page(), this, painterVisibleGeometry, item->zoomFactor(), defaultPageFlags);
+        }
+
+        p->restore();
+
+        // remove painted area from 'remainingArea'
+        remainingArea -= visibleGeometry;
     }
 
     // fill the visible area around the page with the background color

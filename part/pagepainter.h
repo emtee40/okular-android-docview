@@ -216,7 +216,7 @@ private:
      *
      * Highlights may be
      * \li Highlights,
-     * \li Text Selection.
+     * \li TextSelection.
      *
      * @param destPainter Coordinate system should start at top left of uncropped @p page.
      * @param page Which page.
@@ -267,6 +267,15 @@ private:
      * @param scale The scale from Page::width() to @p destPainter coordinates. Higher values to zoom in.
      */
     static void drawAnnotationOnPainter(QPainter *destPainter, const Okular::Annotation *annotation, QSizeF pageSize, qreal scale);
+
+    /**
+     * Draws a viewport point visualization line on a certain page.
+     *
+     * @param destPainter Coordinate system should start at top left of the page.
+     * @param pageSize Size of the page in @p destPainter coordinates.
+     * @param point Point on the page to visualize.
+     */
+    static void drawViewPortPointOnPainter(QPainter *destPainter, QSizeF pageSize, Okular::NormalizedPoint point);
 
     // BEGIN Change Colors feature
     /**
