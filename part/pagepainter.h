@@ -203,6 +203,11 @@ private:
     static DrawPagePixmapsResult drawPagePixmapOnPainter(QPainter *destPainter, const Okular::Page *page, Okular::DocumentObserver *observer, QSize dSize, PagePainterFlags flags = Accessibility);
 
     /**
+     * Draws @p pixmap at @p position on @p destPainter, respecting color modes per @c Accessibility flag in @p flags.
+     */
+    static void drawPixmapWithColorMode(QPainter *destPainter, QPointF position, const QPixmap &pixmap, PagePainterFlags flags);
+
+    /**
      * Draws a placeholder pixmap on @p destPainter,
      * to visualize that a page is still being loaded.
      *

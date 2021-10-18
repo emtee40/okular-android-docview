@@ -178,19 +178,19 @@ PagePainter::DrawPagePixmapsResult PagePainter::drawPagePixmapsOnPainter(QPainte
         // Calculate tile size, prefer rounding up to avoid gaps between tiles.
         // We can accept up to 1px tolerance per axis, because tiles have 1px margins.
         // In such cases, drawing with an overlap of 1px looks better than scaling by 1px.
-        const QSize tileSizeIs = tile.pixmap()->size();
-        const QSize tileSizeShould = QSize(ceil(qreal(dPageSize.width()) * tile.rect().width()), ceil(qreal(dPageSize.height()) * tile.rect().height()));
-        const QSize tileSizeMismatch = tileSizeIs - tileSizeShould;
-        if (qAbs(tileSizeMismatch.width()) > 1 || qAbs(tileSizeMismatch.height()) > 1) {
+        const QSize dTileSizeIs = tile.pixmap()->size();
+        const QSize dTileSizeShould = QSize(ceil(qreal(dPageSize.width()) * tile.rect().width()), ceil(qreal(dPageSize.height()) * tile.rect().height()));
+        const QSize dTileSizeMismatch = dTileSizeIs - dTileSizeShould;
+        if (qAbs(dTileSizeMismatch.width()) > 1 || qAbs(dTileSizeMismatch.height()) > 1) {
             destPainter->save();
             destPainter->translate(QPointF(dTileGeometry.topLeft()) / dpr);
-            destPainter->scale(qreal(tileSizeShould.width()) / qreal(tileSizeIs.width()), qreal(tileSizeShould.height()) / qreal(tileSizeIs.height()));
-            destPainter->drawPixmap(QPointF(0.0, 0.0), *tile.pixmap());
+            destPainter->scale(qreal(dTileSizeShould.width()) / qreal(dTileSizeIs.width()), qreal(dTileSizeShould.height()) / qreal(dTileSizeIs.height()));
+            drawPixmapWithColorMode(destPainter, QPointF(0.0, 0.0), *tile.pixmap(), flags);
             destPainter->restore();
 
             result = DrawPagePixmapsResult(result | PixmapsOfIncorrectSize);
         } else {
-            destPainter->drawPixmap(QPointF(dTileGeometry.topLeft()) / dpr, *tile.pixmap());
+            drawPixmapWithColorMode(destPainter, QPointF(dTileGeometry.topLeft()) / dpr, *tile.pixmap(), flags);
         }
     }
     return result;
@@ -212,15 +212,69 @@ PagePainter::DrawPagePixmapsResult PagePainter::drawPagePixmapOnPainter(QPainter
     pixmap.setDevicePixelRatio(destPainter->device()->devicePixelRatioF());
 
     if (pixmap.width() == dSize.width()) {
-        destPainter->drawPixmap(QPoint(0, 0), pixmap);
+        drawPixmapWithColorMode(destPainter, QPointF(0.0, 0.0), pixmap, flags);
         return Fine;
     } else {
         const qreal pixmapRescaleRatio = qreal(dSize.width()) / qreal(nearestPixmap->width());
         destPainter->save();
         destPainter->scale(pixmapRescaleRatio, pixmapRescaleRatio);
-        destPainter->drawPixmap(QPoint(0, 0), pixmap);
+        drawPixmapWithColorMode(destPainter, QPointF(0.0, 0.0), pixmap, flags);
         destPainter->restore();
         return PixmapsOfIncorrectSize;
+    }
+}
+
+void PagePainter::drawPixmapWithColorMode(QPainter *destPainter, QPointF position, const QPixmap &pixmap, PagePainter::PagePainterFlags flags)
+{
+    const bool changeColors = (flags & Accessibility) && Okular::Settings::changeColors() && (Okular::Settings::renderMode() != Okular::Settings::EnumRenderMode::Paper);
+
+    if (!changeColors) {
+        destPainter->drawPixmap(position, pixmap);
+    } else {
+        destPainter->save();
+
+        // First, go to device pixel coordinate system of this pixmap (not the painter's device).
+        const qreal dpr = pixmap.devicePixelRatioF();
+        destPainter->translate(position);
+        destPainter->scale(1.0 / dpr, 1.0 / dpr);
+
+        // Get only the part of the pixmap that is going to be visible.
+        const QRect pixmapPartToPaint = QRect(QPoint(0, 0), pixmap.size()).intersected(destPainter->clipBoundingRect().toAlignedRect());
+        QImage image = pixmap.copy(pixmapPartToPaint).toImage();
+
+        // Do color modification on this part.
+        switch (Okular::SettingsCore::renderMode()) {
+        case Okular::SettingsCore::EnumRenderMode::Inverted:
+            // Invert image pixels using QImage internal function
+            image.invertPixels(QImage::InvertRgb);
+            break;
+        case Okular::SettingsCore::EnumRenderMode::Recolor:
+            recolor(&image, Okular::Settings::recolorForeground(), Okular::Settings::recolorBackground());
+            break;
+        case Okular::SettingsCore::EnumRenderMode::BlackWhite:
+            blackWhite(&image, Okular::Settings::bWContrast(), Okular::Settings::bWThreshold());
+            break;
+        case Okular::SettingsCore::EnumRenderMode::InvertLightness:
+            invertLightness(&image);
+            break;
+        case Okular::SettingsCore::EnumRenderMode::InvertLuma:
+            invertLuma(&image, 0.2126, 0.7152, 0.0722); // sRGB / Rec. 709 luma coefficients
+            break;
+        case Okular::SettingsCore::EnumRenderMode::InvertLumaSymmetric:
+            invertLuma(&image, 0.3333, 0.3334, 0.3333); // Symmetric coefficients, to keep colors saturated.
+            break;
+        case Okular::SettingsCore::EnumRenderMode::HueShiftPositive:
+            hueShiftPositive(&image);
+            break;
+        case Okular::SettingsCore::EnumRenderMode::HueShiftNegative:
+            hueShiftNegative(&image);
+            break;
+        }
+
+        // Paint this part.
+        destPainter->drawImage(pixmapPartToPaint.topLeft(), image);
+
+        destPainter->restore();
     }
 }
 
