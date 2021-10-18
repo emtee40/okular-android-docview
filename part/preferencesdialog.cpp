@@ -9,6 +9,10 @@
 
 #include <KLocalizedString>
 
+#include <QFontDatabase>
+#include <QGuiApplication>
+#include <QScreen>
+
 // single config pages
 #include "dlgaccessibility.h"
 #include "dlgannotations.h"
@@ -21,6 +25,7 @@
 PreferencesDialog::PreferencesDialog(QWidget *parent, KConfigSkeleton *skeleton, Okular::EmbedMode embedMode)
     : KConfigDialog(parent, QStringLiteral("preferences"), skeleton)
 {
+    setMinimumSize(PreferencesDialog::sizeHint());
     setWindowModality(Qt::ApplicationModal);
 
     m_general = new DlgGeneral(this, embedMode);
@@ -65,4 +70,15 @@ void PreferencesDialog::switchToAnnotationsPage()
 {
     if (m_annotationsPage)
         setCurrentPage(m_annotationsPage);
+}
+
+QSize PreferencesDialog::sizeHint() const
+{   // Code based on the implementation of sizeHint of the systemsettings project
+    // Take the font size into account for the window size, as we do for UI elements
+    const float fontSize = QFontDatabase::systemFont(QFontDatabase::GeneralFont).pointSizeF();
+    const QSize targetSize = QSize(qRound(102 * fontSize), qRound(70 * fontSize));
+
+    // on smaller or portrait-rotated screens, do not max out height and/or width
+    const QSize screenSize = (QGuiApplication::primaryScreen()->availableSize() * 0.9);
+    return targetSize.boundedTo(screenSize);
 }
