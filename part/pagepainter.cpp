@@ -77,8 +77,7 @@ void PagePainter::paintPageOnPainter(QPainter *destPainter,
     destPainter->setClipRect(paintingLimits, Qt::IntersectClip);
 
     // Paper background color
-    QColor paperColor = Qt::white; // TODO not necessary?
-    QColor backgroundColor = paperColor;
+    QColor backgroundColor = Qt::white;
     if (Okular::SettingsCore::changeColors()) {
         switch (Okular::SettingsCore::renderMode()) {
         case Okular::SettingsCore::EnumRenderMode::Inverted:
@@ -88,8 +87,7 @@ void PagePainter::paintPageOnPainter(QPainter *destPainter,
             backgroundColor = Qt::black;
             break;
         case Okular::SettingsCore::EnumRenderMode::Paper:
-            paperColor = Okular::SettingsCore::paperColor();
-            backgroundColor = paperColor;
+            backgroundColor = Okular::SettingsCore::paperColor();
             break;
         case Okular::SettingsCore::EnumRenderMode::Recolor:
             backgroundColor = Okular::Settings::recolorBackground();
