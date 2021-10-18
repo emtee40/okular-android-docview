@@ -264,8 +264,9 @@ private:
      * @param destPainter Coordinate system should start at top left of uncropped page.
      * @param annotation Which annotation.
      * @param pageSize Uncropped page size in @p destPainter coordinates.
+     * @param scale The scale from Page::width() to @p destPainter coordinates. Higher values to zoom in.
      */
-    static void drawAnnotationOnPainter(QPainter *destPainter, const Okular::Annotation *annotation, QSizeF pageSize);
+    static void drawAnnotationOnPainter(QPainter *destPainter, const Okular::Annotation *annotation, QSizeF pageSize, qreal scale);
 
     // BEGIN Change Colors feature
     /**

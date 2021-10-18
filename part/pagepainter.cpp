@@ -329,7 +329,7 @@ void PagePainter::drawPageAnnotationsOnPainter(QPainter *destPainter, const Okul
             continue;
         }
 
-        drawAnnotationOnPainter(destPainter, annotation, pageSize);
+        drawAnnotationOnPainter(destPainter, annotation, pageSize, scale);
     }
 
     for (const Okular::Annotation *annotation : qAsConst(boundingRectOnlyAnnotations)) {
@@ -349,8 +349,195 @@ void PagePainter::drawAnnotationBoundingBoxOnPainter(QPainter *destPainter, cons
     destPainter->restore();
 }
 
-void PagePainter::drawAnnotationOnPainter(QPainter *destPainter, const Okular::Annotation *annotation, QSizeF pageSize)
+void PagePainter::drawAnnotationOnPainter(QPainter *destPainter, const Okular::Annotation *annotation, QSizeF pageSize, qreal scale)
 {
+    const qreal dpr = destPainter->device()->devicePixelRatioF();
+
+    const Okular::Annotation::SubType type = annotation->subType();
+
+    const int mainOpacity = annotation->style().color().alpha() * annotation->style().opacity();
+
+    if (mainOpacity <= 0.0 && annotation->subType() != Okular::Annotation::AText) {
+        // Text is not subject to `mainOpacity`. Otherwise, skip invisible annotations.
+        return;
+    }
+
+    const QRect boundingBox = annotation->transformedBoundingRectangle().geometry(pageSize.width(), pageSize.height());
+
+    if (!destPainter->clipBoundingRect().intersects(boundingBox)) {
+        return;
+    }
+
+    QColor mainColor = annotation->style().color();
+    if (!mainColor.isValid()) {
+        mainColor = Qt::yellow;
+    }
+    mainColor.setAlphaF(mainOpacity);
+
+    destPainter->save();
+
+    if (type == Okular::Annotation::AText) {
+        const Okular::TextAnnotation *textAnnotation = static_cast<const Okular::TextAnnotation *>(annotation);
+        if (textAnnotation->textType() == Okular::TextAnnotation::InPlace) {
+            // Draw inline text annotation.
+            QImage image(boundingBox.size(), QImage::Format_ARGB32);
+            image.fill(mainColor);
+            QPainter painter(&image);
+            painter.scale(scale, scale);
+            painter.setFont(textAnnotation->textFont());
+            painter.setPen(textAnnotation->textColor());
+            const Qt::AlignmentFlag horizontalAlignment = (textAnnotation->inplaceAlignment() == 1 ? Qt::AlignHCenter : textAnnotation->inplaceAlignment() == 2 ? Qt::AlignRight : Qt::AlignLeft);
+            const qreal borderWidth = textAnnotation->style().width();
+            painter.drawText(QRectF(QPointF(borderWidth, borderWidth), QPointF(image.width() / scale - borderWidth, image.height() / scale - borderWidth)), Qt::AlignTop | horizontalAlignment | Qt::TextWordWrap, textAnnotation->contents());
+
+            if (borderWidth > 0.0) {
+                painter.resetTransform();
+                painter.setPen(QPen(Qt::black, borderWidth));
+                painter.drawRect(QRect(QPoint(0, 0), QSize(image.width() - 1, image.height() - 1)));
+            }
+
+            painter.end();
+            destPainter->drawImage(boundingBox.topLeft(), image);
+        } else if (textAnnotation->textType() == Okular::TextAnnotation::Linked) {
+            // Draw popup text annotation.
+            QPixmap pixmap = QIcon::fromTheme(textAnnotation->textIcon().toLower()).pixmap(TEXTANNOTATION_ICONSIZE);
+
+            if (textAnnotation->style().color().isValid()) {
+                QImage image = pixmap.toImage();
+                GuiUtils::colorizeImage(image, textAnnotation->style().color(), mainOpacity);
+                pixmap = QPixmap::fromImage(image);
+            }
+
+            destPainter->drawPixmap(boundingBox.topLeft(), pixmap);
+        }
+    } else if (type == Okular::Annotation::ALine) {
+        // Draw line annotation.
+        // TODO caption, dash pattern, endings for multipoint lines.
+        const Okular::LineAnnotation *lineAnnotation = static_cast<const Okular::LineAnnotation *>(annotation);
+
+        // Approximated margin for line end decorations
+        const int margin = lineAnnotation->style().width() * 20.0;
+        QRect imageRect = boundingBox.adjusted(-margin, -margin, margin, margin);
+        imageRect &= destPainter->clipBoundingRect().toAlignedRect();
+        QImage image(imageRect.size(), QImage::Format_ARGB32_Premultiplied);
+        image.fill(Qt::transparent);
+        QTransform imageTransform;
+        imageTransform.scale(1.0 / imageRect.width(), 1.0 / imageRect.height());
+        imageTransform.translate(-imageRect.left(), -imageRect.top());
+        imageTransform.scale(pageSize.width(), pageSize.height());
+
+        LineAnnotPainter linePainter(lineAnnotation, pageSize / scale, scale, imageTransform);
+        linePainter.draw(image);
+
+        destPainter->drawImage(imageRect.topLeft(), image);
+    } else if (type == Okular::Annotation::AGeom) {
+        // Draw geometric shape annotation.
+        const Okular::GeomAnnotation *geomAnnotation = static_cast<const Okular::GeomAnnotation *>(annotation);
+
+        const qreal lineWidth = geomAnnotation->style().width() * scale;
+        destPainter->setPen(buildPen(geomAnnotation, lineWidth * 2.0, mainColor));
+        QColor fillColor = geomAnnotation->geometricalInnerColor();
+        if (fillColor.isValid()) {
+            fillColor.setAlpha(mainOpacity);
+            destPainter->setBrush(fillColor);
+        } else {
+            destPainter->setBrush(Qt::NoBrush);
+        }
+
+        // boundingBox shall define the bounding box including the outline.
+        const QRectF shape = QRectF(boundingBox).adjusted(lineWidth, lineWidth, -lineWidth, -lineWidth);
+
+        if (geomAnnotation->geometricalType() == Okular::GeomAnnotation::InscribedSquare) {
+            destPainter->drawRect(shape);
+        } else {
+            destPainter->drawEllipse(shape);
+        }
+    } else if (type == Okular::Annotation::AHighlight) {
+        // Draw text markup annotation.
+        // TODO under/strike width, feather, capping. [sic]
+        const Okular::HighlightAnnotation *highlightAnnotation = static_cast<const Okular::HighlightAnnotation *>(annotation);
+        const Okular::HighlightAnnotation::HighlightType type = highlightAnnotation->highlightType();
+
+        if (type == Okular::HighlightAnnotation::Highlight || type == Okular::HighlightAnnotation::Squiggly) {
+            destPainter->setPen(Qt::NoPen);
+            destPainter->setBrush(mainColor);
+            destPainter->setCompositionMode(QPainter::CompositionMode_Multiply);
+        } else {
+            destPainter->setPen(QPen(mainColor, 2.0));
+            destPainter->setBrush(Qt::NoBrush);
+        }
+
+        for (const Okular::HighlightAnnotation::Quad &quad : qAsConst(highlightAnnotation->highlightQuads())) {
+            QPolygonF path;
+            for (int i = 0; i < 4; ++i) {
+                QPointF point;
+                point.setX(quad.transformedPoint(i).x * pageSize.width());
+                point.setY(quad.transformedPoint(i).y * pageSize.height());
+                path.append(point);
+            }
+
+            if (type == Okular::HighlightAnnotation::Highlight) {
+                // Highlight the whole quad.
+                destPainter->drawPolygon(path);
+            } else if (type == Okular::HighlightAnnotation::Squiggly) {
+                // Highlight botton half of the quad.
+                path[3] = (path[0] + path[3]) / 2.0;
+                path[2] = (path[1] + path[2]) / 2.0;
+                destPainter->drawPolygon(path);
+            } else if (type == Okular::HighlightAnnotation::Underline) {
+                // Make a line at bottom quarter of the quad.
+                path[0] = (path[0] * 3.0 + path[3]) / 4.0;
+                path[1] = (path[1] * 3.0 + path[2]) / 4.0;
+                path.removeLast();
+                path.removeLast();
+                destPainter->drawPolygon(path);
+            } else if (type == Okular::HighlightAnnotation::StrikeOut) {
+                // Make a line at middle of the quad.
+                path[0] = (path[0] + path[3]) / 2.0;
+                path[1] = (path[1] + path[2]) / 2.0;
+                path.removeLast();
+                path.removeLast();
+                destPainter->drawPolygon(path);
+            }
+        }
+    } else if (type == Okular::Annotation::AStamp) {
+        // Draw stamp annotation.
+        const Okular::StampAnnotation *stampAnnotation = static_cast<const Okular::StampAnnotation *>(annotation);
+
+        QPixmap pixmap = Okular::AnnotationUtils::loadStamp(stampAnnotation->stampIconName(), qMax(boundingBox.width(), boundingBox.height()) * dpr);
+
+        destPainter->setOpacity(mainOpacity);
+        destPainter->drawPixmap(boundingBox, pixmap);
+    } else if (type == Okular::Annotation::AInk) {
+        // Draw freehand line annotation.
+        // TODO invar width, PENTRACER. [sic]
+        const Okular::InkAnnotation *inkAnnotation = static_cast<const Okular::InkAnnotation *>(annotation);
+
+        destPainter->setPen(buildPen(inkAnnotation, inkAnnotation->style().width() * scale, mainColor));
+        destPainter->setBrush(Qt::NoBrush);
+
+        for (const QLinkedList<Okular::NormalizedPoint> &points : inkAnnotation->transformedInkPaths()) {
+            QPolygonF path;
+            for (const Okular::NormalizedPoint &nPoint : points) {
+                QPointF point;
+                point.setX(nPoint.x * pageSize.width());
+                point.setY(nPoint.y * pageSize.height());
+                path.append(point);
+            }
+
+            destPainter->drawPolyline(path);
+        }
+    }
+
+    destPainter->restore();
+
+    if (Okular::Settings::debugDrawAnnotationRect()) {
+        destPainter->save();
+        destPainter->setPen(QPen(annotation->style().color(), 0.0));
+        destPainter->setBrush(Qt::NoBrush);
+        destPainter->drawRect(boundingBox);
+        destPainter->restore();
+    }
 }
 
 void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
