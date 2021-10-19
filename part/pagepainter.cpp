@@ -437,7 +437,8 @@ void PagePainter::drawAnnotationOnPainter(QPainter *destPainter, const Okular::A
                 pixmap = QPixmap::fromImage(image);
             }
 
-            destPainter->drawPixmap(boundingBox.topLeft(), pixmap);
+            const QRectF iconRect = QRectF(boundingBox.topLeft(), QSizeF(TEXTANNOTATION_ICONSIZE, TEXTANNOTATION_ICONSIZE).boundedTo(boundingBox.size()));
+            destPainter->drawPixmap(iconRect, pixmap, pixmap.rect());
         }
     } else if (type == Okular::Annotation::ALine) {
         // Draw line annotation.
