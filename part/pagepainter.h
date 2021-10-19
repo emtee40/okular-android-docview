@@ -172,7 +172,7 @@ private:
      * @param destPainter The QPainter to paint on.
      * @param pagePosition The geometry of the page (in @p destPainter coordinates) as it will be visible to the user. // TODO Verify trim margins feature.
      */
-    static void drawLoadingPixmapOnPainter(QPainter *destPainter, QRectF pagePosition);
+    static void drawLoadingPixmapOnPainter(QPainter *destPainter, const QRectF &pagePosition);
 
     /**
      * Fetches different highlight objects from @p page and paints them on @p destPainter.
@@ -238,7 +238,7 @@ private:
      * @param pageSize Size of the page in @p destPainter coordinates.
      * @param point Point on the page to visualize.
      */
-    static void drawViewPortPointOnPainter(QPainter *destPainter, QSizeF pageSize, Okular::NormalizedPoint point);
+    static void drawViewPortPointOnPainter(QPainter *destPainter, QSizeF pageSize, const Okular::NormalizedPoint &point);
 
     // BEGIN Change Colors feature
     /**

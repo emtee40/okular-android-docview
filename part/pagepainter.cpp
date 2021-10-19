@@ -127,7 +127,7 @@ PagePainter::DrawPagePixmapsResult PagePainter::drawPagePixmapsOnPainter(QPainte
     const QList<Okular::Tile> tiles = page->tilesAt(observer, ndPaintingLimits);
 
     // Draw tiles
-    for (const Okular::Tile tile : tiles) {
+    for (const Okular::Tile &tile : tiles) {
         tile.pixmap()->setDevicePixelRatio(dpr);
 
         // Tile position: Appears to be correct with geometry() instead of roundedGeometry().
@@ -239,7 +239,7 @@ void PagePainter::drawPixmapWithColorMode(QPainter *destPainter, QPointF positio
     }
 }
 
-void PagePainter::drawLoadingPixmapOnPainter(QPainter *destPainter, QRectF pagePosition)
+void PagePainter::drawLoadingPixmapOnPainter(QPainter *destPainter, const QRectF &pagePosition)
 {
     // draw something on the blank page: the okular icon or a cross (as a fallback)
     if (!busyPixmap()->isNull()) {
@@ -560,7 +560,8 @@ void PagePainter::drawAnnotationOnPainter(QPainter *destPainter, const Okular::A
         destPainter->setPen(buildPen(inkAnnotation, inkAnnotation->style().width() * scale, mainColor));
         destPainter->setBrush(Qt::NoBrush);
 
-        for (const QLinkedList<Okular::NormalizedPoint> &points : inkAnnotation->transformedInkPaths()) {
+        const QList<QLinkedList<Okular::NormalizedPoint>> transformedInkPaths = inkAnnotation->transformedInkPaths();
+        for (const QLinkedList<Okular::NormalizedPoint> &points : transformedInkPaths) {
             QPolygonF path;
             for (const Okular::NormalizedPoint &nPoint : points) {
                 QPointF point;
@@ -584,7 +585,7 @@ void PagePainter::drawAnnotationOnPainter(QPainter *destPainter, const Okular::A
     }
 }
 
-void PagePainter::drawViewPortPointOnPainter(QPainter *destPainter, QSizeF pageSize, Okular::NormalizedPoint point)
+void PagePainter::drawViewPortPointOnPainter(QPainter *destPainter, QSizeF pageSize, const Okular::NormalizedPoint &point)
 {
     destPainter->save();
     destPainter->setPen(QPen(QApplication::palette().color(QPalette::Active, QPalette::Highlight), 0.0));
