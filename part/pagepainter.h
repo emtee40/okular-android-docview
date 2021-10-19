@@ -37,19 +37,6 @@ public:
     /**
      * Draw @p page on @p destPainter.
      *
-     * @param destPainter Page will be drawn on this painter.
-     * @param page Which page do draw.
-     * @param observer Request pixmaps generated for this DocumentObserver.
-     * @param flags PagePainterFlags, which features to draw.
-     * @param scaledWidth The requested width of uncropped page in @p destPainter coordinates.
-     * @param scaledHeight The requested height of uncropped page in @p destPainter coordinates.
-     * @param pageLimits Where to paint in @p destPainter coordinates. (I. e. painter crop.) Should begin at (0, 0).
-     */
-    static void paintPageOnPainter(QPainter *destPainter, const Okular::Page *page, Okular::DocumentObserver *observer, int flags, int scaledWidth, int scaledHeight, const QRect pageLimits);
-
-    /**
-     * Draw @p page on @p destPainter.
-     *
      * To crop the page, adjust @p cropRect and translate @p destPainter to the top left corner of uncropped @p page.
      * Will respect the devicePixelRatioF() of @p destPainter's paint device automatically.
      * This means the paint device should have the device pixel ratio of the output device.
@@ -133,39 +120,6 @@ public:
 
         destPainter->restore();
     }
-
-    /*
-     * TODO: We make these arguments unambiguous:
-     *  * Version A (Preferred to implement first): a QSize as crop, a qreal as scale.
-     *    + The qreal can be used to request pixmaps of unambiguous scale.
-     *    - Caller needs to calculate starting point.
-     *  * Version B -> A: a QRect as painting area, a NormalizedPoint as starting point, a qreal as scale.
-     *    + unambiguous scale
-     *    - Call needs to calculate starting point.
-     *  * Version C -> A: a QRect as painting area, a NormalizedRect as page area.
-     */
-    /**
-     * Draw @p page on @p destPainter.
-     *
-     * @param destPainter Page will be drawn on this painter.
-     * @param page Which page do draw.
-     * @param observer Request pixmaps generated for this DocumentObserver.
-     * @param flags PagePainterFlags, which features to draw.
-     * @param scaledWidth The requested width of uncropped page in @p destPainter coordinates.
-     * @param scaledHeight The requested height of uncropped page in @p destPainter coordinates.
-     * @param pageLimits Where to paint in @p destPainter coordinates. (I. e. painter crop.) Should begin at (0, 0).
-     * @param crop Which area of the page to paint in @p pageLimits.
-     * @param viewPortPoint Which point of the page to highlight, e. g. a source location. @c nullptr to disable.
-     */
-    static void paintCroppedPageOnPainter(QPainter *destPainter,
-                                          const Okular::Page *page,
-                                          Okular::DocumentObserver *observer,
-                                          int flags,
-                                          int scaledWidth,
-                                          int scaledHeight,
-                                          const QRect pageLimits,
-                                          const Okular::NormalizedRect &crop,
-                                          Okular::NormalizedPoint *viewPortPoint);
 
 private:
     enum DrawPagePixmapsResult {
