@@ -473,7 +473,7 @@ void PagePainter::drawAnnotationOnPainter(QPainter *destPainter, const Okular::A
         const Okular::GeomAnnotation *geomAnnotation = static_cast<const Okular::GeomAnnotation *>(annotation);
 
         const qreal lineWidth = geomAnnotation->style().width() * scale;
-        destPainter->setPen(buildPen(geomAnnotation, lineWidth * 2.0, mainColor));
+        destPainter->setPen(buildPen(geomAnnotation, lineWidth, mainColor));
         QColor fillColor = geomAnnotation->geometricalInnerColor();
         if (fillColor.isValid()) {
             fillColor.setAlpha(mainOpacity);
@@ -483,7 +483,8 @@ void PagePainter::drawAnnotationOnPainter(QPainter *destPainter, const Okular::A
         }
 
         // boundingBox shall define the bounding box including the outline.
-        const QRectF shape = QRectF(boundingBox).adjusted(lineWidth, lineWidth, -lineWidth, -lineWidth);
+        const qreal w = lineWidth / 2.0;
+        const QRectF shape = QRectF(boundingBox).adjusted(w, w, -w, -w);
 
         if (geomAnnotation->geometricalType() == Okular::GeomAnnotation::InscribedSquare) {
             destPainter->drawRect(shape);
