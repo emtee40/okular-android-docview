@@ -126,6 +126,10 @@ PagePainter::DrawPagePixmapsResult PagePainter::drawPagePixmapsOnPainter(QPainte
     // Get available tiles
     const QList<Okular::Tile> tiles = page->tilesAt(observer, ndPaintingLimits);
 
+    if (tiles.isEmpty()) {
+        return NoPixmap;
+    }
+
     // Draw tiles
     for (const Okular::Tile &tile : tiles) {
         tile.pixmap()->setDevicePixelRatio(dpr);

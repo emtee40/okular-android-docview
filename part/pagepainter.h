@@ -124,9 +124,7 @@ private:
     enum DrawPagePixmapsResult {
         Fine = 0x0,                   ///< All required pixmaps were found in the correct resolution and final rendering state.
         NoPixmap = 0x1,               ///< No pixmap was found for this page.
-        PixmapsOfIncorrectSize = 0x2, ///< Some pixmaps/tiles were scaled.
-        TilesMissing = 0x4,           ///< Some tiles were not drawn because they are missing.
-        PartiallyRendered = 0x8       ///< Some pixmaps/tiles were drawn in a partially rendered state.
+        PixmapsOfIncorrectSize = 0x2, ///< Some pixmaps/tiles needed to be scaled.
     };
 
     /**
