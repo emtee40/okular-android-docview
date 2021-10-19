@@ -345,7 +345,7 @@ void PageItem::paint()
     pix.setDevicePixelRatio(dpr);
     QPainter p(&pix);
     p.setRenderHint(QPainter::Antialiasing, m_smooth);
-    PagePainter::paintPageOnPainter(&p, m_page, observer, flags, width(), height(), limits);
+    PagePainter::paintPageOnPainter(&p, m_page, observer, Okular::NormalizedRect(0.0, 0.0, 1.0, 1.0), limits);
     p.end();
 
     m_buffer = pix.toImage();
