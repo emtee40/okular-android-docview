@@ -1115,18 +1115,9 @@ void PresentationWidget::generateContentsPage(int pageNum, QPainter &p)
 {
     PresentationFrame *frame = m_frames[pageNum];
 
-    // translate painter and contents rect
-    QRect geom(frame->geometry);
-    p.translate(geom.left(), geom.top());
-    geom.translate(-geom.left(), -geom.top());
-
     // draw the page using the shared PagePainter class
-    int flags = PagePainter::Accessibility | PagePainter::Highlights | PagePainter::Annotations;
-
-    PagePainter::paintPageOnPainter(&p, frame->page, this, flags, geom.width(), geom.height(), geom);
-
-    // restore painter
-    p.translate(-frame->geometry.left(), -frame->geometry.top());
+    const PagePainter::PagePainterFlags flags = PagePainter::PagePainterFlags(PagePainter::Accessibility | PagePainter::Highlights | PagePainter::Annotations);
+    PagePainter::paintPageOnPainter(&p, frame->page, this, Okular::NormalizedRect(0.0, 0.0, 1.0, 1.0), frame->geometry, flags);
 
     // fill unpainted areas with background color
     const QRegion unpainted(QRect(0, 0, m_width, m_height));
