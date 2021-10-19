@@ -18,8 +18,6 @@
 #include "core/area.h" // for NormalizedPoint
 #include "core/page.h"
 
-class QRect;
-
 namespace Okular
 {
 class DocumentObserver;
