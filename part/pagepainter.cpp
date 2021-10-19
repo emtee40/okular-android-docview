@@ -283,7 +283,13 @@ void PagePainter::drawPageHighlightsOnPainter(QPainter *destPainter, const Okula
             destPainter->setBrush(highlight->color);
 
             const QList<QRect> dRects = highlight->geometry(dPageSize.width(), dPageSize.height());
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+            destPainter->drawRects(QVector<QRect>::fromList(dRects));
+#elif QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
             destPainter->drawRects(QVector<QRect>(dRects.cbegin(), dRects.cend()));
+#else
+            destPainter->drawRects(dRects);
+#endif
         }
     }
 
@@ -292,7 +298,13 @@ void PagePainter::drawPageHighlightsOnPainter(QPainter *destPainter, const Okula
         destPainter->setBrush(page->textSelectionColor());
 
         const QList<QRect> dRects = page->textSelection()->geometry(dPageSize.width(), dPageSize.height());
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+        destPainter->drawRects(QVector<QRect>::fromList(dRects));
+#elif QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
         destPainter->drawRects(QVector<QRect>(dRects.cbegin(), dRects.cend()));
+#else
+        destPainter->drawRects(dRects);
+#endif
     }
 
     destPainter->restore();
