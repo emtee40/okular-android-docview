@@ -91,8 +91,8 @@ void MagnifierView::paintEvent(QPaintEvent *e)
     QPainter p(this);
 
     if (m_page) {
-        QRect where = QRect(0, 0, width(), height());
-        PagePainter::paintCroppedPageOnPainter(&p, m_page, this, 0, m_page->width() * SCALE, m_page->height() * SCALE, where, normalizedView(), nullptr);
+        const QRect where = QRect(0, 0, width(), height());
+        PagePainter::paintPageOnPainter(&p, m_page, this, normalizedView(), where, PagePainter::PagePainterFlags(0));
     }
 
     drawTicks(&p);

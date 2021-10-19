@@ -51,7 +51,7 @@ public:
      * Draw @p page on @p destPainter.
      *
      * To crop the page, adjust @p cropRect and translate @p destPainter to the top left corner of uncropped @p page.
-     * Will respect the devicePixelRatioF() of @p destPainter’s paint device automatically.
+     * Will respect the devicePixelRatioF() of @p destPainter's paint device automatically.
      * This means the paint device should have the device pixel ratio of the output device.
      *
      * Example: paint the bottom left quarter of the page at 3x zoom at 150% hiDPI
@@ -83,11 +83,13 @@ public:
     /**
      * Draw @p page on @p destPainter.
      *
-     * Overload of paintPageOnPainter(), mainly for demonstration purpose.
-     * For precise rendering, you should use the other function.
-     * This overload has more intuitive, but ambiguous and less precise geometry parameters.
+     * Overload of paintPageOnPainter().
      *
-     * Will respect the devicePixelRatioF() of @p destPainter’s paint device automatically.
+     * This overload has more intuitive, but ambiguous and less precise geometry parameters.
+     * It also serves as demonstration for the geometry parameters.
+     * If precision is relevant (like with tiled painting), the other overload may be better.
+     *
+     * Will respect the devicePixelRatioF() of @p destPainter's paint device automatically.
      * This means the paint device should have the device pixel ratio of the output device.
      *
      * Example: paint the bottom left quarter of the page at 3x zoom at 150% hiDPI
@@ -116,17 +118,18 @@ public:
     {
         destPainter->save();
 
-        // inputRect in page->width() x page->height() coordinate system:
-        const QRect pageInputRect = inputRect.roundedGeometry(page->width(), page->height());
+        // Calculate the scale from inputRect and outputRect width,
+        // but avoiding the int cast from NormalizedRect::geometry():
+        const qreal scale = outputRect.width() / (inputRect.width() * page->width());
 
-        // Calculate the scale from inputRect and outputRect width:
-        const qreal scale = outputRect.width() / pageInputRect.width();
+        // inputRect in scaled page coordinate system:
+        const QRect pageInputRect = inputRect.roundedGeometry(page->width() * scale, page->height() * scale);
 
-        // Move the painter’s origin to the output rect, and then to the pages’ origin:
+        // Move the painter's origin to the output rect, and then to the pages' origin:
         destPainter->translate(outputRect.topLeft());
-        destPainter->translate(-pageInputRect.topLeft() * scale);
+        destPainter->translate(-pageInputRect.topLeft());
 
-        paintPageOnPainter(destPainter, page, observer, QRectF(pageInputRect.topLeft() * scale, outputRect.size()), scale, flags, viewPortPoint);
+        paintPageOnPainter(destPainter, page, observer, QRectF(pageInputRect.topLeft(), outputRect.size()), scale, flags, viewPortPoint);
 
         destPainter->restore();
     }
@@ -176,7 +179,7 @@ private:
     /**
      * Fetches pixmaps from @p page and paints them on @p destPainter.
      *
-     * Will respect the devicePixelRatioF() of @p destPainter’s paint device automatically.
+     * Will respect the devicePixelRatioF() of @p destPainter's paint device automatically.
      * This means the paint device should have the device pixel ratio of the output device.
      *
      * @param destPainter Coordinate system should start at top left of uncropped @p page.
@@ -191,7 +194,7 @@ private:
     /**
      * Fetches the non-tile pixmap from @p page and paints it on @p destPainter.
      *
-     * Will respect the devicePixelRatioF() of @p destPainter’s paint device automatically.
+     * Will respect the devicePixelRatioF() of @p destPainter's paint device automatically.
      * This means the paint device should have the device pixel ratio of the output device.
      *
      * @param destPainter Coordinate system should start at top left of uncropped @p page.
