@@ -1,5 +1,6 @@
 /*
     SPDX-FileCopyrightText: 2005 Enrico Ros <eros.kde@email.it>
+    SPDX-FileCopyrightText: 2021 David Hurka <david.hurka@mailbox.org>
 
     SPDX-License-Identifier: GPL-2.0-or-later
 */
