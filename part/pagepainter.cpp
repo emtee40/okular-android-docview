@@ -179,13 +179,13 @@ PagePainter::DrawPagePixmapsResult PagePainter::drawPagePixmapOnPainter(QPainter
     QPixmap pixmap(*nearestPixmap);
     pixmap.setDevicePixelRatio(destPainter->device()->devicePixelRatioF());
 
-    if (pixmap.width() == dSize.width()) {
+    if (pixmap.size() == dSize) {
         drawPixmapWithColorMode(destPainter, QPointF(0.0, 0.0), pixmap, flags);
         return Fine;
     } else {
-        const qreal pixmapRescaleRatio = qreal(dSize.width()) / qreal(nearestPixmap->width());
         destPainter->save();
-        destPainter->scale(pixmapRescaleRatio, pixmapRescaleRatio);
+        // This scaling needs to be component wise because some generators create pixmaps with wrong aspect ratio.
+        destPainter->scale(qreal(dSize.width()) / qreal(pixmap.width()), qreal(dSize.height() / qreal(pixmap.height())));
         drawPixmapWithColorMode(destPainter, QPointF(0.0, 0.0), pixmap, flags);
         destPainter->restore();
         return PixmapsOfIncorrectSize;
@@ -209,6 +209,7 @@ void PagePainter::drawPixmapWithColorMode(QPainter *destPainter, QPointF positio
         // Get only the part of the pixmap that is going to be visible.
         const QRect pixmapPartToPaint = QRect(QPoint(0, 0), pixmap.size()).intersected(destPainter->clipBoundingRect().toAlignedRect());
         QImage image = pixmap.copy(pixmapPartToPaint).toImage();
+        image.setDevicePixelRatio(1.0);
 
         // Do color modification on this part.
         switch (Okular::SettingsCore::renderMode()) {
@@ -455,7 +456,8 @@ void PagePainter::drawAnnotationOnPainter(QPainter *destPainter, const Okular::A
         const int margin = lineAnnotation->style().width() * 20.0;
         QRect imageRect = boundingBox.adjusted(-margin, -margin, margin, margin);
         imageRect &= destPainter->clipBoundingRect().toAlignedRect();
-        QImage image(imageRect.size(), QImage::Format_ARGB32_Premultiplied);
+        QImage image(imageRect.size() * dpr, QImage::Format_ARGB32_Premultiplied);
+        image.setDevicePixelRatio(dpr);
         image.fill(Qt::transparent);
         QTransform imageTransform;
         imageTransform.scale(1.0 / imageRect.width(), 1.0 / imageRect.height());
