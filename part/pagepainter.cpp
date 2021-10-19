@@ -16,18 +16,14 @@
 #include <QPixmap>
 #include <QRect>
 #include <QTransform>
-#include <QVarLengthArray>
 
 // system includes
 #include <math.h>
 
 // local includes
 #include "core/annotations.h"
-#include "core/observer.h"
 #include "core/page.h"
-#include "core/page_p.h"
 #include "core/tile.h"
-#include "core/utils.h"
 #include "debug_ui.h"
 #include "guiutils.h"
 #include "settings.h"
