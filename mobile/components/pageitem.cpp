@@ -337,7 +337,7 @@ void PageItem::requestPixmap()
 void PageItem::paint()
 {
     Observer *observer = m_isThumbnail ? m_documentItem.data()->thumbnailObserver() : m_documentItem.data()->pageviewObserver();
-    const int flags = PagePainter::Accessibility | PagePainter::Highlights | PagePainter::Annotations;
+    const PagePainter::PagePainterFlags flags = PagePainterFlags(PagePainter::Accessibility | PagePainter::Highlights | PagePainter::Annotations);
 
     const qreal dpr = window()->devicePixelRatio();
     const QRect limits(QPoint(0, 0), QSize(width() * dpr, height() * dpr));
@@ -345,7 +345,7 @@ void PageItem::paint()
     pix.setDevicePixelRatio(dpr);
     QPainter p(&pix);
     p.setRenderHint(QPainter::Antialiasing, m_smooth);
-    PagePainter::paintPageOnPainter(&p, m_page, observer, Okular::NormalizedRect(0.0, 0.0, 1.0, 1.0), limits);
+    PagePainter::paintPageOnPainter(&p, m_page, observer, Okular::NormalizedRect(0.0, 0.0, 1.0, 1.0), limits, flags);
     p.end();
 
     m_buffer = pix.toImage();
