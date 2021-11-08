@@ -4,8 +4,8 @@
 //
 // Part of KVIEWSHELL - A framework for multipage text/gfx viewers
 //
-// (C) 2002-2005 Stefan Kebekus
-// Distributed under the GPL
+// SPDX-FileCopyrightText: 2002-2005 Stefan Kebekus
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 #ifndef PAGESIZE_H
 #define PAGESIZE_H
@@ -50,7 +50,7 @@ public:
     pageSize();
 
     /** \brief Initializes the pageSize with a SimplePageSize. */
-    pageSize(const SimplePageSize &);
+    explicit pageSize(const SimplePageSize &);
 
     pageSize(const pageSize &) = delete;
     pageSize &operator=(const pageSize &) = delete;

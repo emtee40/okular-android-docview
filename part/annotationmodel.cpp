@@ -1,14 +1,11 @@
-/***************************************************************************
- *   Copyright (C) 2006 by Pino Toscano <pino@kde.org>                     *
- *   Copyright (C) 2017    Klarälvdalens Datakonsult AB, a KDAB Group      *
- *                         company, info@kdab.com. Work sponsored by the   *
- *                         LiMux project of the city of Munich             *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- ***************************************************************************/
+/*
+    SPDX-FileCopyrightText: 2006 Pino Toscano <pino@kde.org>
+
+    Work sponsored by the LiMux project of the city of Munich:
+    SPDX-FileCopyrightText: 2017 Klarälvdalens Datakonsult AB a KDAB Group company <info@kdab.com>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 
 #include "annotationmodel.h"
 
@@ -58,7 +55,7 @@ static QLinkedList<Okular::Annotation *> filterOutWidgetAnnotations(const QLinke
 class AnnotationModelPrivate : public Okular::DocumentObserver
 {
 public:
-    AnnotationModelPrivate(AnnotationModel *qq);
+    explicit AnnotationModelPrivate(AnnotationModel *qq);
     ~AnnotationModelPrivate() override;
 
     void notifySetup(const QVector<Okular::Page *> &pages, int setupFlags) override;

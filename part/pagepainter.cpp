@@ -1,11 +1,8 @@
-/***************************************************************************
- *   Copyright (C) 2005 by Enrico Ros <eros.kde@email.it>                  *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- ***************************************************************************/
+/*
+    SPDX-FileCopyrightText: 2005 Enrico Ros <eros.kde@email.it>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 
 #include "pagepainter.h"
 
@@ -25,6 +22,7 @@
 #include <math.h>
 
 // local includes
+#include "core/annotations.h"
 #include "core/observer.h"
 #include "core/page.h"
 #include "core/page_p.h"
@@ -35,7 +33,7 @@
 #include "settings.h"
 #include "settings_core.h"
 
-Q_GLOBAL_STATIC_WITH_ARGS(QPixmap, busyPixmap, (KIconLoader::global()->loadIcon(QLatin1String("okular"), KIconLoader::NoGroup, KIconLoader::SizeLarge, KIconLoader::DefaultState, QStringList(), nullptr, true)))
+Q_GLOBAL_STATIC_WITH_ARGS(QPixmap, busyPixmap, (QIcon::fromTheme(QLatin1String("okular")).pixmap(KIconLoader::SizeLarge)))
 
 #define TEXTANNOTATION_ICONSIZE 24
 
@@ -572,10 +570,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                     mixedPainter->drawImage(annotBoundary.topLeft(), image);
                 } else if (text->textType() == Okular::TextAnnotation::Linked) {
                     // get pixmap, colorize and alpha-blend it
-                    QString path;
-                    QPixmap pixmap = GuiUtils::iconLoader()->loadIcon(text->textIcon().toLower(), KIconLoader::User, 32, KIconLoader::DefaultState, QStringList(), &path, true);
-                    if (path.isEmpty())
-                        pixmap = GuiUtils::iconLoader()->loadIcon(text->textIcon().toLower(), KIconLoader::NoGroup, 32);
+                    QPixmap pixmap = QIcon::fromTheme(text->textIcon().toLower()).pixmap(32);
 
                     QPixmap scaledCroppedPixmap = pixmap.scaled(TEXTANNOTATION_ICONSIZE * dpr, TEXTANNOTATION_ICONSIZE * dpr).copy(dInnerRect.toAlignedRect());
                     scaledCroppedPixmap.setDevicePixelRatio(dpr);
@@ -598,7 +593,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                 Okular::StampAnnotation *stamp = (Okular::StampAnnotation *)a;
 
                 // get pixmap and alpha blend it if needed
-                QPixmap pixmap = GuiUtils::loadStamp(stamp->stampIconName(), qMax(annotBoundary.width(), annotBoundary.height()) * dpr);
+                QPixmap pixmap = Okular::AnnotationUtils::loadStamp(stamp->stampIconName(), qMax(annotBoundary.width(), annotBoundary.height()) * dpr);
                 if (!pixmap.isNull()) // should never happen but can happen on huge sizes
                 {
                     QPixmap scaledCroppedPixmap = pixmap.scaled(annotBoundary.width() * dpr, annotBoundary.height() * dpr).copy(dInnerRect.toAlignedRect());

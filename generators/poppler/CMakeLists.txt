@@ -25,6 +25,36 @@ int main()
 }
 " HAVE_POPPLER_SIGNING)
 
+check_cxx_source_compiles("
+#include <poppler-qt5.h>
+#include <poppler-form.h>
+int main()
+{
+    Poppler::PDFConverter::NewSignatureData pData;
+    pData.setSignatureLeftText(QString());
+}
+" HAVE_POPPLER_FANCY_SIGNATURE)
+
+check_cxx_source_compiles("
+#include <poppler-qt5.h>
+int main()
+{
+    Poppler::Document *doc = Poppler::Document::load(\"\", nullptr, nullptr);
+    doc->xrefWasReconstructed();
+    return 0;
+}
+" HAVE_POPPLER_RECONSTRUCTION_CALLBACK)
+
+check_cxx_source_compiles("
+#include <poppler-qt5.h>
+#include <poppler-form.h>
+int main()
+{
+    int a = Poppler::FormFieldSignature::ValidateWithoutOCSPRevocationCheck;
+    return 0;
+}
+" HAVE_POPPLER_21_10)
+
 configure_file(
    ${CMAKE_CURRENT_SOURCE_DIR}/config-okular-poppler.h.cmake
    ${CMAKE_CURRENT_BINARY_DIR}/config-okular-poppler.h

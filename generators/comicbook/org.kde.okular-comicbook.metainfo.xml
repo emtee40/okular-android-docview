@@ -5,6 +5,7 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-2.0+ and GFDL-1.3</project_license>
   <name>Comic Books</name>
+  <name xml:lang="ar">الكتب الهزليّة</name>
   <name xml:lang="az">Comic Books</name>
   <name xml:lang="ca">Llibres de còmic</name>
   <name xml:lang="ca-valencia">Llibres de còmic</name>
@@ -18,6 +19,8 @@
   <name xml:lang="fi">Sarjakuvakirjat</name>
   <name xml:lang="fr">Bandes dessinées</name>
   <name xml:lang="gl">Libros de banda deseñada</name>
+  <name xml:lang="hi">कॉमिक पुस्तक</name>
+  <name xml:lang="hu">Képregények</name>
   <name xml:lang="ia">Libros de Comic</name>
   <name xml:lang="it">Fumetti</name>
   <name xml:lang="ko">만화책</name>
@@ -28,6 +31,7 @@
   <name xml:lang="pl">Komiksy</name>
   <name xml:lang="pt">Banda Desenhada</name>
   <name xml:lang="pt-BR">Comic Books</name>
+  <name xml:lang="ro">Benzi desenate</name>
   <name xml:lang="ru">Комиксы</name>
   <name xml:lang="sk">Knihy komiksov</name>
   <name xml:lang="sl">Stripi</name>
@@ -36,12 +40,15 @@
   <name xml:lang="sr-ijekavian">Стрипови</name>
   <name xml:lang="sr-ijekavianlatin">Stripovi</name>
   <name xml:lang="sv">Comic Book</name>
+  <name xml:lang="ta">காமிக் புத்தகங்கள்</name>
   <name xml:lang="tr">Çizgiromanlar</name>
   <name xml:lang="uk">Комікси</name>
+  <name xml:lang="vi">Truyện tranh</name>
   <name xml:lang="x-test">xxComic Booksxx</name>
   <name xml:lang="zh-CN">漫画书</name>
   <name xml:lang="zh-TW">漫畫書</name>
   <summary>Adds support for reading comic books</summary>
+  <summary xml:lang="ar">يضيف دعم لقراءة الكتب الهزلية</summary>
   <summary xml:lang="az">Komiks sənədlərini oxumaq üçün dəstək əlavə edir</summary>
   <summary xml:lang="ca">Afegeix la implementació per a llegir llibres de còmic</summary>
   <summary xml:lang="ca-valencia">Afig la implementació per a llegir llibres de còmic</summary>
@@ -55,6 +62,8 @@
   <summary xml:lang="fi">Lisää sarjakuvakirjojen lukutuen</summary>
   <summary xml:lang="fr">Permet la lecture des bandes dessinées</summary>
   <summary xml:lang="gl">Engade a posibilidade de ler libros de banda deseñada</summary>
+  <summary xml:lang="hi">कॉमिक पुस्तक पढ़ने के लिए समर्थन जोड़ता है</summary>
+  <summary xml:lang="hu">Támogatás képregények olvasásához</summary>
   <summary xml:lang="ia">Adde supporto per leger libros de comic</summary>
   <summary xml:lang="it">Aggiunge il supporto per la lettura di fumetti</summary>
   <summary xml:lang="ko">만화책 읽기 지원 추가</summary>
@@ -65,6 +74,7 @@
   <summary xml:lang="pl">Dodaje obsługę komiksów</summary>
   <summary xml:lang="pt">Adiciona o suporte para ler livros de banda desenhada</summary>
   <summary xml:lang="pt-BR">Adiciona o suporte para leitura de comic books</summary>
+  <summary xml:lang="ro">Adaugă suport pentru citirea cărților cu benzi desenate</summary>
   <summary xml:lang="ru">Поддержка чтения комиксов</summary>
   <summary xml:lang="sk">Pridá podporu pre čítanie komiksov</summary>
   <summary xml:lang="sl">Doda podporo za branje stripov</summary>
@@ -73,8 +83,10 @@
   <summary xml:lang="sr-ijekavian">Подршка за читање стрипова</summary>
   <summary xml:lang="sr-ijekavianlatin">Podrška za čitanje stripova</summary>
   <summary xml:lang="sv">Lägger till stöd för att läsa Comic Book</summary>
+  <summary xml:lang="ta">காமிக் புத்தகங்களைப் படிப்பதற்கான ஆதரவை சேர்க்கும்</summary>
   <summary xml:lang="tr">Çizgi roman okuma desteği ekler</summary>
   <summary xml:lang="uk">Додає підтримку читання коміксів</summary>
+  <summary xml:lang="vi">Thêm hỗ trợ đọc truyện tranh</summary>
   <summary xml:lang="x-test">xxAdds support for reading comic booksxx</summary>
   <summary xml:lang="zh-CN">增加对漫画书的阅读支持</summary>
   <summary xml:lang="zh-TW">加入讀取漫畫書的支援</summary>
@@ -86,9 +98,9 @@
   </provides>
   <url type="homepage">https://okular.kde.org</url>
   <releases>
-    <release version="21.04.0" date="2021-04-22"/>
-    <release version="20.12.3" date="2021-03-04"/>
-    <release version="20.12.2" date="2021-02-04"/>
-    <release version="1.11.3" date="2020-11-05"/>
+    <release version="21.08.3" date="2021-11-04"/>
+    <release version="21.08.2" date="2021-10-07"/>
+    <release version="21.08.1" date="2021-09-02"/>
+    <release version="21.08.0" date="2021-08-12"/>
   </releases>
 </component>

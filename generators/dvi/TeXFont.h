@@ -3,8 +3,8 @@
 //
 // Part of KDVI - A DVI previewer for the KDE desktop environment
 //
-// (C) 2003 Stefan Kebekus
-// Distributed under the GPL
+// SPDX-FileCopyrightText: 2003 Stefan Kebekus
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 #ifndef _TEXFONT_H
 #define _TEXFONT_H
@@ -15,7 +15,7 @@
 class TeXFont
 {
 public:
-    TeXFont(TeXFontDefinition *_parent)
+    explicit TeXFont(TeXFontDefinition *_parent)
     {
         parent = _parent;
         errorMessage.clear();

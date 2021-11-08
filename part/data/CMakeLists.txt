@@ -42,16 +42,4 @@ install(FILES
    uparrow.png
    upleftarrow.png
    DESTINATION ${KDE_INSTALL_DATADIR}/okular/pics)
-# install annotation stamps
-install(FILES
-   stamps.svg
-   DESTINATION ${KDE_INSTALL_DATADIR}/okular/pics)
 # install misc images
-
-# newstuff
-if (FALSE)
-install(FILES
-   okular.knsrc
-   DESTINATION ${KDE_INSTALL_CONFDIR})
-endif (FALSE)
-

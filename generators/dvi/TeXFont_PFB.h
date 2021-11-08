@@ -3,8 +3,8 @@
 //
 // Part of KDVI - A DVI previewer for the KDE desktop environment
 //
-// (C) 2003 Stefan Kebekus
-// Distributed under the GPL
+// SPDX-FileCopyrightText: 2003 Stefan Kebekus
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 // This file is compiled only if the FreeType library is present on
 // the system
@@ -23,7 +23,7 @@ class glyph;
 class TeXFont_PFB : public TeXFont
 {
 public:
-    TeXFont_PFB(TeXFontDefinition *parent, fontEncoding *enc = nullptr, double slant = 0.0);
+    explicit TeXFont_PFB(TeXFontDefinition *parent, fontEncoding *enc = nullptr, double slant = 0.0);
     ~TeXFont_PFB() override;
 
     glyph *getGlyph(quint16 character, bool generateCharacterPixmap = false, const QColor &color = Qt::black) override;

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 
 # KDE Application Version, managed by release script
 set (RELEASE_SERVICE_VERSION_MAJOR "21")
-set (RELEASE_SERVICE_VERSION_MINOR "07")
+set (RELEASE_SERVICE_VERSION_MINOR "11")
 set (RELEASE_SERVICE_VERSION_MICRO "70")
 set (RELEASE_SERVICE_VERSION "${RELEASE_SERVICE_VERSION_MAJOR}.${RELEASE_SERVICE_VERSION_MINOR}.${RELEASE_SERVICE_VERSION_MICRO}")
 
@@ -54,7 +54,10 @@ ecm_setup_version(${PROJECT_VERSION}
                   VERSION_HEADER "${CMAKE_CURRENT_BINARY_DIR}/core/version.h"
                   PACKAGE_VERSION_FILE "${CMAKE_CURRENT_BINARY_DIR}/Okular5ConfigVersion.cmake")
 
-find_package(Qt5 ${QT_REQUIRED_VERSION} CONFIG REQUIRED COMPONENTS Core DBus Test Widgets PrintSupport Svg Qml Quick)
+find_package(Qt5 ${QT_REQUIRED_VERSION} CONFIG REQUIRED COMPONENTS Core Test Widgets PrintSupport Svg Qml Quick)
+if (BUILD_DESKTOP)
+    find_package(Qt5 ${QT_REQUIRED_VERSION} CONFIG REQUIRED COMPONENTS DBus)
+endif()
 find_package(Qt5 ${QT_REQUIRED_VERSION} OPTIONAL_COMPONENTS TextToSpeech)
 if (NOT Qt5TextToSpeech_FOUND)
     message(STATUS "Qt5TextToSpeech not found, speech features will be disabled")
@@ -88,9 +91,11 @@ find_package(KF5 ${KF5_REQUIRED_VERSION} REQUIRED COMPONENTS
     ConfigWidgets
     CoreAddons
     Crash
+    I18n
     IconThemes
     KIO
     Parts
+    TextWidgets
     ThreadWeaver
     WindowSystem
     ${optionalComponents}
@@ -273,7 +278,7 @@ ki18n_wrap_ui(okularcore_SRCS
    core/chooseenginewidget.ui
 )
 
-kconfig_add_kcfg_files(okularcore_SRCS conf/settings_core.kcfgc)
+kconfig_add_kcfg_files(okularcore_SRCS GENERATE_MOC conf/settings_core.kcfgc)
 
 add_library(okularcore SHARED ${okularcore_SRCS})
 generate_export_header(okularcore BASE_NAME okularcore EXPORT_FILE_NAME "${CMAKE_CURRENT_BINARY_DIR}/core/okularcore_export.h")
@@ -308,6 +313,7 @@ PRIVATE
     KF5::ThreadWeaver
     KF5::Bookmarks
     Phonon::phonon4qt5
+    Qt5::Svg
     ${MATH_LIB}
     ZLIB::ZLIB
 PUBLIC  # these are included from the installed headers
@@ -369,6 +375,7 @@ if(BUILD_DESKTOP)
     part/xmlgui_helper.cpp
     part/extensions.cpp
     part/embeddedfilesdialog.cpp
+    part/actionbar.cpp
     part/annotationactionhandler.cpp
     part/annotwindow.cpp
     part/annotationmodel.cpp
@@ -379,6 +386,7 @@ if(BUILD_DESKTOP)
     part/annotationwidgets.cpp
     part/bookmarklist.cpp
     part/certificateviewer.cpp
+    part/colormodemenu.cpp
     part/cursorwraphelper.cpp
     part/debug_ui.cpp
     part/drawingtoolactions.cpp
@@ -418,7 +426,6 @@ if(BUILD_DESKTOP)
     part/signaturemodel.cpp
     part/signaturepanel.cpp
   )
-endif()
 
 if (Qt5TextToSpeech_FOUND)
    set(okularpart_SRCS ${okularpart_SRCS}
@@ -433,6 +440,7 @@ generate_export_header(okularpart BASE_NAME okularpart)
 target_link_libraries(okularpart okularcore
     ${MATH_LIB}
     Qt5::Svg
+    Qt5::DBus
     Phonon::phonon4qt5
     KF5::Archive
     KF5::Bookmarks
@@ -445,6 +453,7 @@ target_link_libraries(okularpart okularcore
     KF5::Parts
     KF5::Solid
     KF5::WindowSystem
+    KF5::TextWidgets
 )
 
 if(KF5Wallet_FOUND)
@@ -461,6 +470,7 @@ if (Qt5TextToSpeech_FOUND)
    target_link_libraries(okularpart Qt5::TextToSpeech)
 endif()
 install(TARGETS okularpart DESTINATION ${KDE_INSTALL_PLUGINDIR})
+endif()
 
 
 ########### install files ###############
@@ -494,6 +504,10 @@ install(FILES
 )
 
 install(EXPORT Okular5Targets DESTINATION "${CMAKECONFIG_INSTALL_DIR}" FILE Okular5Targets.cmake NAMESPACE Okular::)
+
+install(FILES
+   core/stamps.svg
+   DESTINATION ${KDE_INSTALL_DATADIR}/okular/pics)
 
 ########### summary #################
 

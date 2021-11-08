@@ -1,14 +1,11 @@
-/***************************************************************************
- *   Copyright (C) 2013 by Albert Astals Cid <aacid@kde.org>               *
- *   Copyright (C) 2017    Klarälvdalens Datakonsult AB, a KDAB Group      *
- *                         company, info@kdab.com. Work sponsored by the   *
- *                         LiMux project of the city of Munich             *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- ***************************************************************************/
+/*
+    SPDX-FileCopyrightText: 2013 Albert Astals Cid <aacid@kde.org>
+
+    Work sponsored by the LiMux project of the city of Munich:
+    SPDX-FileCopyrightText: 2017 Klarälvdalens Datakonsult AB a KDAB Group company <info@kdab.com>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 
 // clazy:excludeall=qstring-allocations
 
@@ -107,6 +104,7 @@ private slots:
     void testMouseModeMenu();
     void testFullScreenRequest();
     void testZoomInFacingPages();
+    void testLinkWithCrop();
 
 private:
     void simulateMouseSelection(double startX, double startY, double endX, double endY, QWidget *target);
@@ -313,7 +311,7 @@ void PartTest::testSelectText()
     QApplication::clipboard()->clear();
     QVERIFY(QMetaObject::invokeMethod(part.m_pageView, "copyTextSelection"));
 
-    QCOMPARE(QApplication::clipboard()->text(), QStringLiteral("Hola que tal\n"));
+    QCOMPARE(QApplication::clipboard()->text(), QStringLiteral("Hola que tal"));
 }
 
 void PartTest::testClickInternalLink()
@@ -457,9 +455,9 @@ void PartTest::testeTextSelectionOverAndAcrossLinks_data()
     // can text-select "over and across" hyperlink.
     QTest::newRow("start selection before link") << 0.1564 << 0.2943 << QStringLiteral(" a link: foo@foo.b");
     // can text-select starting at text and ending selection in middle of hyperlink.
-    QTest::newRow("start selection in the middle of the link") << 0.28 << 0.382 << QStringLiteral("o.bar\n");
+    QTest::newRow("start selection in the middle of the link") << 0.28 << 0.382 << QStringLiteral("o.bar");
     // text selection works when selecting left to right or right to left
-    QTest::newRow("start selection after link") << 0.40 << 0.05 << QStringLiteral("This is a link: foo@foo.bar\n");
+    QTest::newRow("start selection after link") << 0.40 << 0.05 << QStringLiteral("This is a link: foo@foo.bar");
 }
 
 // can text-select "over and across" hyperlink.
@@ -774,8 +772,9 @@ void PartTest::testeRectSelectionStartingOnLinks()
     Okular::Part part(nullptr, nullptr, dummyArgs);
     QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/pdf_with_links.pdf")));
     // hide info messages as they interfere with selection area
+    Okular::Settings::self()->setShowEmbeddedContentMessages(false);
     Okular::Settings::self()->setShowOSD(false);
-    ;
+
     part.widget()->show();
     QVERIFY(QTest::qWaitForWindowExposed(part.widget()));
 
@@ -1889,12 +1888,12 @@ void PartTest::testForwardBackwardNavigation()
     const int targetPageA = 15;
     part.m_document->setViewportPage(targetPageA);
 
-    QVERIFY(part.m_document->viewport() == targetPageA);
+    QVERIFY(part.m_document->viewport() == DocumentViewport(targetPageA));
 
     // Go to some other page
     const int targetPageB = 25;
     part.m_document->setViewportPage(targetPageB);
-    QVERIFY(part.m_document->viewport() == targetPageB);
+    QVERIFY(part.m_document->viewport() == DocumentViewport(targetPageB));
 
     // Go back to page A
     QVERIFY(QMetaObject::invokeMethod(&part, "slotHistoryBack"));
@@ -2108,6 +2107,61 @@ void PartTest::testZoomWithCrop()
     QVERIFY(Okular::Settings::trimMargins());
     cropAction->trigger();
     QVERIFY(!Okular::Settings::trimMargins());
+}
+
+void PartTest::testLinkWithCrop()
+{
+    // We test that link targets are correct with cropping, related to bug 198427
+
+    QVariantList dummyArgs;
+    Okular::Part part(nullptr, nullptr, dummyArgs);
+    QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/pdf_with_internal_links.pdf")));
+
+    KActionMenu *cropMenu = part.m_pageView->findChild<KActionMenu *>(QStringLiteral("view_trim_mode"));
+    KToggleAction *cropAction = cropMenu->menu()->findChild<KToggleAction *>(QStringLiteral("view_trim_selection"));
+
+    part.widget()->resize(600, 400);
+    part.widget()->show();
+    QVERIFY(QTest::qWaitForWindowExposed(part.widget()));
+
+    // wait for pixmap
+    QTRY_VERIFY(part.m_document->page(0)->hasPixmap(part.m_pageView));
+
+    const int width = part.m_pageView->viewport()->width();
+    const int height = part.m_pageView->viewport()->height();
+
+    // Move to a location without a link
+    QTest::mouseMove(part.m_pageView->viewport(), QPoint(width * 0.1, width * 0.1));
+
+    // The cursor should be normal
+    QTRY_COMPARE(part.m_pageView->cursor().shape(), Qt::CursorShape(Qt::OpenHandCursor));
+
+    // Activate "Trim Margins"
+    cropAction->trigger();
+
+    // The cursor should be a cross-hair
+    QTRY_COMPARE(part.m_pageView->cursor().shape(), Qt::CursorShape(Qt::CrossCursor));
+
+    const int mouseStartY = height * 0.2;
+    const int mouseEndY = height * 0.8;
+    const int mouseStartX = width * 0.2;
+    const int mouseEndX = width * 0.8;
+
+    // Trim the page
+    simulateMouseSelection(mouseStartX, mouseStartY, mouseEndX, mouseEndY, part.m_pageView->viewport());
+
+    // The cursor should be normal again
+    QTRY_COMPARE(part.m_pageView->cursor().shape(), Qt::CursorShape(Qt::OpenHandCursor));
+
+    // Click a link
+    const QPoint click(width * 0.2, height * 0.2);
+    QTest::mouseMove(part.m_pageView->viewport(), click);
+    QTest::mouseClick(part.m_pageView->viewport(), Qt::LeftButton, Qt::NoModifier, click);
+
+    QTRY_VERIFY2_WITH_TIMEOUT(qAbs(part.m_document->viewport().rePos.normalizedY - 0.167102333237) < 0.01, qPrintable(QString("We are at %1").arg(part.m_document->viewport().rePos.normalizedY)), 500);
+
+    // Deactivate "Trim Margins"
+    cropAction->trigger();
 }
 
 } // namespace Okular

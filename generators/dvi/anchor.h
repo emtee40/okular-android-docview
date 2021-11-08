@@ -4,8 +4,8 @@
 //
 // Part of KVIEWSHELL - A framework for multipage text/gfx viewers
 //
-// (C) 2004-2005 Stefan Kebekus
-// Distributed under the GPL
+// SPDX-FileCopyrightText: 2004-2005 Stefan Kebekus
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 #ifndef ANCHOR_H
 #define ANCHOR_H
@@ -44,7 +44,7 @@ public:
         @param pg number of the page
         @param _distance_from_top distance from the top of the page
     */
-    Anchor(const PageNumber pg, const Length _distance_from_top)
+    Anchor(quint16 pg, const Length _distance_from_top)
         : page(pg)
         , distance_from_top(_distance_from_top)
     {

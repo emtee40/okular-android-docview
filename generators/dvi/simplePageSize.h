@@ -4,8 +4,8 @@
 //
 // Part of KVIEWSHELL - A framework for multipage text/gfx viewers
 //
-// (C) 2002-2004 Stefan Kebekus
-// Distributed under the GPL
+// SPDX-FileCopyrightText: 2002-2004 Stefan Kebekus
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 #ifndef SIMPLEPAGESIZE_H
 #define SIMPLEPAGESIZE_H

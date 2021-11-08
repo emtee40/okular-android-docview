@@ -1,24 +1,20 @@
-/***************************************************************************
- *   Copyright (C) 2002 by Wilco Greven <greven@kde.org>                   *
- *   Copyright (C) 2002 by Chris Cheney <ccheney@cheney.cx>                *
- *   Copyright (C) 2003 by Benjamin Meyer <benjamin@csh.rit.edu>           *
- *   Copyright (C) 2003-2004 by Christophe Devriese                        *
- *                         <Christophe.Devriese@student.kuleuven.ac.be>    *
- *   Copyright (C) 2003 by Laurent Montel <montel@kde.org>                 *
- *   Copyright (C) 2003-2004 by Albert Astals Cid <aacid@kde.org>          *
- *   Copyright (C) 2003 by Luboš Luňák <l.lunak@kde.org>                   *
- *   Copyright (C) 2003 by Malcolm Hunter <malcolm.hunter@gmx.co.uk>       *
- *   Copyright (C) 2004 by Dominique Devriese <devriese@kde.org>           *
- *   Copyright (C) 2004 by Dirk Mueller <mueller@kde.org>                  *
- *   Copyright (C) 2017    Klarälvdalens Datakonsult AB, a KDAB Group      *
- *                         company, info@kdab.com. Work sponsored by the   *
- *                         LiMux project of the city of Munich             *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- ***************************************************************************/
+/*
+    SPDX-FileCopyrightText: 2002 Wilco Greven <greven@kde.org>
+    SPDX-FileCopyrightText: 2002 Chris Cheney <ccheney@cheney.cx>
+    SPDX-FileCopyrightText: 2003 Benjamin Meyer <benjamin@csh.rit.edu>
+    SPDX-FileCopyrightText: 2003-2004 Christophe Devriese <Christophe.Devriese@student.kuleuven.ac.be>
+    SPDX-FileCopyrightText: 2003 Laurent Montel <montel@kde.org>
+    SPDX-FileCopyrightText: 2003-2004 Albert Astals Cid <aacid@kde.org>
+    SPDX-FileCopyrightText: 2003 Luboš Luňák <l.lunak@kde.org>
+    SPDX-FileCopyrightText: 2003 Malcolm Hunter <malcolm.hunter@gmx.co.uk>
+    SPDX-FileCopyrightText: 2004 Dominique Devriese <devriese@kde.org>
+    SPDX-FileCopyrightText: 2004 Dirk Mueller <mueller@kde.org>
+
+    Work sponsored by the LiMux project of the city of Munich:
+    SPDX-FileCopyrightText: 2017 Klarälvdalens Datakonsult AB a KDAB Group company <info@kdab.com>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 
 #include "shell.h"
 
@@ -28,9 +24,9 @@
 #include <KIO/Global>
 #include <KLocalizedString>
 #include <KMessageBox>
+#include <KPluginFactory>
 #include <KPluginLoader>
 #include <KRecentFilesAction>
-#include <KServiceTypeTrader>
 #include <KSharedConfig>
 #include <KStandardAction>
 #include <KToggleFullScreenAction>
@@ -122,7 +118,7 @@ Shell::Shell(const QString &serializedOptions)
         // and integrate the part's GUI with the shell's
         setupGUI(Keys | ToolBar | Save);
 
-        m_tabs.append(firstPart);
+        m_tabs.append(TabState(firstPart));
         m_tabWidget->addTab(firstPart->widget(), QString()); // triggers setActiveTab that calls createGUI( part )
 
         connectPart(firstPart);
@@ -321,7 +317,7 @@ void Shell::closeUrl()
     //  * the focus was somewhere in the toolbar
     // we don't have other places that accept focus
     //  * If it was on the tab, logic says it should go back to the next current tab
-    //  * If it was on the toolbar, we could leave it there, but since we redo the menus/toobars for the new tab, it gets kind of lost
+    //  * If it was on the toolbar, we could leave it there, but since we redo the menus/toolbars for the new tab, it gets kind of lost
     //    so it's easier to set it to the next current tab which also makes sense as consistency
     if (m_tabWidget->count() >= 0) {
         KParts::ReadWritePart *const newPart = m_tabs[m_tabWidget->currentIndex()].part;
@@ -432,24 +428,6 @@ void Shell::readProperties(const KConfigGroup &group)
     }
 }
 
-QStringList Shell::fileFormats() const
-{
-    QStringList supportedPatterns;
-
-    QString constraint(QStringLiteral("(Library == 'okularpart')"));
-    QLatin1String basePartService("KParts/ReadOnlyPart");
-    KService::List offers = KServiceTypeTrader::self()->query(basePartService, constraint);
-    KService::List::ConstIterator it = offers.constBegin(), itEnd = offers.constEnd();
-    for (; it != itEnd; ++it) {
-        KService::Ptr service = *it;
-        QStringList mimeTypes = service->mimeTypes();
-
-        supportedPatterns += mimeTypes;
-    }
-
-    return supportedPatterns;
-}
-
 void Shell::fileOpen()
 {
     // this slot is called whenever the File->Open menu is selected,
@@ -458,11 +436,9 @@ void Shell::fileOpen()
     const int activeTab = m_tabWidget->currentIndex();
     if (!m_fileformatsscanned) {
         const KDocumentViewer *const doc = qobject_cast<KDocumentViewer *>(m_tabs[activeTab].part);
-        if (doc)
-            m_fileformats = doc->supportedMimeTypes();
+        Q_ASSERT(doc);
 
-        if (m_fileformats.isEmpty())
-            m_fileformats = fileFormats();
+        m_fileformats = doc->supportedMimeTypes();
 
         m_fileformatsscanned = true;
     }
@@ -614,7 +590,11 @@ void Shell::slotShowMenubar()
 
 QSize Shell::sizeHint() const
 {
-    return QApplication::primaryScreen()->availableSize() * 0.75;
+    const QSize baseSize = QApplication::primaryScreen()->availableSize() * 0.6;
+    // Set an arbitrary yet sensible sane minimum size for very small screens;
+    // for example we don't want people using 1366x768 screens to get a tiny
+    // default window size of 820 x 460 which will elide most of the toolbar buttons.
+    return baseSize.expandedTo(QSize(1000, 700));
 }
 
 bool Shell::queryClose()
@@ -726,7 +706,7 @@ void Shell::openNewTab(const QUrl &url, const QString &serializedOptions)
     const int newIndex = m_tabs.size();
 
     // Make new part
-    m_tabs.append(m_partFactory->create<KParts::ReadWritePart>(this));
+    m_tabs.append(TabState(m_partFactory->create<KParts::ReadWritePart>(this)));
     connectPart(m_tabs[newIndex].part);
 
     // Update GUI

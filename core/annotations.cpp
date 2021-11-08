@@ -1,11 +1,8 @@
-/***************************************************************************
- *   Copyright (C) 2005 by Enrico Ros <eros.kde@email.it>                  *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- ***************************************************************************/
+/*
+    SPDX-FileCopyrightText: 2005 Enrico Ros <eros.kde@email.it>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 
 #include "annotations.h"
 #include "annotations_p.h"
@@ -13,6 +10,10 @@
 // qt/kde includes
 #include <QApplication>
 #include <QColor>
+#include <QIcon>
+#include <QPainter>
+#include <QStandardPaths>
+#include <QSvgRenderer>
 
 // DBL_MAX
 #include <float.h>
@@ -158,6 +159,45 @@ QRect AnnotationUtils::annotationGeometry(const Annotation *annotation, double s
     }
 
     return rect;
+}
+
+QPixmap AnnotationUtils::loadStamp(const QString &nameOrPath, int size, bool keepAspectRatio)
+{
+    const QString name = nameOrPath.toLower();
+
+    static std::unique_ptr<QSvgRenderer> svgStampFile;
+    if (!svgStampFile.get()) {
+        const QString stampFile = QStandardPaths::locate(QStandardPaths::GenericDataLocation, QStringLiteral("okular/pics/stamps.svg"));
+        if (!stampFile.isEmpty()) {
+            svgStampFile = std::make_unique<QSvgRenderer>(stampFile);
+            if (!svgStampFile->isValid()) {
+                svgStampFile.reset();
+            }
+        }
+    }
+
+    QSvgRenderer *r = svgStampFile.get();
+    if (r && r->isValid() && r->elementExists(name)) {
+        const QSize stampSize = r->boundsOnElement(name).size().toSize();
+        const QSize pixmapSize = stampSize.scaled(size, size, keepAspectRatio ? Qt::KeepAspectRatioByExpanding : Qt::IgnoreAspectRatio);
+        QPixmap pixmap(pixmapSize);
+        pixmap.fill(Qt::transparent);
+        QPainter p(&pixmap);
+        r->render(&p, name);
+        p.end();
+        return pixmap;
+    }
+
+    // _name is a path (do this before loading as icon name to avoid some rare weirdness )
+    QPixmap pixmap;
+    pixmap.load(nameOrPath);
+    if (!pixmap.isNull()) {
+        pixmap = pixmap.scaled(size, size, keepAspectRatio ? Qt::KeepAspectRatioByExpanding : Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+        return pixmap;
+    }
+
+    // _name is an icon name
+    return QIcon::fromTheme(name).pixmap(size);
 }
 // END AnnotationUtils implementation
 
@@ -510,6 +550,11 @@ AnnotationPrivate::~AnnotationPrivate()
     QLinkedList<Annotation::Revision>::iterator it = m_revisions.begin(), end = m_revisions.end();
     for (; it != end; ++it)
         delete (*it).annotation();
+}
+
+AnnotationPrivate *AnnotationPrivate::get(Annotation *a)
+{
+    return a ? a->d_ptr : nullptr;
 }
 
 Annotation::Annotation(AnnotationPrivate &dd)

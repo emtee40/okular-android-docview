@@ -1,11 +1,8 @@
-/***************************************************************************
- *   Copyright (C) 2005 by Tobias Koenig <tokoe@kde.org>                   *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- ***************************************************************************/
+/*
+    SPDX-FileCopyrightText: 2005 Tobias Koenig <tokoe@kde.org>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 
 #ifndef _OKULAR_PAGETRANSITION_H_
 #define _OKULAR_PAGETRANSITION_H_
@@ -46,7 +43,7 @@ public:
      *
      * If no type is given, the normal @ref Replace transition is used.
      */
-    PageTransition(Type type = Replace);
+    explicit PageTransition(Type type = Replace);
 
     /**
      * Creates a new page transition from an @p other.

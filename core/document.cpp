@@ -1,15 +1,12 @@
-/***************************************************************************
- *   Copyright (C) 2004-2005 by Enrico Ros <eros.kde@email.it>             *
- *   Copyright (C) 2004-2008 by Albert Astals Cid <aacid@kde.org>          *
- *   Copyright (C) 2017, 2018 Klarälvdalens Datakonsult AB, a KDAB Group         *
- *                      company, info@kdab.com. Work sponsored by the      *
- *                      LiMux project of the city of Munich                *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- ***************************************************************************/
+/*
+    SPDX-FileCopyrightText: 2004-2005 Enrico Ros <eros.kde@email.it>
+    SPDX-FileCopyrightText: 2004-2008 Albert Astals Cid <aacid@kde.org>
+
+    Work sponsored by the LiMux project of the city of Munich:
+    SPDX-FileCopyrightText: 2017, 2018 Klarälvdalens Datakonsult AB a KDAB Group company <info@kdab.com>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 
 #include "document.h"
 #include "document_p.h"
@@ -57,7 +54,6 @@
 #include <KIO/Global>
 #include <KLocalizedString>
 #include <KMacroExpander>
-#include <KMessageBox>
 #include <KApplicationTrader>
 #include <KPluginMetaData>
 #include <KProcess>
@@ -3846,15 +3842,20 @@ QString Document::bookmarkedPageRange() const
     return range;
 }
 
+struct ExecuteNextActionsHelper : public QObject {
+    Q_OBJECT
+public:
+    bool b = true;
+};
+
 void Document::processAction(const Action *action)
 {
     if (!action)
         return;
 
     // Don't execute next actions if the action itself caused the closing of the document
-    bool executeNextActions = true;
-    QObject disconnectHelper; // guarantees the connect below will be disconnected on finishing the function
-    connect(this, &Document::aboutToClose, &disconnectHelper, [&executeNextActions] { executeNextActions = false; });
+    ExecuteNextActionsHelper executeNextActions;
+    connect(this, &Document::aboutToClose, &executeNextActions, [&executeNextActions] { executeNextActions.b = false; });
 
     switch (action->actionType()) {
     case Action::Goto: {
@@ -3871,8 +3872,9 @@ void Document::processAction(const Action *action)
         // it does not show anything
 
         // first open filename if link is pointing outside this document
-        if (go->isExternal() && !d->openRelativeFile(go->fileName())) {
-            qCWarning(OkularCoreDebug).nospace() << "Action: Error opening '" << go->fileName() << "'.";
+        const QString filename = go->fileName();
+        if (go->isExternal() && !d->openRelativeFile(filename)) {
+            qCWarning(OkularCoreDebug).nospace() << "Action: Error opening '" << filename << "'.";
             break;
         } else {
             const DocumentViewport nextViewport = d->nextDocumentViewport();
@@ -3910,13 +3912,13 @@ void Document::processAction(const Action *action)
                 if (KRun::isExecutableFile(url, mime.name())) {
                     // this case is a link pointing to an executable with a parameter
                     // that also is an executable, possibly a hand-crafted pdf
-                    KMessageBox::information(d->m_widget, i18n("The document is trying to execute an external application and, for your safety, Okular does not allow that."));
+                    emit error(i18n("The document is trying to execute an external application and, for your safety, Okular does not allow that."), -1);
                     break;
                 }
             } else {
                 // this case is a link pointing to an executable with no parameters
                 // core developers find unacceptable executing it even after asking the user
-                KMessageBox::information(d->m_widget, i18n("The document is trying to execute an external application and, for your safety, Okular does not allow that."));
+                emit error(i18n("The document is trying to execute an external application and, for your safety, Okular does not allow that."), -1);
                 break;
             }
         }
@@ -3927,7 +3929,7 @@ void Document::processAction(const Action *action)
             lst.append(url);
             KRun::runService(*ptr, lst, nullptr);
         } else
-            KMessageBox::information(d->m_widget, i18n("No application found for opening file of mimetype %1.", mime.name()));
+            emit error(i18n("No application found for opening file of mimetype %1.", mime.name()), -1);
     } break;
 
     case Action::DocAction: {
@@ -4033,7 +4035,7 @@ void Document::processAction(const Action *action)
     } break;
     }
 
-    if (executeNextActions) {
+    if (executeNextActions.b) {
         const QVector<Action *> nextActions = action->nextActions();
         for (const Action *a : nextActions) {
             processAction(a);
@@ -4915,15 +4917,13 @@ QByteArray Document::requestSignedRevisionData(const Okular::SignatureInfo &info
 {
     QFile f(d->m_docFileName);
     if (!f.open(QIODevice::ReadOnly)) {
-        KMessageBox::error(nullptr, i18n("Could not open '%1'. File does not exist", d->m_docFileName));
+        emit error(i18n("Could not open '%1'. File does not exist", d->m_docFileName), -1);
         return {};
     }
 
     const QList<qint64> byteRange = info.signedRangeBounds();
     f.seek(byteRange.first());
-    QByteArray data;
-    QDataStream stream(&data, QIODevice::WriteOnly);
-    stream << f.read(byteRange.last() - byteRange.first());
+    QByteArray data = f.read(byteRange.last() - byteRange.first());
     f.close();
 
     return data;
@@ -5427,7 +5427,7 @@ QString DocumentInfo::getKeyTitle(Key key) // const
         return i18n("Modified");
         break;
     case MimeType:
-        return i18n("Mime Type");
+        return i18n("MIME Type");
         break;
     case Category:
         return i18n("Category");
@@ -5561,5 +5561,7 @@ void NewSignatureData::setBoundingRectangle(const NormalizedRect &rect)
 
 #undef foreachObserver
 #undef foreachObserverD
+
+#include "document.moc"
 
 /* kate: replace-tabs on; indent-width 4; */

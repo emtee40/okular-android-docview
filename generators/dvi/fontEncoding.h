@@ -3,8 +3,8 @@
 //
 // Part of KDVI - A DVI previewer for the KDE desktop environment
 //
-// (C) 2003 Stefan Kebekus
-// Distributed under the GPL
+// SPDX-FileCopyrightText: 2003 Stefan Kebekus
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 #ifndef _FONTENCODING_H
 #define _FONTENCODING_H
@@ -63,7 +63,7 @@ public:
     // located, opened or parsed, errors are printed using the kError()
     // channel, and the array glyphNameVector will contain empty
     // strings.
-    fontEncoding(const QString &encName);
+    explicit fontEncoding(const QString &encName);
 
     // Full name of the encoding, as read from the encoding file
     QString encodingFullName;

@@ -1,11 +1,8 @@
-/***************************************************************************
- *   Copyright (C) 2005 by Enrico Ros <eros.kde@email.it>                  *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- ***************************************************************************/
+/*
+    SPDX-FileCopyrightText: 2005 Enrico Ros <eros.kde@email.it>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 
 #ifndef _OKULAR_PAGEVIEWANNOTATOR_H_
 #define _OKULAR_PAGEVIEWANNOTATOR_H_
@@ -107,11 +104,13 @@ public:
 
     enum class ShowTip { Yes, No };
     // selects the active tool
-    void selectTool(int toolId, ShowTip showTip);
+    void selectBuiltinTool(int toolId, ShowTip showTip);
     // selects a stamp tool and sets the stamp symbol
     void selectStampTool(const QString &stampSymbol);
-    // makes a quick annotation the active tool
-    int setQuickTool(int toolId);
+    // selects the active quick tool
+    void selectQuickTool(int toolId);
+    // selects the last used tool
+    void selectLastTool();
     // deselects the tool and uncheck all the annotation actions
     void detachAnnotation();
 
@@ -138,7 +137,10 @@ public Q_SLOTS:
     void slotAdvancedSettings();
 
 Q_SIGNALS:
-    void toolSelected();
+    /**
+     * This signal is emitted whenever an annotation tool is activated or all the tools get deactivated
+     */
+    void toolActive(bool active);
     void requestOpenFile(const QString &filePath, int pageNumber);
 
 private:
@@ -146,6 +148,8 @@ private:
     void reparseQuickToolsConfig();
     // save the builtin annotation tools to Okular settings
     void saveBuiltinAnnotationTools();
+    // selects the active tool
+    void selectTool(AnnotationTools *toolsDefinition, int toolId, ShowTip showTip);
     // returns the engine QDomElement of the the currently active tool
     QDomElement currentEngineElement();
     // returns the annotation QDomElement of the the currently active tool
@@ -163,6 +167,7 @@ private:
     bool m_signatureMode;
 
     // creation related variables
+    AnnotationTools *m_lastToolsDefinition;
     int m_lastToolId;
     QRect m_lastDrawnRect;
     PageViewItem *m_lockedItem;

@@ -1,28 +1,24 @@
-﻿/***************************************************************************
- *   Copyright (C) 2002 by Wilco Greven <greven@kde.org>                   *
- *   Copyright (C) 2002 by Chris Cheney <ccheney@cheney.cx>                *
- *   Copyright (C) 2002 by Malcolm Hunter <malcolm.hunter@gmx.co.uk>       *
- *   Copyright (C) 2003-2004 by Christophe Devriese                        *
- *                         <Christophe.Devriese@student.kuleuven.ac.be>    *
- *   Copyright (C) 2003 by Daniel Molkentin <molkentin@kde.org>            *
- *   Copyright (C) 2003 by Andy Goossens <andygoossens@telenet.be>         *
- *   Copyright (C) 2003 by Dirk Mueller <mueller@kde.org>                  *
- *   Copyright (C) 2003 by Laurent Montel <montel@kde.org>                 *
- *   Copyright (C) 2004 by Dominique Devriese <devriese@kde.org>           *
- *   Copyright (C) 2004 by Christoph Cullmann <crossfire@babylon2k.de>     *
- *   Copyright (C) 2004 by Henrique Pinto <stampede@coltec.ufmg.br>        *
- *   Copyright (C) 2004 by Waldo Bastian <bastian@kde.org>                 *
- *   Copyright (C) 2004-2008 by Albert Astals Cid <aacid@kde.org>          *
- *   Copyright (C) 2004 by Antti Markus <antti.markus@starman.ee>          *
- *   Copyright (C) 2017    Klarälvdalens Datakonsult AB, a KDAB Group      *
- *                         company, info@kdab.com. Work sponsored by the   *
- *                         LiMux project of the city of Munich             *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- ***************************************************************************/
+/*
+    SPDX-FileCopyrightText: 2002 Wilco Greven <greven@kde.org>
+    SPDX-FileCopyrightText: 2002 Chris Cheney <ccheney@cheney.cx>
+    SPDX-FileCopyrightText: 2002 Malcolm Hunter <malcolm.hunter@gmx.co.uk>
+    SPDX-FileCopyrightText: 2003-2004 Christophe Devriese <Christophe.Devriese@student.kuleuven.ac.be>
+    SPDX-FileCopyrightText: 2003 Daniel Molkentin <molkentin@kde.org>
+    SPDX-FileCopyrightText: 2003 Andy Goossens <andygoossens@telenet.be>
+    SPDX-FileCopyrightText: 2003 Dirk Mueller <mueller@kde.org>
+    SPDX-FileCopyrightText: 2003 Laurent Montel <montel@kde.org>
+    SPDX-FileCopyrightText: 2004 Dominique Devriese <devriese@kde.org>
+    SPDX-FileCopyrightText: 2004 Christoph Cullmann <crossfire@babylon2k.de>
+    SPDX-FileCopyrightText: 2004 Henrique Pinto <stampede@coltec.ufmg.br>
+    SPDX-FileCopyrightText: 2004 Waldo Bastian <bastian@kde.org>
+    SPDX-FileCopyrightText: 2004-2008 Albert Astals Cid <aacid@kde.org>
+    SPDX-FileCopyrightText: 2004 Antti Markus <antti.markus@starman.ee>
+
+    Work sponsored by the LiMux project of the city of Munich:
+    SPDX-FileCopyrightText: 2017 Klarälvdalens Datakonsult AB a KDAB Group company <info@kdab.com>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 
 #include "part.h"
 
@@ -339,7 +335,8 @@ Part::Part(QWidget *parentWidget, QObject *parent, const QVariantList &args)
     // create live connect extension (for integrating with browser scripting)
     new OkularLiveConnectExtension(this);
 
-    GuiUtils::addIconLoader(iconLoader());
+    const QStringList iconDirs = QStandardPaths::locateAll(QStandardPaths::GenericDataLocation, QStringLiteral("okular/pics"), QStandardPaths::LocateDirectory);
+    QIcon::setFallbackSearchPaths(QIcon::fallbackSearchPaths() << iconDirs);
 
     m_sidebar = new Sidebar(parentWidget);
     setWidget(m_sidebar);
@@ -944,6 +941,11 @@ void Part::setupActions()
     eraseDrawingAction->setIcon(QIcon::fromTheme(QStringLiteral("draw-eraser-delete-objects")));
     eraseDrawingAction->setEnabled(false);
 
+    QAction *configureColorModes = new QAction(i18nc("@action", "Configure Color Modes..."), ac);
+    ac->addAction(QStringLiteral("options_configure_color_modes"), configureColorModes);
+    configureColorModes->setIcon(QIcon::fromTheme(QStringLiteral("configure")));
+    connect(configureColorModes, &QAction::triggered, this, &Part::slotAccessibilityPreferences);
+
     QAction *configureAnnotations = new QAction(i18n("Configure Annotations..."), ac);
     ac->addAction(QStringLiteral("options_configure_annotations"), configureAnnotations);
     configureAnnotations->setIcon(QIcon::fromTheme(QStringLiteral("configure")));
@@ -958,7 +960,6 @@ Part::~Part()
 {
     QDBusConnection::sessionBus().unregisterObject(m_registerDbusName);
 
-    GuiUtils::removeIconLoader(iconLoader());
     m_document->removeObserver(this);
 
     if (m_document->isOpened())
@@ -1531,18 +1532,18 @@ bool Part::openFile()
     bool hasEmbeddedFiles = ok && m_document->embeddedFiles() && m_document->embeddedFiles()->count() > 0;
     if (m_showEmbeddedFiles)
         m_showEmbeddedFiles->setEnabled(hasEmbeddedFiles);
-    m_topMessage->setVisible(hasEmbeddedFiles && Okular::Settings::showOSD());
+    m_topMessage->setVisible(hasEmbeddedFiles && Okular::Settings::showEmbeddedContentMessages());
     m_migrationMessage->setVisible(m_document->isDocdataMigrationNeeded());
 
     // Warn the user that XFA forms are not supported yet (NOTE: poppler generator only)
-    if (ok && m_document->metaData(QStringLiteral("HasUnsupportedXfaForm")).toBool() == true) {
+    if (ok && Okular::Settings::showEmbeddedContentMessages() && m_document->metaData(QStringLiteral("HasUnsupportedXfaForm")).toBool() == true) {
         m_formsMessage->setText(i18n("This document has XFA forms, which are currently <b>unsupported</b>."));
         m_formsMessage->setIcon(QIcon::fromTheme(QStringLiteral("dialog-warning")));
         m_formsMessage->setMessageType(KMessageWidget::Warning);
         m_formsMessage->setVisible(true);
     }
     // m_pageView->toggleFormsAction() may be null on dummy mode
-    else if (ok && m_pageView->toggleFormsAction() && m_pageView->toggleFormsAction()->isEnabled()) {
+    else if (ok && Okular::Settings::showEmbeddedContentMessages() && m_pageView->toggleFormsAction() && m_pageView->toggleFormsAction()->isEnabled()) {
         m_formsMessage->setText(i18n("This document has forms. Click on the button to interact with them, or use View -> Show Forms."));
         m_formsMessage->setMessageType(KMessageWidget::Information);
         m_formsMessage->setVisible(true);
@@ -1561,7 +1562,7 @@ bool Part::openFile()
             }
         }
 
-        if (isDigitallySigned) {
+        if (isDigitallySigned && Okular::Settings::showEmbeddedContentMessages()) {
             if (m_embedMode == PrintPreviewMode) {
                 m_signatureMessage->setText(i18n("All editing and interactive features for this document are disabled. Please save a copy and reopen to edit this document."));
             } else {
@@ -1906,6 +1907,7 @@ void Part::guiActivateEvent(KParts::GUIActivateEvent *event)
 
     if (event->activated()) {
         m_pageView->setupActionsPostGUIActivated();
+        rebuildBookmarkMenu();
     }
 }
 
@@ -2544,6 +2546,15 @@ bool Part::saveAs(const QUrl &saveUrl, SaveAsFlags flags)
     // Figure out the real save url, for symlinks we don't want to copy over the symlink but over the target file
     const QUrl realSaveUrl = resolveSymlinksIfFileExists(saveUrl);
 
+    // Due to the way we write we can overwrite readonly files so check if it's one and just bail out early
+    if (realSaveUrl.isLocalFile()) {
+        const QFileInfo fi(realSaveUrl.toLocalFile());
+        if (fi.exists() && !fi.isWritable()) {
+            KMessageBox::information(widget(), xi18nc("@info", "Could not overwrite <filename>%1</filename> because that file is read-only. Try saving to another location or changing that file's permissions.", realSaveUrl.toLocalFile()));
+            return false;
+        }
+    }
+
     QScopedPointer<QTemporaryFile> tempFile;
     KIO::Job *copyJob = nullptr; // this will be filled with the job that writes to saveUrl
 
@@ -2809,12 +2820,24 @@ void Part::slotPreferences()
 
 void Part::slotToggleChangeColors()
 {
-    m_pageView->slotToggleChangeColors();
+    slotSetChangeColors(!Okular::SettingsCore::changeColors());
 }
 
 void Part::slotSetChangeColors(bool active)
 {
-    m_pageView->slotSetChangeColors(active);
+    Okular::SettingsCore::setChangeColors(active);
+    Okular::Settings::self()->save();
+}
+
+void Part::slotAccessibilityPreferences()
+{
+    // Create dialog
+    PreferencesDialog *dialog = new PreferencesDialog(m_pageView, Okular::Settings::self(), m_embedMode);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+
+    // Show it
+    dialog->switchToAccessibilityPage();
+    dialog->show();
 }
 
 void Part::slotAnnotationPreferences()

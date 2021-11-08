@@ -1,16 +1,12 @@
-/***************************************************************************
- *   Copyright (C) 2005 by Enrico Ros <eros.kde@email.it>                  *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- ***************************************************************************/
+/*
+    SPDX-FileCopyrightText: 2005 Enrico Ros <eros.kde@email.it>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 
 #include "pageviewannotator.h"
 
 // qt / kde includes
-#include <KIconLoader>
 #include <KLocalizedString>
 #include <KMessageBox>
 #include <QApplication>
@@ -54,7 +50,7 @@
 class PickPointEngine : public AnnotatorEngine
 {
 public:
-    PickPointEngine(const QDomElement &engineElement)
+    explicit PickPointEngine(const QDomElement &engineElement)
         : AnnotatorEngine(engineElement)
         , clicked(false)
         , xscale(1.0)
@@ -74,7 +70,7 @@ public:
 
         // create engine objects
         if (!hoverIconName.simplified().isEmpty())
-            pixmap = GuiUtils::loadStamp(hoverIconName, size);
+            pixmap = Okular::AnnotationUtils::loadStamp(hoverIconName, size);
     }
 
     QRect event(EventType type, Button button, Modifiers modifiers, double nX, double nY, double xScale, double yScale, const Okular::Page *page) override
@@ -324,6 +320,7 @@ public:
         , m_page(nullptr)
         , m_pageView(pageView)
         , m_startOver(false)
+        , m_aborted(false)
     {
         m_block = true;
     }
@@ -360,8 +357,8 @@ public:
         const Okular::CertificateStore *certStore = m_document->certificateStore();
         bool userCancelled;
         const QList<Okular::CertificateInfo *> &certs = certStore->signingCertificates(&userCancelled);
-
         if (userCancelled) {
+            m_aborted = true;
             return {};
         }
 
@@ -381,7 +378,7 @@ public:
             if (certs.isEmpty()) {
                 KMessageBox::information(m_pageView,
                                          i18n("There are no available signing certificates.<br/>For more information, please see the section about <a href=\"%1\">Adding Digital Signatures</a> in the manual.",
-                                              QStringLiteral("help:/okular/index.html#adding_digital_signatures")),
+                                              QStringLiteral("help:/okular/signatures.html#adding_digital_signatures")),
                                          QString(),
                                          QString(),
                                          KMessageBox::Notify | KMessageBox::AllowLink);
@@ -407,6 +404,7 @@ public:
                 if (ok) {
                     passok = cert->checkPassword(passToUse);
                 } else {
+                    passok = false;
                     break;
                 }
             }
@@ -415,9 +413,12 @@ public:
                 certCommonName = cert->subjectInfo(Okular::CertificateInfo::CommonName);
             } else {
                 certNicknameToUse.clear();
+                m_aborted = true;
             }
         } else {
+            // The Cancel button has been clicked in the certificate dialog.
             certNicknameToUse.clear();
+            m_aborted = true;
         }
 
         m_creationCompleted = false;
@@ -430,12 +431,17 @@ public:
 
     bool isAccepted() const
     {
-        return !certNicknameToUse.isEmpty();
+        return !m_aborted && !certNicknameToUse.isEmpty();
     }
 
     bool userWantsToStartOver() const
     {
         return m_startOver;
+    }
+
+    bool isAborted() const
+    {
+        return m_aborted;
     }
 
     bool sign(const QString &newFilePath)
@@ -460,13 +466,14 @@ private:
     PageView *m_pageView;
 
     bool m_startOver;
+    bool m_aborted;
 };
 
 /** @short PolyLineEngine */
 class PolyLineEngine : public AnnotatorEngine
 {
 public:
-    PolyLineEngine(const QDomElement &engineElement)
+    explicit PolyLineEngine(const QDomElement &engineElement)
         : AnnotatorEngine(engineElement)
         , last(false)
     {
@@ -883,6 +890,7 @@ PageViewAnnotator::PageViewAnnotator(PageView *parent, Okular::Document *storage
     , m_continuousMode(true)
     , m_constrainRatioAndAngle(false)
     , m_signatureMode(false)
+    , m_lastToolsDefinition(nullptr)
     , m_lastToolId(-1)
     , m_lockedItem(nullptr)
 {
@@ -890,7 +898,7 @@ PageViewAnnotator::PageViewAnnotator(PageView *parent, Okular::Document *storage
     reparseBuiltinToolsConfig();
     reparseQuickToolsConfig();
     connect(Okular::Settings::self(), &Okular::Settings::builtinAnnotationToolsChanged, this, &PageViewAnnotator::reparseBuiltinToolsConfig);
-    connect(Okular::Settings::self(), &Okular::Settings::quickAnnotationToolsChanged, this, &PageViewAnnotator::reparseQuickToolsConfig);
+    connect(Okular::Settings::self(), &Okular::Settings::quickAnnotationToolsChanged, this, &PageViewAnnotator::reparseQuickToolsConfig, Qt::QueuedConnection);
 }
 
 void PageViewAnnotator::reparseConfig()
@@ -1054,16 +1062,23 @@ QRect PageViewAnnotator::performRouteMouseOrTabletEvent(const AnnotatorEngine::E
                         KMessageBox::error(m_pageView, i18nc("%1 is a file path", "Could not sign. Invalid certificate password or could not write to '%1'", newFilePath));
                     }
                 }
+                // Exit the signature mode.
+                setSignatureMode(false);
+                selectBuiltinTool(-1, ShowTip::No);
             } else if (signEngine->userWantsToStartOver()) {
                 delete m_engine;
                 m_engine = new PickPointEngineSignature(m_document, m_pageView);
                 return {};
+            } else if (signEngine->isAborted()) {
+                // Exit the signature mode.
+                setSignatureMode(false);
+                selectBuiltinTool(-1, ShowTip::No);
             }
             m_continuousMode = false;
         }
 
         if (m_continuousMode)
-            selectTool(m_lastToolId, ShowTip::No);
+            selectLastTool();
         else
             detachAnnotation();
     }
@@ -1150,7 +1165,17 @@ void PageViewAnnotator::routePaint(QPainter *painter, const QRect paintRect)
     painter->restore();
 }
 
-void PageViewAnnotator::selectTool(int toolId, ShowTip showTip)
+void PageViewAnnotator::selectBuiltinTool(int toolId, ShowTip showTip)
+{
+    selectTool(m_builtinToolsDefinition, toolId, showTip);
+}
+
+void PageViewAnnotator::selectQuickTool(int toolId)
+{
+    selectTool(m_quickToolsDefinition, toolId, ShowTip::Yes);
+}
+
+void PageViewAnnotator::selectTool(AnnotationTools *toolsDefinition, int toolId, ShowTip showTip)
 {
     // ask for Author's name if not already set
     if (toolId > 0 && Okular::Settings::identityAuthor().isEmpty()) {
@@ -1160,7 +1185,7 @@ void PageViewAnnotator::selectTool(int toolId, ShowTip showTip)
         // ask the user for confirmation/change
         if (userName.isEmpty()) {
             bool ok = false;
-            userName = QInputDialog::getText(nullptr, i18n("Bookmark annotation"), i18n("Insert a custom name for the annotation:"), QLineEdit::Normal, QString(), &ok);
+            userName = QInputDialog::getText(nullptr, i18n("Author name"), i18n("Author name for the annotation:"), QLineEdit::Normal, QString(), &ok);
 
             if (!ok) {
                 detachAnnotation();
@@ -1185,16 +1210,18 @@ void PageViewAnnotator::selectTool(int toolId, ShowTip showTip)
 
     // store current tool for later usage
     m_lastToolId = toolId;
+    m_lastToolsDefinition = toolsDefinition;
 
     // handle tool deselection
     if (toolId == -1) {
         m_pageView->displayMessage(QString());
         m_pageView->updateCursor();
+        emit toolActive(false);
         return;
     }
 
     // for the selected tool create the Engine
-    QDomElement toolElement = m_builtinToolsDefinition->tool(toolId);
+    QDomElement toolElement = toolsDefinition->tool(toolId);
     if (!toolElement.isNull()) {
         // parse tool properties
         QDomElement engineElement = toolElement.firstChildElement(QStringLiteral("engine"));
@@ -1257,8 +1284,12 @@ void PageViewAnnotator::selectTool(int toolId, ShowTip showTip)
         m_pageView->updateCursor();
     }
 
-    if (toolId > 0)
-        emit toolSelected();
+    emit toolActive(true);
+}
+
+void PageViewAnnotator::selectLastTool()
+{
+    selectTool(m_lastToolsDefinition, m_lastToolId, ShowTip::No);
 }
 
 void PageViewAnnotator::selectStampTool(const QString &stampSymbol)
@@ -1269,12 +1300,15 @@ void PageViewAnnotator::selectStampTool(const QString &stampSymbol)
     engineElement.setAttribute(QStringLiteral("hoverIcon"), stampSymbol);
     annotationElement.setAttribute(QStringLiteral("icon"), stampSymbol);
     saveBuiltinAnnotationTools();
-    selectTool(STAMP_TOOL_ID, ShowTip::Yes);
+    selectBuiltinTool(STAMP_TOOL_ID, ShowTip::Yes);
 }
 
 void PageViewAnnotator::detachAnnotation()
 {
-    selectTool(-1, ShowTip::No);
+    if (m_lastToolId == -1) {
+        return;
+    }
+    selectBuiltinTool(-1, ShowTip::No);
     if (!signatureMode()) {
         if (m_actionHandler)
             m_actionHandler->deselectAllAnnotationActions();
@@ -1416,7 +1450,7 @@ QPixmap PageViewAnnotator::makeToolPixmap(const QDomElement &toolElement)
         p.drawLine(0, 20, 19, 20);
         p.drawLine(1, 21, 18, 21);
     } else if (annotType == QLatin1String("stamp")) {
-        QPixmap stamp = GuiUtils::loadStamp(icon, 16, false /* keepAspectRatio */);
+        QPixmap stamp = Okular::AnnotationUtils::loadStamp(icon, 16, false /* keepAspectRatio */);
         p.setRenderHint(QPainter::Antialiasing);
         p.drawPixmap(16, 14, stamp);
     } else if (annotType == QLatin1String("straight-line")) {
@@ -1453,6 +1487,12 @@ void PageViewAnnotator::setupActions(KActionCollection *ac)
 {
     if (!m_actionHandler) {
         m_actionHandler = new AnnotationActionHandler(this, ac);
+        connect(m_actionHandler, &AnnotationActionHandler::ephemeralStampWarning, this, [this] {
+            if (m_document->metaData(QStringLiteral("ShowStampsWarning")).toString() == QLatin1String("yes")) {
+                KMessageBox::information(
+                    nullptr, i18nc("@info", "Stamps inserted in PDF documents are not visible in PDF readers other than Okular"), i18nc("@title:window", "Experimental feature"), QStringLiteral("stampAnnotationWarning"));
+            }
+        });
     }
 }
 
@@ -1501,21 +1541,6 @@ void PageViewAnnotator::saveBuiltinAnnotationTools()
     Okular::Settings::self()->save();
 }
 
-int PageViewAnnotator::setQuickTool(int favToolId)
-{
-    int toolId = -1;
-    QDomElement favToolElement = m_quickToolsDefinition->tool(favToolId);
-    if (!favToolElement.isNull()) {
-        toolId = m_builtinToolsDefinition->findToolId(favToolElement.attribute(QStringLiteral("type")));
-        if (toolId == -1) {
-            return -1;
-        }
-        if (m_builtinToolsDefinition->updateTool(favToolElement, toolId))
-            saveBuiltinAnnotationTools();
-    }
-    return toolId;
-}
-
 QDomElement PageViewAnnotator::builtinTool(int toolId)
 {
     return m_builtinToolsDefinition->tool(toolId);
@@ -1540,7 +1565,7 @@ void PageViewAnnotator::setAnnotationWidth(double width)
 {
     currentAnnotationElement().setAttribute(QStringLiteral("width"), QString::number(width));
     saveBuiltinAnnotationTools();
-    selectTool(m_lastToolId, ShowTip::No);
+    selectLastTool();
 }
 
 void PageViewAnnotator::setAnnotationColor(const QColor &color)
@@ -1554,7 +1579,7 @@ void PageViewAnnotator::setAnnotationColor(const QColor &color)
         annotationElement.setAttribute(QStringLiteral("color"), color.name(QColor::HexRgb));
     }
     saveBuiltinAnnotationTools();
-    selectTool(m_lastToolId, ShowTip::No);
+    selectLastTool();
 }
 
 void PageViewAnnotator::setAnnotationInnerColor(const QColor &color)
@@ -1566,21 +1591,21 @@ void PageViewAnnotator::setAnnotationInnerColor(const QColor &color)
         annotationElement.setAttribute(QStringLiteral("innerColor"), color.name(QColor::HexRgb));
     }
     saveBuiltinAnnotationTools();
-    selectTool(m_lastToolId, ShowTip::No);
+    selectLastTool();
 }
 
 void PageViewAnnotator::setAnnotationOpacity(double opacity)
 {
     currentAnnotationElement().setAttribute(QStringLiteral("opacity"), QString::number(opacity));
     saveBuiltinAnnotationTools();
-    selectTool(m_lastToolId, ShowTip::No);
+    selectLastTool();
 }
 
 void PageViewAnnotator::setAnnotationFont(const QFont &font)
 {
     currentAnnotationElement().setAttribute(QStringLiteral("font"), font.toString());
     saveBuiltinAnnotationTools();
-    selectTool(m_lastToolId, ShowTip::No);
+    selectLastTool();
 }
 
 void PageViewAnnotator::addToQuickAnnotations()
@@ -1616,7 +1641,7 @@ void PageViewAnnotator::slotAdvancedSettings()
     int toolId = toolElement.attribute(QStringLiteral("id")).toInt();
     m_builtinToolsDefinition->updateTool(toolElementUpdated, toolId);
     saveBuiltinAnnotationTools();
-    selectTool(m_lastToolId, ShowTip::No);
+    selectLastTool();
 }
 
 /* kate: replace-tabs on; indent-width 4; */

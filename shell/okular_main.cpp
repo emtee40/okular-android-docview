@@ -1,16 +1,12 @@
-/***************************************************************************
- *   Copyright (C) 2002 by Wilco Greven <greven@kde.org>                   *
- *   Copyright (C) 2003 by Christophe Devriese                             *
- *                         <Christophe.Devriese@student.kuleuven.ac.be>    *
- *   Copyright (C) 2003 by Laurent Montel <montel@kde.org>                 *
- *   Copyright (C) 2003-2007 by Albert Astals Cid <aacid@kde.org>          *
- *   Copyright (C) 2004 by Andy Goossens <andygoossens@telenet.be>         *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- ***************************************************************************/
+/*
+    SPDX-FileCopyrightText: 2002 Wilco Greven <greven@kde.org>
+    SPDX-FileCopyrightText: 2003 Christophe Devriese <Christophe.Devriese@student.kuleuven.ac.be>
+    SPDX-FileCopyrightText: 2003 Laurent Montel <montel@kde.org>
+    SPDX-FileCopyrightText: 2003-2007 Albert Astals Cid <aacid@kde.org>
+    SPDX-FileCopyrightText: 2004 Andy Goossens <andygoossens@telenet.be>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 
 #include "okular_main.h"
 
@@ -52,7 +48,12 @@ static bool attachExistingInstance(const QStringList &paths, const QString &seri
     if (ShellUtils::showPrintDialogAndExit(serializedOptions))
         return false;
 
-    const QStringList services = QDBusConnection::sessionBus().interface()->registeredServiceNames().value();
+    // If DBus isn't running, we can't attach to an existing instance.
+    auto *sessionInterface = QDBusConnection::sessionBus().interface();
+    if (!sessionInterface)
+        return false;
+
+    const QStringList services = sessionInterface->registeredServiceNames().value();
 
     // Don't match the service without trailing "-" (unique instance)
     const QString pattern = QStringLiteral("org.kde.okular-");

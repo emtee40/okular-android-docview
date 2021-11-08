@@ -1,11 +1,8 @@
-/***************************************************************************
- *   Copyright (C) 2004-2005 by Enrico Ros <eros.kde@email.it>             *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- ***************************************************************************/
+/*
+    SPDX-FileCopyrightText: 2004-2005 Enrico Ros <eros.kde@email.it>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 
 #include "action.h"
 
@@ -205,7 +202,7 @@ QString ExecuteAction::parameters() const
 class Okular::BrowseActionPrivate : public Okular::ActionPrivate
 {
 public:
-    BrowseActionPrivate(const QUrl &url)
+    explicit BrowseActionPrivate(const QUrl &url)
         : ActionPrivate()
         , m_url(url)
     {
@@ -250,7 +247,7 @@ QUrl BrowseAction::url() const
 class Okular::DocumentActionPrivate : public Okular::ActionPrivate
 {
 public:
-    DocumentActionPrivate(enum DocumentAction::DocumentActionType documentActionType)
+    explicit DocumentActionPrivate(enum DocumentAction::DocumentActionType documentActionType)
         : ActionPrivate()
         , m_type(documentActionType)
     {
@@ -446,7 +443,7 @@ QString ScriptAction::script() const
 class Okular::MovieActionPrivate : public Okular::ActionPrivate
 {
 public:
-    MovieActionPrivate(MovieAction::OperationType operation)
+    explicit MovieActionPrivate(MovieAction::OperationType operation)
         : ActionPrivate()
         , m_operation(operation)
         , m_annotation(nullptr)

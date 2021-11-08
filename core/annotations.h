@@ -1,11 +1,8 @@
-/***************************************************************************
- *   Copyright (C) 2005 by Enrico Ros <eros.kde@email.it>                  *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- ***************************************************************************/
+/*
+    SPDX-FileCopyrightText: 2005 Enrico Ros <eros.kde@email.it>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 
 #ifndef _OKULAR_ANNOTATIONS_H_
 #define _OKULAR_ANNOTATIONS_H_
@@ -77,6 +74,17 @@ public:
      * @p scaleX and @p scaleY.
      */
     static QRect annotationGeometry(const Annotation *annotation, double scaleX, double scaleY);
+
+    /**
+     * Returns a pixmap for a stamp symbol
+     *
+     * @p name Name of a Okular stamp symbol, icon or path to an image
+     * @p size Size of the pixmap side
+     * @p keepAspectRatio Whether to keep aspect ratio of the stamp or not
+     *
+     * @since 21.12
+     */
+    static QPixmap loadStamp(const QString &nameOrPath, int size, bool keepAspectRatio = true);
 };
 
 /**
@@ -678,7 +686,7 @@ public:
 
 protected:
     /// @cond PRIVATE
-    Annotation(AnnotationPrivate &dd);
+    explicit Annotation(AnnotationPrivate &dd);
     Annotation(AnnotationPrivate &dd, const QDomNode &description);
     Q_DECLARE_PRIVATE(Annotation)
     AnnotationPrivate *d_ptr;

@@ -1,12 +1,9 @@
-/***************************************************************************
- *   Copyright (C) 2005 by Enrico Ros <eros.kde@email.it>                  *
- *   Copyright (C) 2006 by Albert Astals Cid <aacid@kde.org>               *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- ***************************************************************************/
+/*
+    SPDX-FileCopyrightText: 2005 Enrico Ros <eros.kde@email.it>
+    SPDX-FileCopyrightText: 2006 Albert Astals Cid <aacid@kde.org>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 
 #include "minibar.h"
 
@@ -36,7 +33,7 @@ class HoverButton : public QToolButton
 {
     Q_OBJECT
 public:
-    HoverButton(QWidget *parent);
+    explicit HoverButton(QWidget *parent);
 };
 
 MiniBarLogic::MiniBarLogic(QObject *parent, Okular::Document *document)
@@ -96,9 +93,22 @@ void MiniBarLogic::notifySetup(const QVector<Okular::Page *> &pageVector, int se
 
     const QString pagesString = QString::number(pages);
 
+    // In some documents, there may be labels which are longer than pagesString. Here, we check all the page labels, and if any of the labels are longer than pagesString, we use that string for sizing m_pageLabelEdit
+    QString pagesOrLabelString = pagesString;
+    if (labelsDiffer) {
+        for (const Okular::Page *page : pageVector) {
+            if (!page->label().isEmpty()) {
+                MiniBar *miniBar = *m_miniBars.constBegin(); // We assume all the minibars have the same font, font size etc, so we just take one minibar for the purpose of calculating the displayed length of the page labels.
+                if (miniBar->fontMetrics().horizontalAdvance(page->label()) > miniBar->fontMetrics().horizontalAdvance(pagesOrLabelString)) {
+                    pagesOrLabelString = page->label();
+                }
+            }
+        }
+    }
+
     for (MiniBar *miniBar : qAsConst(m_miniBars)) {
         // resize width of widgets
-        miniBar->resizeForPage(pages);
+        miniBar->resizeForPage(pages, pagesOrLabelString);
 
         // update child widgets
         miniBar->m_pageLabelEdit->setPageLabels(pageVector);
@@ -145,7 +155,7 @@ void MiniBarLogic::notifyCurrentPageChanged(int previousPage, int currentPage)
 MiniBar::MiniBar(QWidget *parent, MiniBarLogic *miniBarLogic)
     : QWidget(parent)
     , m_miniBarLogic(miniBarLogic)
-    , m_oldToobarParent(nullptr)
+    , m_oldToolbarParent(nullptr)
 {
     setObjectName(QStringLiteral("miniBar"));
 
@@ -192,7 +202,7 @@ MiniBar::MiniBar(QWidget *parent, MiniBarLogic *miniBarLogic)
     setSizePolicy(sp);
 
     // resize width of widgets
-    resizeForPage(0);
+    resizeForPage(0, QString());
 
     // connect signals from child widgets to internal handlers / signals bouncers
     connect(m_pageNumberEdit, &PageNumberEdit::returnPressed, this, &MiniBar::slotChangePageFromReturn);
@@ -216,11 +226,11 @@ void MiniBar::changeEvent(QEvent *event)
 {
     if (event->type() == QEvent::ParentChange) {
         QToolBar *tb = dynamic_cast<QToolBar *>(parent());
-        if (tb != m_oldToobarParent) {
-            if (m_oldToobarParent) {
-                disconnect(m_oldToobarParent, &QToolBar::iconSizeChanged, this, &MiniBar::slotToolBarIconSizeChanged);
+        if (tb != m_oldToolbarParent) {
+            if (m_oldToolbarParent) {
+                disconnect(m_oldToolbarParent, &QToolBar::iconSizeChanged, this, &MiniBar::slotToolBarIconSizeChanged);
             }
-            m_oldToobarParent = tb;
+            m_oldToolbarParent = tb;
             if (tb) {
                 connect(tb, &QToolBar::iconSizeChanged, this, &MiniBar::slotToolBarIconSizeChanged);
                 slotToolBarIconSizeChanged();
@@ -278,18 +288,19 @@ void MiniBar::slotEmitPrevPage()
 
 void MiniBar::slotToolBarIconSizeChanged()
 {
-    const QSize buttonSize = m_oldToobarParent->iconSize();
+    const QSize buttonSize = m_oldToolbarParent->iconSize();
     m_prevButton->setIconSize(buttonSize);
     m_nextButton->setIconSize(buttonSize);
 }
 
-void MiniBar::resizeForPage(int pages)
+void MiniBar::resizeForPage(int pages, const QString &pagesOrLabelString)
 {
     const int numberWidth = 10 + fontMetrics().horizontalAdvance(QString::number(pages));
+    const int labelWidth = 10 + fontMetrics().horizontalAdvance(pagesOrLabelString);
     m_pageNumberEdit->setMinimumWidth(numberWidth);
     m_pageNumberEdit->setMaximumWidth(2 * numberWidth);
-    m_pageLabelEdit->setMinimumWidth(numberWidth);
-    m_pageLabelEdit->setMaximumWidth(2 * numberWidth);
+    m_pageLabelEdit->setMinimumWidth(labelWidth);
+    m_pageLabelEdit->setMaximumWidth(2 * labelWidth);
     m_pageNumberLabel->setMinimumWidth(numberWidth);
     m_pageNumberLabel->setMaximumWidth(2 * numberWidth);
     m_pagesButton->setMinimumWidth(numberWidth);

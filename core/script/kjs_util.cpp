@@ -1,12 +1,9 @@
-/***************************************************************************
- *   Copyright (C) 2008 by Pino Toscano <pino@kde.org>                     *
- *   Copyright (C) 2008 by Harri Porten <porten@kde.org>                   *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- ***************************************************************************/
+/*
+    SPDX-FileCopyrightText: 2008 Pino Toscano <pino@kde.org>
+    SPDX-FileCopyrightText: 2008 Harri Porten <porten@kde.org>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 
 #include "kjs_util_p.h"
 
@@ -94,6 +91,12 @@ static KJSObject printd(KJSContext *context, void *, const KJSArguments &argumen
 
     QLocale locale(QStringLiteral("en_US"));
     const QStringList str = arguments.at(1).toString(context).split(QRegularExpression(QStringLiteral("\\W")));
+
+    if (str.count() < 7) {
+        qWarning() << "Unexpected printd oDate argument" << arguments.at(1).toString(context);
+        return context->throwException(QStringLiteral("Invalid arguments"));
+    }
+
     QString myStr = QStringLiteral("%1/%2/%3 %4:%5:%6").arg(str[1], str[2], str[3], str[4], str[5], str[6]);
     QDateTime date = locale.toDateTime(myStr, QStringLiteral("MMM/d/yyyy H:m:s"));
 

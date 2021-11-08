@@ -1,14 +1,11 @@
-/***************************************************************************
- *   Copyright (C) 2012 by Fabio D'Urso <fabiodurso@hotmail.it>            *
- *   Copyright (C) 2017    Klarälvdalens Datakonsult AB, a KDAB Group      *
- *                         company, info@kdab.com. Work sponsored by the   *
- *                         LiMux project of the city of Munich             *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- ***************************************************************************/
+/*
+    SPDX-FileCopyrightText: 2012 Fabio D 'Urso <fabiodurso@hotmail.it>
+
+    Work sponsored by the LiMux project of the city of Munich:
+    SPDX-FileCopyrightText: 2017 Klarälvdalens Datakonsult AB a KDAB Group company <info@kdab.com>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 
 #ifndef _OKULAR_GENERATOR_PDF_ANNOTS_H_
 #define _OKULAR_GENERATOR_PDF_ANNOTS_H_
@@ -17,6 +14,8 @@
 #include <poppler-qt5.h>
 
 #include <QMutex>
+
+#include <unordered_map>
 
 #include "config-okular-poppler.h"
 #include "core/annotations.h"
@@ -38,6 +37,9 @@ private:
     Poppler::Document *ppl_doc;
     QMutex *mutex;
     QHash<Okular::Annotation *, Poppler::Annotation *> *annotationsOnOpenHash;
+#ifdef HAVE_POPPLER_21_10
+    std::unordered_map<Okular::StampAnnotation *, std::unique_ptr<Poppler::AnnotationAppearance>> deletedStampsAnnotationAppearance;
+#endif
 };
 
 #endif

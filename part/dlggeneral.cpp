@@ -1,11 +1,8 @@
-/***************************************************************************
- *   Copyright (C) 2006 by Pino Toscano <toscano.pino@tiscali.it>          *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- ***************************************************************************/
+/*
+    SPDX-FileCopyrightText: 2006 Pino Toscano <toscano.pino@tiscali.it>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 
 #include "dlggeneral.h"
 
@@ -50,11 +47,17 @@ DlgGeneral::DlgGeneral(QWidget *parent, Okular::EmbedMode embedMode)
         layout->addRow(QString(), scrollThumbnails);
     }
 
-    // Checkbox: show hints and info messages
-    QCheckBox *showHints = new QCheckBox(this);
-    showHints->setText(i18nc("@option:check Config dialog, general page", "Show hints and info messages"));
-    showHints->setObjectName(QStringLiteral("kcfg_ShowOSD"));
-    layout->addRow(QString(), showHints);
+    // Checkbox: Show welcoming messages (the balloons or OSD)
+    QCheckBox *showOSD = new QCheckBox(this);
+    showOSD->setText(i18nc("@option:check Config dialog, general page", "Show hints and info messages"));
+    showOSD->setObjectName(QStringLiteral("kcfg_ShowOSD"));
+    layout->addRow(QString(), showOSD);
+
+    // Checkbox: Notify about embedded files, forms, or signatures
+    QCheckBox *showEmbeddedContentMessages = new QCheckBox(this);
+    showEmbeddedContentMessages->setText(i18nc("@option:check Config dialog, general page", "Notify about embedded files, forms, or signatures"));
+    showEmbeddedContentMessages->setObjectName(QStringLiteral("kcfg_ShowEmbeddedContentMessages"));
+    layout->addRow(QString(), showEmbeddedContentMessages);
 
     if (embedMode != Okular::ViewerWidgetMode) {
         // Checkbox: display document title in titlebar

@@ -5,6 +5,7 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-2.0+ and GFDL-1.3</project_license>
   <name>Fax</name>
+  <name xml:lang="ar">فاكس</name>
   <name xml:lang="az">Fax</name>
   <name xml:lang="ca">Fax</name>
   <name xml:lang="ca-valencia">Fax</name>
@@ -18,6 +19,8 @@
   <name xml:lang="fi">Faksi</name>
   <name xml:lang="fr">Fax</name>
   <name xml:lang="gl">Fax</name>
+  <name xml:lang="hi">फ़ैक्स</name>
+  <name xml:lang="hu">Fax</name>
   <name xml:lang="ia">Fax</name>
   <name xml:lang="it">Fax</name>
   <name xml:lang="ko">팩스</name>
@@ -37,12 +40,15 @@
   <name xml:lang="sr-ijekavian">Факс</name>
   <name xml:lang="sr-ijekavianlatin">Faks</name>
   <name xml:lang="sv">Telefax</name>
+  <name xml:lang="ta">Fax</name>
   <name xml:lang="tr">Faks</name>
   <name xml:lang="uk">факс</name>
+  <name xml:lang="vi">Fax</name>
   <name xml:lang="x-test">xxFaxxx</name>
   <name xml:lang="zh-CN">传真</name>
   <name xml:lang="zh-TW">傳真</name>
   <summary>Adds support for reading Fax documents</summary>
+  <summary xml:lang="ar">يضيف دعم لقراءة مستندات الفاكس</summary>
   <summary xml:lang="az">Faks sənədlərini oxumaq üçün dəstək əlavə edir</summary>
   <summary xml:lang="ca">Afegeix la implementació per a llegir documents de Fax</summary>
   <summary xml:lang="ca-valencia">Afig la implementació per a llegir documents de Fax</summary>
@@ -56,6 +62,8 @@
   <summary xml:lang="fi">Lisää faksitiedostojen lukutuen</summary>
   <summary xml:lang="fr">Permet la lecture des documents Fax</summary>
   <summary xml:lang="gl">Engade a posibilidade de ler documentos de fax</summary>
+  <summary xml:lang="hi">फ़ैक्स दस्तावेज़ पढ़ने के लिए समर्थन जोड़ता है</summary>
+  <summary xml:lang="hu">Támogatás faxdokumentumok olvasásához</summary>
   <summary xml:lang="ia">Adde supporto per leger documentos Fax</summary>
   <summary xml:lang="it">Aggiunge il supporto per la lettura di documenti Fax</summary>
   <summary xml:lang="ko">팩스 문서 읽기 지원 추가</summary>
@@ -75,8 +83,10 @@
   <summary xml:lang="sr-ijekavian">Подршка за читање факс докумената</summary>
   <summary xml:lang="sr-ijekavianlatin">Podrška za čitanje faks dokumenata</summary>
   <summary xml:lang="sv">Lägger till stöd för att läsa telefax-dokument</summary>
+  <summary xml:lang="ta">Fax ஆவணங்களைப் படிப்பதற்கான ஆதரவை சேர்க்கும்</summary>
   <summary xml:lang="tr">Faks belgelerini okuma desteği ekler</summary>
   <summary xml:lang="uk">Додає підтримку читання документів факсів</summary>
+  <summary xml:lang="vi">Thêm hỗ trợ đọc tài liệu Fax</summary>
   <summary xml:lang="x-test">xxAdds support for reading Fax documentsxx</summary>
   <summary xml:lang="zh-CN">增加对传真文档的阅读支持</summary>
   <summary xml:lang="zh-TW">加入讀取傳真文件的支援</summary>
@@ -86,9 +96,9 @@
   </provides>
   <url type="homepage">https://okular.kde.org</url>
   <releases>
-    <release version="21.04.0" date="2021-04-22"/>
-    <release version="20.12.3" date="2021-03-04"/>
-    <release version="20.12.2" date="2021-02-04"/>
-    <release version="1.11.3" date="2020-11-05"/>
+    <release version="21.08.3" date="2021-11-04"/>
+    <release version="21.08.2" date="2021-10-07"/>
+    <release version="21.08.1" date="2021-09-02"/>
+    <release version="21.08.0" date="2021-08-12"/>
   </releases>
 </component>

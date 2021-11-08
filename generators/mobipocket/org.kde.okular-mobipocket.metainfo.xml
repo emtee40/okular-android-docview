@@ -5,6 +5,7 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-2.0+ and GFDL-1.3</project_license>
   <name>Mobipocket</name>
+  <name xml:lang="ar">كتب Mobipocket</name>
   <name xml:lang="az">Mobipocket</name>
   <name xml:lang="ca">Mobipocket</name>
   <name xml:lang="ca-valencia">Mobipocket</name>
@@ -18,6 +19,8 @@
   <name xml:lang="fi">Mobipocket</name>
   <name xml:lang="fr">Mobipocket</name>
   <name xml:lang="gl">Mobipocket</name>
+  <name xml:lang="hi">मोबिपोकेट</name>
+  <name xml:lang="hu">Mobipocket</name>
   <name xml:lang="ia">Mobipocket</name>
   <name xml:lang="it">Mobipocket</name>
   <name xml:lang="ko">Mobipocket</name>
@@ -37,12 +40,15 @@
   <name xml:lang="sr-ijekavian">Мобипокет</name>
   <name xml:lang="sr-ijekavianlatin">Mobipocket</name>
   <name xml:lang="sv">Mobipocket</name>
+  <name xml:lang="ta">Mobipocket</name>
   <name xml:lang="tr">Mobipocket</name>
   <name xml:lang="uk">Mobipocket</name>
+  <name xml:lang="vi">Mobipocket</name>
   <name xml:lang="x-test">xxMobipocketxx</name>
   <name xml:lang="zh-CN">Mobipocket</name>
   <name xml:lang="zh-TW">Mobipocket</name>
   <summary>Adds support for reading Mobipocket E-books</summary>
+  <summary xml:lang="ar">يضيف دعم لقراءة الكتب الإلكترونية Mobipocket</summary>
   <summary xml:lang="az">Mobipocket E-books sənədlərini oxumaq üçün dəstək əlavə edir</summary>
   <summary xml:lang="ca">Afegeix la implementació per a llegir llibres electrònics Mobipocket</summary>
   <summary xml:lang="ca-valencia">Afig la implementació per a llegir llibres electrònics Mobipocket</summary>
@@ -56,6 +62,8 @@
   <summary xml:lang="fi">Lisää MobiPocket-e-kirjojen lukutuen</summary>
   <summary xml:lang="fr">Ajouter la gestion en lecture des livres électroniques Mobipocket</summary>
   <summary xml:lang="gl">Engade a posibilidade de ler libros electrónicos Mobipocket</summary>
+  <summary xml:lang="hi">मोबिपोकेट ई-पुस्तक पढ़ने के लिए समर्थन जोड़ता है</summary>
+  <summary xml:lang="hu">Támogatás Mobipocket e-könyvek olvasásához</summary>
   <summary xml:lang="ia">Adde supporto per leger E-libros in Mobipocket</summary>
   <summary xml:lang="it">Aggiunge il supporto per la lettura di libri digitali in formato Mobipocket</summary>
   <summary xml:lang="ko">Mobipocket 전자책 읽기 지원 추가</summary>
@@ -75,8 +83,10 @@
   <summary xml:lang="sr-ijekavian">Подршка за читање мобипокет е‑књига</summary>
   <summary xml:lang="sr-ijekavianlatin">Podrška za čitanje Mobipocket e‑knjiga</summary>
   <summary xml:lang="sv">Lägger till stöd för att läsa Mobipocket e-böcker</summary>
+  <summary xml:lang="ta">Mobipocket மின்புத்தகங்களைப் படிப்பதற்கான ஆதரவை சேர்க்கும்</summary>
   <summary xml:lang="tr">Mobipocket E-kitaplarını okuma desteği ekler</summary>
   <summary xml:lang="uk">Додає підтримку читання електронних книг у форматі Mobipocket</summary>
+  <summary xml:lang="vi">Thêm hỗ trợ đọc sách điện tử Mobipocket</summary>
   <summary xml:lang="x-test">xxAdds support for reading Mobipocket E-booksxx</summary>
   <summary xml:lang="zh-CN">增加对 Mobipocket 电子书的支持</summary>
   <summary xml:lang="zh-TW">加入讀取 Mobipocket 電子書的支援</summary>
@@ -108,9 +118,9 @@
   </provides>
   <url type="homepage">https://okular.kde.org</url>
   <releases>
-    <release version="21.04.0" date="2021-04-22"/>
-    <release version="20.12.3" date="2021-03-04"/>
-    <release version="20.12.2" date="2021-02-04"/>
-    <release version="1.11.3" date="2020-11-05"/>
+    <release version="21.08.3" date="2021-11-04"/>
+    <release version="21.08.2" date="2021-10-07"/>
+    <release version="21.08.1" date="2021-09-02"/>
+    <release version="21.08.0" date="2021-08-12"/>
   </releases>
 </component>

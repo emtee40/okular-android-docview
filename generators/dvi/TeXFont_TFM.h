@@ -3,8 +3,8 @@
 //
 // Part of KDVI - A DVI previewer for the KDE desktop environment
 //
-// (C) 2003 Stefan Kebekus
-// Distributed under the GPL
+// SPDX-FileCopyrightText: 2003 Stefan Kebekus
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 #ifndef _TEXFONT_TFM_H
 #define _TEXFONT_TFM_H
@@ -33,7 +33,7 @@ public:
 class TeXFont_TFM : public TeXFont
 {
 public:
-    TeXFont_TFM(TeXFontDefinition *parent);
+    explicit TeXFont_TFM(TeXFontDefinition *parent);
     ~TeXFont_TFM() override;
 
     glyph *getGlyph(quint16 character, bool generateCharacterPixmap = false, const QColor &color = Qt::black) override;

@@ -1,11 +1,8 @@
-/***************************************************************************
- *   Copyright (C) 2007 by Pino Toscano <pino@kde.org>                     *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- ***************************************************************************/
+/*
+    SPDX-FileCopyrightText: 2007 Pino Toscano <pino@kde.org>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 
 #ifndef _ABOUTDATA_H_
 #define _ABOUTDATA_H_
@@ -32,7 +29,7 @@ inline KAboutData okularAboutData()
                      QStringLiteral("https://okular.kde.org"));
 
     about.addAuthor(QStringLiteral("Pino Toscano"), i18n("Former maintainer"), QStringLiteral("pino@kde.org"));
-    about.addAuthor(QStringLiteral("Tobias Koenig"), i18n("Lots of framework work, ODT and FictionBook backends"), QStringLiteral("tokoe@kde.org"));
+    about.addAuthor(QStringLiteral("Tobias Koenig"), i18n("Lots of framework work, FictionBook backend and former ODT backend"), QStringLiteral("tokoe@kde.org"));
     about.addAuthor(QStringLiteral("Albert Astals Cid"), i18n("Developer"), QStringLiteral("aacid@kde.org"));
     about.addAuthor(QStringLiteral("Piotr Szymanski"), i18n("Created Okular from KPDF codebase"), QStringLiteral("djurban@pld-dc.org"));
     about.addAuthor(QStringLiteral("Enrico Ros"), i18n("KPDF developer"), QStringLiteral("eros.kde@email.it"));

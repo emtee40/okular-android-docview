@@ -4,10 +4,10 @@
 //
 // Part of KVIEWSHELL
 //
-// (C) 2005 Stefan Kebekus
-// (C) 2006 Wilfried Huss
+// SPDX-FileCopyrightText: 2005 Stefan Kebekus
+// SPDX-FileCopyrightText: 2006 Wilfried Huss
 //
-// Distributed under the GPL.
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 #ifndef _length_h_
 #define _length_h_

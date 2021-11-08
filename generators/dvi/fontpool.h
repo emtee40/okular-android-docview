@@ -1,8 +1,8 @@
 // -*- Mode: C++; c-basic-offset: 2; indent-tabs-mode: nil; c-brace-offset: 0; -*-
 // fontpool.h
 //
-// (C) 2001-2004 Stefan Kebekus
-// Distributed under the GPL
+// SPDX-FileCopyrightText: 2001-2004 Stefan Kebekus
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 #ifndef _FONTPOOL_H
 #define _FONTPOOL_H
@@ -38,7 +38,7 @@ class fontPool : public QObject
 
 public:
     // Default constructor.
-    fontPool(bool useFontHinting);
+    explicit fontPool(bool useFontHinting);
 
     // Default destructor.
     ~fontPool() override;

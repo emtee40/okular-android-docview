@@ -1,11 +1,8 @@
-/***************************************************************************
- *   Copyright (C) 2017 by Julian Wolff <wolff@julianwolff.de>             *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- ***************************************************************************/
+/*
+    SPDX-FileCopyrightText: 2017 Julian Wolff <wolff@julianwolff.de>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 
 #include "converter.h"
 
@@ -189,23 +186,30 @@ void Converter::convertImages(const QTextBlock &parent, const QDir &dir, QTextDo
         if (textFragment.isValid()) {
             const QTextCharFormat textCharFormat = textFragment.charFormat();
             if (textCharFormat.isImageFormat()) {
-                // TODO: Show images from http URIs
-
                 QTextImageFormat format;
 
                 const qreal specifiedHeight = textCharFormat.toImageFormat().height();
                 const qreal specifiedWidth = textCharFormat.toImageFormat().width();
 
-                format.setName(QDir::cleanPath(dir.absoluteFilePath(textCharFormat.toImageFormat().name())));
-                const QImage img = QImage(format.name());
-
-                setImageSize(format, specifiedWidth, specifiedHeight, img.width(), img.height());
-
                 QTextCursor cursor(textDocument);
                 cursor.setPosition(textFragment.position(), QTextCursor::MoveAnchor);
                 cursor.setPosition(textFragment.position() + textFragment.length(), QTextCursor::KeepAnchor);
-                cursor.removeSelectedText();
-                cursor.insertImage(format);
+
+                const QString imageFilePath = QDir::cleanPath(dir.absoluteFilePath(textCharFormat.toImageFormat().name()));
+                if (QFile::exists(imageFilePath)) {
+                    cursor.removeSelectedText();
+                    format.setName(imageFilePath);
+                    const QImage img = QImage(format.name());
+
+                    setImageSize(format, specifiedWidth, specifiedHeight, img.width(), img.height());
+
+                    cursor.insertImage(format);
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+                } else if ((!textCharFormat.toImageFormat().property(QTextFormat::ImageAltText).toString().isEmpty())) {
+                    cursor.removeSelectedText();
+                    cursor.insertText(textCharFormat.toImageFormat().property(QTextFormat::ImageAltText).toString());
+#endif
+                }
             }
         }
     }

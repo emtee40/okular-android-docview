@@ -3,8 +3,8 @@
 //
 // Part of KDVI - A DVI previewer for the KDE desktop environment
 //
-// (C) 2003 Stefan Kebekus
-// Distributed under the GPL
+// SPDX-FileCopyrightText: 2003 Stefan Kebekus
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 #ifndef _FONTMAP_H
 #define _FONTMAP_H

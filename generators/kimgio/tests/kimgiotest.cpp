@@ -1,11 +1,8 @@
-/***************************************************************************
- *   Copyright (C) 2013 by Fabio D'Urso <fabiodurso@hotmail.it>            *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- ***************************************************************************/
+/*
+    SPDX-FileCopyrightText: 2013 Fabio D 'Urso <fabiodurso@hotmail.it>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 
 #include "../../settings_core.h"
 #include "../generator_kimgio.h"
@@ -95,7 +92,7 @@ void KIMGIOTest::testExifOrientation()
     QCOMPARE(m_document->page(0)->height(), double(2));
 
     // Generate pixmap
-    Okular::PixmapRequest *req = new Okular::PixmapRequest(dummyDocumentObserver, 0, 3, 2, 1, Okular::PixmapRequest::NoFeature);
+    Okular::PixmapRequest *req = new Okular::PixmapRequest(dummyDocumentObserver, 0, 3, 2, qApp->devicePixelRatio(), 1, Okular::PixmapRequest::NoFeature);
     m_document->requestPixmaps(QLinkedList<Okular::PixmapRequest *>() << req);
     QVERIFY(m_document->page(0)->hasPixmap(dummyDocumentObserver, 3, 2));
 

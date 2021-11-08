@@ -1,11 +1,8 @@
-/***************************************************************************
- *   Copyright (C) 2004 by Enrico Ros <eros.kde@email.it>                  *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- ***************************************************************************/
+/*
+    SPDX-FileCopyrightText: 2004 Enrico Ros <eros.kde@email.it>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 
 #ifndef _PREFERENCESDIALOG_H
 #define _PREFERENCESDIALOG_H
@@ -33,6 +30,7 @@ class PreferencesDialog : public KConfigDialog
 public:
     PreferencesDialog(QWidget *parent, KConfigSkeleton *skeleton, Okular::EmbedMode embedMode);
 
+    void switchToAccessibilityPage();
     void switchToAnnotationsPage();
 
 protected:
@@ -54,6 +52,7 @@ private:
     DlgDebug *m_debug;
 #endif
 
+    KPageWidgetItem *m_accessibilityPage;
     KPageWidgetItem *m_annotationsPage;
 };
 

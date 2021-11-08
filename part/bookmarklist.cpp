@@ -1,11 +1,8 @@
-/***************************************************************************
- *   Copyright (C) 2006 by Pino Toscano <pino@kde.org>                     *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- ***************************************************************************/
+/*
+    SPDX-FileCopyrightText: 2006 Pino Toscano <pino@kde.org>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 
 #include "bookmarklist.h"
 
@@ -38,7 +35,7 @@ static const int UrlRole = Qt::UserRole + 1;
 class BookmarkItem : public QTreeWidgetItem
 {
 public:
-    BookmarkItem(const KBookmark &bm)
+    explicit BookmarkItem(const KBookmark &bm)
         : QTreeWidgetItem(BookmarkItemType)
         , m_bookmark(bm)
     {

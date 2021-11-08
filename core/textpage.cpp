@@ -1,11 +1,8 @@
-/***************************************************************************
- *   Copyright (C) 2005 by Piotr Szymanski <niedakh@gmail.com>             *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- ***************************************************************************/
+/*
+    SPDX-FileCopyrightText: 2005 Piotr Szymanski <niedakh@gmail.com>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 
 #include "textpage.h"
 #include "textpage_p.h"
@@ -1356,10 +1353,10 @@ static void calculateStatisticalInformation(const QList<WordWithCharacters> &wor
  * The resulting RegionTextList will contain RegionText whose WordsWithCharacters::word and
  * WordsWithCharacters::characters are reused from wordsWithCharacters (i.e. no new nor delete happens in this function)
  */
-static RegionTextList XYCutForBoundingBoxes(const QList<WordWithCharacters> &wordsWithCharacters, const NormalizedRect &boundingBox, int pageWidth, int pageHeight)
+static RegionTextList XYCutForBoundingBoxes(const QList<WordWithCharacters> &wordsWithCharacters, int pageWidth, int pageHeight)
 {
     RegionTextList tree;
-    QRect contentRect(boundingBox.geometry(pageWidth, pageHeight));
+    QRect contentRect(0, 0, pageWidth, pageHeight);
     const RegionText root(wordsWithCharacters, contentRect);
 
     // start the tree with the root, it is our only region at the start
@@ -1678,7 +1675,7 @@ void TextPagePrivate::correctTextOrder()
     /**
      * Make a XY Cut tree for segmentation of the texts
      */
-    const RegionTextList tree = XYCutForBoundingBoxes(wordsWithCharacters, m_page->boundingBox(), pageWidth, pageHeight);
+    const RegionTextList tree = XYCutForBoundingBoxes(wordsWithCharacters, pageWidth, pageHeight);
 
     /**
      * Add spaces to the word

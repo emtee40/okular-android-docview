@@ -1,17 +1,14 @@
-/***************************************************************************
- *   Copyright (C) 2004-2008 by Albert Astals Cid <aacid@kde.org>          *
- *   Copyright (C) 2004 by Enrico Ros <eros.kde@email.it>                  *
- *   Copyright (C) 2012 by Guillermo A. Amaral B. <gamaral@kde.org>        *
- *   Copyright (C) 2017    Klarälvdalens Datakonsult AB, a KDAB Group      *
- *                         company, info@kdab.com. Work sponsored by the   *
- *                         LiMux project of the city of Munich             *
- *   Copyright (C) 2019 by Oliver Sander <oliver.sander@tu-dresden.de>     *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- ***************************************************************************/
+/*
+    SPDX-FileCopyrightText: 2004-2008 Albert Astals Cid <aacid@kde.org>
+    SPDX-FileCopyrightText: 2004 Enrico Ros <eros.kde@email.it>
+    SPDX-FileCopyrightText: 2012 Guillermo A. Amaral B. <gamaral@kde.org>
+    SPDX-FileCopyrightText: 2019 Oliver Sander <oliver.sander@tu-dresden.de>
+
+    Work sponsored by the LiMux project of the city of Munich:
+    SPDX-FileCopyrightText: 2017 Klarälvdalens Datakonsult AB a KDAB Group company <info@kdab.com>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 
 #include <memory>
 
@@ -66,6 +63,8 @@
 #include "pdfsignatureutils.h"
 #include "popplerembeddedfile.h"
 
+#include <functional>
+
 Q_DECLARE_METATYPE(Poppler::Annotation *)
 Q_DECLARE_METATYPE(Poppler::FontInfo)
 Q_DECLARE_METATYPE(const Poppler::LinkMovie *)
@@ -107,6 +106,11 @@ public:
         m_scaleMode->insertItem(None, i18n("None; print original size"), None);
         m_scaleMode->setToolTip(i18n("Scaling mode for the printed pages"));
         printBackendLayout->addRow(i18n("Scale mode:"), m_scaleMode);
+
+        // If the user selects a scaling mode that requires the use of the
+        // "Force rasterization" feature, enable it automatically so they don't
+        // have to 1) know this and 2) do it manually
+        connect(m_scaleMode, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [=](int index) { m_forceRaster->setChecked(index != 0); });
 
         layout->addWidget(formWidget);
 
@@ -546,6 +550,7 @@ PDFGenerator::PDFGenerator(QObject *parent, const QVariantList &args)
     : Generator(parent, args)
     , pdfdoc(nullptr)
     , docSynopsisDirty(true)
+    , xrefReconstructed(false)
     , docEmbeddedFilesDirty(true)
     , nextFontPage(0)
     , annotProxy(nullptr)
@@ -623,6 +628,16 @@ Okular::Document::OpenResult PDFGenerator::init(QVector<Okular::Page *> &pagesVe
             return Okular::Document::OpenNeedsPassword;
         }
     }
+
+    xrefReconstructed = false;
+#ifdef HAVE_POPPLER_RECONSTRUCTION_CALLBACK
+    if (pdfdoc->xrefWasReconstructed()) {
+        xrefReconstructionHandler();
+    } else {
+        std::function<void()> cb = std::bind(&PDFGenerator::xrefReconstructionHandler, this);
+        pdfdoc->setXRefReconstructedCallback(cb);
+    }
+#endif
 
     // build Pages (currentPage was set -1 by deletePages)
     int pageCount = pdfdoc->numPages();
@@ -752,7 +767,7 @@ void PDFGenerator::loadPages(QVector<Okular::Page *> &pagesVector, int rotation,
 #endif
             if (!okularFormFields.isEmpty())
                 page->setFormFields(okularFormFields);
-                //        kWarning(PDFDebug).nospace() << page->width() << "x" << page->height();
+                //        qWarning(PDFDebug).nospace() << page->width() << "x" << page->height();
 
 #ifdef PDFGENERATOR_DEBUG
             qCDebug(OkularPdfDebug) << "load page" << i << "with rotation" << rotation << "and orientation" << orientation;
@@ -1197,7 +1212,7 @@ void PDFGenerator::resolveMediaLinkReferences(Okular::Page *page)
 }
 
 struct TextExtractionPayload {
-    TextExtractionPayload(Okular::TextRequest *r)
+    explicit TextExtractionPayload(Okular::TextRequest *r)
         : request(r)
     {
     }
@@ -1448,6 +1463,12 @@ QVariant PDFGenerator::metaData(const QString &key, const QVariant &option) cons
         } else {
             return i18n("Using Poppler %1\n\nBuilt against Poppler %2", Poppler::Version::string(), POPPLER_VERSION);
         }
+    } else if (key == QLatin1String("ShowStampsWarning")) {
+#ifdef HAVE_POPPLER_21_10
+        return QStringLiteral("no");
+#else
+        return QStringLiteral("yes");
+#endif
     }
     return QVariant();
 }
@@ -1556,7 +1577,7 @@ bool PDFGenerator::exportTo(const QString &fileName, const Okular::ExportFormat 
 
 inline void append(Okular::TextPage *ktp, const QString &s, double l, double b, double r, double t)
 {
-    //    kWarning(PDFDebug).nospace() << "text: " << s << " at (" << l << "," << t << ")x(" << r <<","<<b<<")";
+    //    qWarning(PDFDebug).nospace() << "text: " << s << " at (" << l << "," << t << ")x(" << r <<","<<b<<")";
     ktp->append(s, new Okular::NormalizedRect(l, t, r, b));
 }
 
@@ -1894,10 +1915,11 @@ bool PDFGenerator::sign(const Okular::NewSignatureData &oData, const QString &rF
     pData.setCertNickname(oData.certNickname());
     pData.setPassword(oData.password());
     pData.setPage(oData.page());
-    const QDateTime t = QDateTime::currentDateTime();
-    // This way we force the timezone info to be included in the string
-    const QString datetime = t.toTimeZone(t.timeZone()).toString(Qt::ISODate);
+    const QString datetime = QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd hh:mm:ss t"));
     pData.setSignatureText(i18n("Signed by: %1\n\nDate: %2", oData.certSubjectCommonName(), datetime));
+#if HAVE_POPPLER_FANCY_SIGNATURE
+    pData.setSignatureLeftText(oData.certSubjectCommonName());
+#endif
     const Okular::NormalizedRect bRect = oData.boundingRectangle();
     pData.setBoundingRectangle({bRect.left, bRect.top, bRect.width(), bRect.height()});
     pData.setFontColor(Qt::black);
@@ -1928,6 +1950,15 @@ Okular::CertificateStore *PDFGenerator::certificateStore() const
 #else
     return nullptr;
 #endif
+}
+
+void PDFGenerator::xrefReconstructionHandler()
+{
+    if (!xrefReconstructed) {
+        qCDebug(OkularPdfDebug) << "XRef Table of the document has been reconstructed";
+        xrefReconstructed = true;
+        emit warning(i18n("Some errors were found in the document, Okular might not be able to show the content correctly"), 5000);
+    }
 }
 
 #include "generator_pdf.moc"
