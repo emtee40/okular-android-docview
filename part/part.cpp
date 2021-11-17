@@ -2723,8 +2723,11 @@ bool Part::saveAs(const QUrl &saveUrl, SaveAsFlags flags)
     if (url().isLocalFile())
         unsetFileToWatch();
 
+    qWarning() << "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
     KJobWidgets::setWindow(copyJob, widget());
     if (!copyJob->exec()) {
+        qWarning() << "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA2" << copyJob->errorString();
+        qWarning() << "AAAAAAAAAAAA3";
         KMessageBox::information(widget(), i18n("File could not be saved in '%1'. Error: '%2'. Try to save it to another location.", saveUrl.toDisplayString(), copyJob->errorString()));
 
         // Restore watcher
