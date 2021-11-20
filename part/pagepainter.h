@@ -54,7 +54,6 @@ public:
      * @param page Which page do draw.
      * @param observer Request pixmaps generated for this DocumentObserver.
      * @param cropRect Painting area in @p destPainter coordinates. Makes sense to be aligned to device pixels.
-     * // TODO We are assuming here that Page::width() is the width in pixels when pixmaps at scale 1.0 are requested.
      * @param scale The scale from Page::width() to @p destPainter coordinates. Higher values to zoom in.
      * @param viewPortPoint Which point of the page to highlight, e. g. a source location.
      */
