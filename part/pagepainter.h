@@ -166,9 +166,9 @@ private:
      * to visualize that a page is still being loaded.
      *
      * @param destPainter The QPainter to paint on.
-     * @param pagePosition The geometry of the page (in @p destPainter coordinates) as it will be visible to the user. // TODO Verify trim margins feature.
+     * @param visiblePageArea The geometry of the page (in @p destPainter coordinates) as it will be visible to the user.
      */
-    static void drawLoadingPixmapOnPainter(QPainter *destPainter, const QRectF &pagePosition);
+    static void drawLoadingPixmapOnPainter(QPainter *destPainter, const QRectF &visiblePageArea);
 
     /**
      * Fetches different highlight objects from @p page and paints them on @p destPainter.

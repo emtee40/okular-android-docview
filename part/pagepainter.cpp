@@ -93,7 +93,7 @@ void PagePainter::paintPageOnPainter(QPainter *destPainter,
     const DrawPagePixmapsResult drawPixmapsResult = drawPagePixmapsOnPainter(destPainter, page, observer, cropRect, scale);
 
     if (drawPixmapsResult & NoPixmap) {
-        drawLoadingPixmapOnPainter(destPainter, QRectF(QPointF(0.0, 0.0), pageSize));
+        drawLoadingPixmapOnPainter(destPainter, QRectF(QPointF(0.0, 0.0), pageSize).intersected(cropRect));
     }
 
     // Draw other objects of the page
@@ -243,16 +243,16 @@ void PagePainter::drawPixmapWithColorMode(QPainter *destPainter, QPointF positio
     }
 }
 
-void PagePainter::drawLoadingPixmapOnPainter(QPainter *destPainter, const QRectF &pagePosition)
+void PagePainter::drawLoadingPixmapOnPainter(QPainter *destPainter, const QRectF &visiblePageArea)
 {
     // draw something on the blank page: the okular icon or a cross (as a fallback)
     if (!busyPixmap()->isNull()) {
         busyPixmap->setDevicePixelRatio(destPainter->device()->devicePixelRatioF());
-        destPainter->drawPixmap(pagePosition.topLeft() + QPointF(10.0, 10.0), *busyPixmap());
+        destPainter->drawPixmap(visiblePageArea.topLeft() + QPointF(10.0, 10.0), *busyPixmap());
     } else {
         destPainter->setPen(Qt::gray);
-        destPainter->drawLine(pagePosition.topLeft(), pagePosition.bottomRight());
-        destPainter->drawLine(pagePosition.topRight(), pagePosition.bottomLeft());
+        destPainter->drawLine(visiblePageArea.topLeft(), visiblePageArea.bottomRight());
+        destPainter->drawLine(visiblePageArea.topRight(), visiblePageArea.bottomLeft());
     }
 }
 
