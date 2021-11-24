@@ -159,6 +159,7 @@ void PageItem::setSmooth(const bool smooth)
         return;
     }
     m_smooth = smooth;
+    emit smoothChanged();
     update();
 }
 

@@ -46,7 +46,7 @@ class PageItem : public QQuickItem, public Okular::View
     /**
      * If true, the page will be rendered with antialias
      */
-    Q_PROPERTY(bool smooth READ smooth WRITE setSmooth)
+    Q_PROPERTY(bool smooth READ smooth WRITE setSmooth NOTIFY smoothChanged)
 
     /**
      * "Natural" width of the page
@@ -136,6 +136,7 @@ Q_SIGNALS:
     void pageNumberChanged();
     void bookmarkedChanged();
     void bookmarksChanged();
+    void smoothChanged();
 
 protected:
     void setIsThumbnail(bool thumbnail);
