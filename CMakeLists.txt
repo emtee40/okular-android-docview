@@ -11,7 +11,15 @@ project(okular VERSION ${RELEASE_SERVICE_VERSION})
 set(QT_REQUIRED_VERSION "5.12.0") # Remember to update the QT_DEPRECATED_WARNINGS_SINCE below
 set(KF5_REQUIRED_VERSION "5.68.0") # Remember to update the KF_DEPRECATED_WARNINGS_SINCE below
 
-set(OKULAR_UI "desktop" CACHE STRING "Which Okular user interface to build. Possible values: desktop, mobile, both. Default: desktop")
+set(OKULAR_UI "" CACHE STRING "Which Okular user interface to build. Possible values: desktop, mobile, both. Default: desktop (except on Android that is mobile)")
+
+if(OKULAR_UI STREQUAL "")
+    if(ANDROID)
+        set(OKULAR_UI "mobile")
+    else()
+        set(OKULAR_UI "desktop")
+    endif()
+endif()
 
 if(OKULAR_UI STREQUAL "desktop" OR OKULAR_UI STREQUAL "both")
     set(BUILD_DESKTOP ON)

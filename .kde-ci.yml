@@ -11,11 +11,11 @@ Dependencies:
     'frameworks/karchive': '@stable'
     'frameworks/khtml': '@stable'
     'frameworks/kjs': '@stable'
-    'libraries/phonon': '@stable'
-    'graphics/libkexiv2': '@same'
     'graphics/kdegraphics-mobipocket': '@same'
 
 - 'on': ['Linux', 'FreeBSD', 'macOS']
   'require':
     'frameworks/kactivities': '@stable'
     'frameworks/kpty': '@stable'
+    'graphics/libkexiv2': '@same'
+    'libraries/phonon': '@stable'
