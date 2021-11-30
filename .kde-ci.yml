@@ -10,12 +10,12 @@ Dependencies:
     'frameworks/kio': '@stable'
     'frameworks/karchive': '@stable'
     'frameworks/khtml': '@stable'
-    'frameworks/kjs': '@stable'
-    'libraries/phonon': '@stable'
-    'graphics/libkexiv2': '@same'
     'graphics/kdegraphics-mobipocket': '@same'
 
-- 'on': ['Linux', 'FreeBSD', 'macOS']
+- 'on': ['Linux', 'FreeBSD']
   'require':
     'frameworks/kactivities': '@stable'
     'frameworks/kpty': '@stable'
+    'frameworks/kjs': '@stable'
+    'graphics/libkexiv2': '@same'
+    'libraries/phonon': '@stable'
