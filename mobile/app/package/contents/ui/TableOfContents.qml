@@ -7,31 +7,33 @@
 import QtQuick 2.1
 import QtQuick.Controls 2.2 as QQC2
 import QtQuick.Layouts 1.2
-import org.kde.kirigami 2.0 as Kirigami
+import org.kde.kirigami 2.10 as Kirigami
+import org.kde.kitemmodels 1.0
 
 Kirigami.ScrollablePage {
     id: root
 
-    header: QQC2.ToolBar {
-        id: toolBarContent
+    header: Kirigami.AbstractApplicationHeader {
+        topPadding: Kirigami.Units.smallSpacing / 2;
+        bottomPadding: Kirigami.Units.smallSpacing / 2;
+        rightPadding: Kirigami.Units.smallSpacing
+        leftPadding: Kirigami.Units.smallSpacing
+
         width: root.width
-        QQC2.TextField {
+        Kirigami.SearchField {
             id: searchField
             width: parent.width
             placeholderText: i18n("Search...")
         }
     }
-    ColumnLayout {
-        spacing: 0
-        Repeater {
-            model: VisualDataModel {
-                id: tocModel
-                model: documentItem.tableOfContents
-                delegate: TreeDelegate {
-                    Layout.fillWidth: true
-                    sourceModel: tocModel
-                }
-            }
+    ListView {
+        model: KDescendantsProxyModel {
+            model: documentItem.tableOfContents
+            expandsByDefault: false
+        }
+
+        delegate: TreeItem {
+            text: display
         }
     }
 }
