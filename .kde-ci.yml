@@ -9,6 +9,7 @@ Dependencies:
     'frameworks/ki18n': '@stable'
     'frameworks/kio': '@stable'
     'frameworks/karchive': '@stable'
+    'frameworks/kirigami': '@stable'
     'libraries/phonon': '@stable'
     'graphics/kdegraphics-mobipocket': '@same'
 
@@ -19,7 +20,3 @@ Dependencies:
     'frameworks/kjs': '@stable'
     'frameworks/kpty': '@stable'
     'graphics/libkexiv2': '@same'
-
-- 'on': ['Android']
-  'require':
-    'frameworks/kirigami': '@stable'
