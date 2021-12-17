@@ -935,12 +935,14 @@ void ThumbnailWidget::paint(QPainter &p, const QRect _clipRect)
         // draw the page using the shared PagePainter class
         p.translate(m_margin / 2.0, m_margin / 2.0);
         clipRect.translate(-m_margin / 2, -m_margin / 2);
-        clipRect = clipRect.intersected(QRect(0, 0, m_pixmapWidth, m_pixmapHeight));
+        const QRect uncroppedPageRect(0, 0, m_pixmapWidth, m_pixmapHeight);
+        clipRect = clipRect.intersected(uncroppedPageRect);
         if (clipRect.isValid()) {
-            int flags = PagePainter::Accessibility | PagePainter::Highlights | PagePainter::Annotations;
-            PagePainter::paintPageOnPainter(&p, m_page, m_parent->q, flags, m_pixmapWidth, m_pixmapHeight, clipRect);
+            const PagePainter::PagePainterFlags flags = PagePainter::PagePainterFlags(PagePainter::Accessibility | PagePainter::Highlights | PagePainter::Annotations);
+            PagePainter::paintPageOnPainter(&p, m_page, m_parent->q, Okular::NormalizedRect(0.0, 0.0, 1.0, 1.0), uncroppedPageRect, flags);
         }
 
+        // Draw an outline around the page pixmap
         if (!m_visibleRect.isNull()) {
             p.save();
             p.setPen(QColor(255, 255, 0, 200));

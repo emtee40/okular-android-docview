@@ -1,5 +1,6 @@
 /*
     SPDX-FileCopyrightText: 2005 Enrico Ros <eros.kde@email.it>
+    SPDX-FileCopyrightText: 2021 David Hurka <david.hurka@mailbox.org>
 
     SPDX-License-Identifier: GPL-2.0-or-later
 */
@@ -9,17 +10,17 @@
 
 #include <QBrush>
 #include <QImage>
+#include <QPainter>
 #include <QPen>
+#include <QRectF>
 
 #include "core/annotations.h"
 #include "core/area.h" // for NormalizedPoint
+#include "core/page.h"
 
-class QPainter;
-class QRect;
 namespace Okular
 {
 class DocumentObserver;
-class Page;
 }
 
 /**
@@ -30,45 +31,210 @@ class Q_DECL_EXPORT PagePainter
 public:
     // list of flags passed to the painting function. by OR-ing those flags
     // you can decide whether or not to permit drawing of a certain feature.
-    enum PagePainterFlags { Accessibility = 1, EnhanceLinks = 2, EnhanceImages = 4, Highlights = 8, TextSelection = 16, Annotations = 32 };
+    enum PagePainterFlags { Accessibility = 1, EnhanceLinks = 2, EnhanceImages = 4, Highlights = 8, TextSelection = 16, Annotations = 32, ViewPortPoint = 64 };
 
     /**
      * Draw @p page on @p destPainter.
      *
-     * @param destPainter Page will be drawn on this painter.
+     * To crop the page, adjust @p cropRect and translate @p destPainter to the top left corner of uncropped @p page.
+     * Will respect the devicePixelRatioF() of @p destPainter's paint device automatically.
+     * This means the paint device should have the device pixel ratio of the output device.
+     *
+     * Example: paint the bottom left quarter of the page at 3x zoom at 150% hiDPI
+     * (after you have requested pixmaps):
+     * \code
+     * QPixmap bottomLeftQuadrant(page->width() * 2.25, page->height() * 2.25);
+     * bottomLeftQuadrant.setDevicePixelRatio(1.5);
+     * QPainter p(bottomLeftQuadrant);
+     * p.translate(0, page->height() * -1.5);
+     * PagePainter::paintPageOnPainter(&p, page, this, QRectF(QPoint(0, page->height() * 1.5), QSizeF(page->width() * 1.5, page->height() * 1.5)), 3.0);
+     * \endcode
+     *
+     * @param destPainter Page will be drawn on this painter. Coordinate system must start at top left corner of uncropped @p page.
      * @param page Which page do draw.
      * @param observer Request pixmaps generated for this DocumentObserver.
-     * @param flags PagePainterFlags, which features to draw.
-     * @param scaledWidth The requested width of uncropped page in @p destPainter coordinates.
-     * @param scaledHeight The requested height of uncropped page in @p destPainter coordinates.
-     * @param pageLimits Where to paint in @p destPainter coordinates. (I. e. painter crop.) Should begin at (0, 0).
+     * @param cropRect Painting area in @p destPainter coordinates. Makes sense to be aligned to device pixels.
+     * @param scale The scale from Page::width() to @p destPainter coordinates. Higher values to zoom in.
+     * @param viewPortPoint Which point of the page to highlight, e. g. a source location.
      */
-    static void paintPageOnPainter(QPainter *destPainter, const Okular::Page *page, Okular::DocumentObserver *observer, int flags, int scaledWidth, int scaledHeight, const QRect pageLimits);
+    static void paintPageOnPainter(QPainter *destPainter,
+                                   const Okular::Page *page,
+                                   Okular::DocumentObserver *observer,
+                                   const QRectF &cropRect,
+                                   qreal scale,
+                                   PagePainterFlags flags = Accessibility,
+                                   const Okular::NormalizedPoint &viewPortPoint = Okular::NormalizedPoint());
 
     /**
      * Draw @p page on @p destPainter.
      *
+     * Overload of paintPageOnPainter().
+     *
+     * This overload has more intuitive, but ambiguous and less precise geometry parameters.
+     * It also serves as demonstration for the geometry parameters.
+     * If precision is relevant (like with tiled painting), the other overload may be better.
+     *
+     * Will respect the devicePixelRatioF() of @p destPainter's paint device automatically.
+     * This means the paint device should have the device pixel ratio of the output device.
+     *
+     * Example: paint the bottom left quarter of the page at 3x zoom at 150% hiDPI
+     * (after you have requested pixmaps):
+     * \code
+     * QPixmap bottomLeftQuadrant(page->width() * 2.25, page->height() * 2.25);
+     * bottomLeftQuadrant.setDevicePixelRatio(1.5);
+     * QPainter p(bottomLeftQuadrant);
+     * PagePainter::paintPageOnPainter(&p, page, this, Okular::NormalizedRect(0, 0.5, 0.5, 1), QRect(0, 0, page->width() * 1.5, page->height() * 1.5));
+     * \endcode
+     *
      * @param destPainter Page will be drawn on this painter.
      * @param page Which page do draw.
      * @param observer Request pixmaps generated for this DocumentObserver.
-     * @param flags PagePainterFlags, which features to draw.
-     * @param scaledWidth The requested width of uncropped page in @p destPainter coordinates.
-     * @param scaledHeight The requested height of uncropped page in @p destPainter coordinates.
-     * @param pageLimits Where to paint in @p destPainter coordinates. (I. e. painter crop.) Should begin at (0, 0).
-     * @param crop Which area of the page to paint in @p pageLimits.
-     * @param viewPortPoint Which point of the page to highlight, e. g. a source location. @c nullptr to disable.
+     * @param inputRect Which area of the page to draw.
+     * @param outputRect Where to draw this area of the page in @p destPainter coordinates.
+     * @param viewPortPoint Which point of the page to highlight, e. g. a source location.
      */
-    static void paintCroppedPageOnPainter(QPainter *destPainter,
+    static inline void paintPageOnPainter(QPainter *destPainter,
                                           const Okular::Page *page,
                                           Okular::DocumentObserver *observer,
-                                          int flags,
-                                          int scaledWidth,
-                                          int scaledHeight,
-                                          const QRect pageLimits,
-                                          const Okular::NormalizedRect &crop,
-                                          Okular::NormalizedPoint *viewPortPoint);
+                                          const Okular::NormalizedRect &inputRect,
+                                          const QRectF &outputRect,
+                                          PagePainterFlags flags = Accessibility,
+                                          const Okular::NormalizedPoint &viewPortPoint = Okular::NormalizedPoint())
+    {
+        destPainter->save();
+
+        // Calculate the scale from inputRect and outputRect width,
+        // but avoiding the int cast from NormalizedRect::geometry():
+        const qreal scale = outputRect.width() / (inputRect.width() * page->width());
+
+        // inputRect in scaled page coordinate system:
+        const QRect pageInputRect = inputRect.roundedGeometry(page->width() * scale, page->height() * scale);
+
+        // Move the painter's origin to the output rect, and then to the pages' origin:
+        destPainter->translate(outputRect.topLeft());
+        destPainter->translate(-pageInputRect.topLeft());
+
+        paintPageOnPainter(destPainter, page, observer, QRectF(pageInputRect.topLeft(), outputRect.size()), scale, flags, viewPortPoint);
+
+        destPainter->restore();
+    }
 
 private:
+    enum DrawPagePixmapsResult {
+        Fine = 0x0,                   ///< All required pixmaps were found in the correct resolution and final rendering state.
+        NoPixmap = 0x1,               ///< No pixmap was found for this page.
+        PixmapsOfIncorrectSize = 0x2, ///< Some pixmaps/tiles needed to be scaled.
+    };
+
+    /**
+     * Fetches pixmaps from @p page and paints them on @p destPainter.
+     *
+     * Will respect the devicePixelRatioF() of @p destPainter's paint device automatically.
+     * This means the paint device should have the device pixel ratio of the output device.
+     *
+     * @param destPainter Coordinate system should start at top left of uncropped @p page.
+     * @param page Which page.
+     * @param observer Request pixmaps generated for this observer.
+     * @param cropRect Where to paint.
+     * @param scale The scale from Page::width() to @p destPainter coordinates. Higher values to zoom in.
+     * @param flags (Does nothing yet.)
+     */
+    static DrawPagePixmapsResult drawPagePixmapsOnPainter(QPainter *destPainter, const Okular::Page *page, Okular::DocumentObserver *observer, const QRectF &cropRect, qreal scale, PagePainterFlags flags = Accessibility);
+
+    /**
+     * Fetches the non-tile pixmap from @p page and paints it on @p destPainter.
+     *
+     * Will respect the devicePixelRatioF() of @p destPainter's paint device automatically.
+     * This means the paint device should have the device pixel ratio of the output device.
+     *
+     * @param destPainter Coordinate system should start at top left of uncropped @p page.
+     * @param page Which page.
+     * @param observer Request pixmap generated for this observer.
+     * @param dSize The size at which the pixmap shall be painted in @p destPainter device pixels.
+     * @param flags (Does nothing yet.)
+     */
+    static DrawPagePixmapsResult drawPagePixmapOnPainter(QPainter *destPainter, const Okular::Page *page, Okular::DocumentObserver *observer, QSize dSize, PagePainterFlags flags = Accessibility);
+
+    /**
+     * Draws @p pixmap at @p position on @p destPainter, respecting color modes per @c Accessibility flag in @p flags.
+     */
+    static void drawPixmapWithColorMode(QPainter *destPainter, QPointF position, const QPixmap &pixmap, PagePainterFlags flags);
+
+    /**
+     * Draws a placeholder pixmap on @p destPainter,
+     * to visualize that a page is still being loaded.
+     *
+     * @param destPainter The QPainter to paint on.
+     * @param visiblePageArea The geometry of the page (in @p destPainter coordinates) as it will be visible to the user.
+     */
+    static void drawLoadingPixmapOnPainter(QPainter *destPainter, const QRectF &visiblePageArea);
+
+    /**
+     * Fetches different highlight objects from @p page and paints them on @p destPainter.
+     *
+     * Highlights may be
+     * \li Highlights,
+     * \li TextSelection.
+     *
+     * @param destPainter Coordinate system should start at top left of uncropped @p page.
+     * @param page Which page.
+     * @param scale The scale from Page::width() to @p destPainter coordinates. Higher values to zoom in.
+     * @param flags Which highlight objects to draw.
+     */
+    static void drawPageHighlightsOnPainter(QPainter *destPainter, const Okular::Page *page, qreal scale, PagePainterFlags flags);
+
+    /**
+     * Fetches different object borders from @p page and paints them on @p destPainter.
+     *
+     * Object borders may be
+     * \li EnhanceLinks,
+     * \li EnhanceImages.
+     *
+     * @param destPainter Coordinate system should start at top left of uncropped @p page.
+     * @param page Which page.
+     * @param scale The scale from Page::width() to @p destPainter coordinates. Higher values to zoom in.
+     * @param flags Which object outliness to draw.
+     */
+    static void drawPageObjectBordersOnPainter(QPainter *destPainter, const Okular::Page *page, qreal scale, PagePainterFlags flags);
+
+    /**
+     * Fetches annotation objects from @p page and paints them on @p destPainter.
+     *
+     * @param destPainter Coordinate system should start at top left of uncropped @p page.
+     * @param page Which page.
+     * @param scale The scale from Page::width() to @p destPainter coordinates. Higher values to zoom in.
+     * @param flags Whether to draw annotations.
+     */
+    static void drawPageAnnotationsOnPainter(QPainter *destPainter, const Okular::Page *page, qreal scale, PagePainterFlags flags);
+
+    /**
+     * Draws @p annotation bounding box on @p destPainter.
+     *
+     * @param destPainter Coordinate system should start at top left of uncropped page.
+     * @param annotation Which annotation.
+     * @param pageSize Uncropped page size in @p destPainter coordinates.
+     */
+    static void drawAnnotationBoundingBoxOnPainter(QPainter *destPainter, const Okular::Annotation *annotation, QSizeF pageSize);
+
+    /**
+     * Draws @p annotation on @p destPainter.
+     *
+     * @param destPainter Coordinate system should start at top left of uncropped page.
+     * @param annotation Which annotation.
+     * @param pageSize Uncropped page size in @p destPainter coordinates.
+     * @param scale The scale from Page::width() to @p destPainter coordinates. Higher values to zoom in.
+     */
+    static void drawAnnotationOnPainter(QPainter *destPainter, const Okular::Annotation *annotation, QSizeF pageSize, qreal scale);
+
+    /**
+     * Draws a viewport point visualization line on a certain page.
+     *
+     * @param destPainter Coordinate system should start at top left of the page.
+     * @param pageSize Size of the page in @p destPainter coordinates.
+     * @param point Point on the page to visualize.
+     */
+    static void drawViewPortPointOnPainter(QPainter *destPainter, QSizeF pageSize, const Okular::NormalizedPoint &point);
+
     // BEGIN Change Colors feature
     /**
      * Collapse color space (from white to black) to a line from @p foreground to @p background.

@@ -99,7 +99,7 @@ void KIMGIOTest::testExifOrientation()
     // Obtain image
     QImage img(3, 2, QImage::Format_ARGB32_Premultiplied);
     QPainter p(&img);
-    PagePainter::paintPageOnPainter(&p, m_document->page(0), dummyDocumentObserver, 0, 3, 2, QRect(0, 0, 3, 2));
+    PagePainter::paintPageOnPainter(&p, m_document->page(0), dummyDocumentObserver, Okular::NormalizedRect(0.0, 0.0, 1.0, 1.0), QRect(0, 0, 3, 2));
 
     // Verify pixel data
     QCOMPARE(img.pixel(0, 0), qRgb(0, 0, 0));
