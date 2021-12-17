@@ -16,7 +16,7 @@ Kirigami.ScrollablePage {
     property Item view: resultsGrid
     signal pageClicked(int pageNumber)
 
-    contentItem: Kirigami.CardsListView {
+    Kirigami.CardsListView {
         id: resultsGrid
         clip: true
 
@@ -28,7 +28,6 @@ Kirigami.ScrollablePage {
 
         delegate: Kirigami.AbstractCard {
             implicitWidth: root.width
-            highlighted: delegateRecycler && delegateRecycler.GridView.isCurrentItem
             showClickFeedback: true
             readonly property real ratio: contentItem.implicitHeight/contentItem.implicitWidth
             implicitHeight: width * ratio
