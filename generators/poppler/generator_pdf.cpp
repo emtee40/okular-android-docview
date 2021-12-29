@@ -39,7 +39,9 @@
 
 #include <core/action.h>
 #include <core/annotations.h>
+#include <core/document_p.h>
 #include <core/fileprinter.h>
+#include <core/generator_p.h>
 #include <core/movie.h>
 #include <core/page.h>
 #include <core/pagetransition.h>
@@ -1002,6 +1004,11 @@ void PDFGenerator::opaqueAction(const Okular::BackendOpaqueAction *action)
 {
     const Poppler::LinkOCGState *popplerLink = action->nativeId().value<const Poppler::LinkOCGState *>();
     pdfdoc->optionalContentModel()->applyLink(const_cast<Poppler::LinkOCGState *>(popplerLink));
+}
+
+void PDFGenerator::freeOpaqueActionContents(const Okular::BackendOpaqueAction &action)
+{
+    delete action.nativeId().value<const Poppler::LinkOCGState *>();
 }
 
 bool PDFGenerator::isAllowed(Okular::Permission permission) const
