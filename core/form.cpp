@@ -115,6 +115,12 @@ void FormField::setAdditionalAction(Annotation::AdditionalActionType type, Actio
     d->m_additionalAnnotActions[type] = action;
 }
 
+QList<Action *> FormField::additionalActions() const
+{
+    Q_D(const FormField);
+    return d->m_additionalAnnotActions.values() + d->m_additionalActions.values();
+}
+
 class Okular::FormFieldButtonPrivate : public Okular::FormFieldPrivate
 {
 public:
