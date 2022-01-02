@@ -723,6 +723,7 @@ bool Converter::convertPoem(const QDomElement &element)
         } else if (child.tagName() == QLatin1String("stanza")) {
             if (!convertStanza(child))
                 return false;
+            mCursor->insertText(QStringLiteral("\n\n"));
         } else if (child.tagName() == QLatin1String("text-author")) {
             QTextBlockFormat format;
             format.setTextIndent(10);
