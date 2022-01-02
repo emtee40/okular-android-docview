@@ -428,6 +428,10 @@ bool Converter::convertSection(const QDomElement &element)
             if (!convertTitle(child))
                 return false;
         } else if (child.tagName() == QLatin1String("epigraph")) {
+            QTextBlockFormat format;
+            format.setLeftMargin(90);
+            format.setAlignment(Qt::AlignJustify);
+            mCursor->insertBlock(format);
             if (!convertEpigraph(child))
                 return false;
         } else if (child.tagName() == QLatin1String("image")) {
@@ -438,7 +442,8 @@ bool Converter::convertSection(const QDomElement &element)
                 return false;
         } else if (child.tagName() == QLatin1String("p")) {
             QTextBlockFormat format;
-            format.setTextIndent(10);
+            format.setTextIndent(30);
+            format.setAlignment(Qt::AlignJustify);
             mCursor->insertBlock(format);
             if (!convertParagraph(child))
                 return false;
