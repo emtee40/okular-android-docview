@@ -33,6 +33,7 @@ class PageTransition;
 class SourceReference;
 class TextSelection;
 class Tile;
+class PageSize;
 
 /**
  * @short Collector for all the data belonging to a page.
@@ -389,6 +390,15 @@ public:
      * @since 0.19 (KDE 4.13)
      */
     QList<Tile> tilesAt(const DocumentObserver *observer, const NormalizedRect &rect) const;
+
+    /**
+     * Changes the size of the page to the given @p size.
+     *
+     * The @p size is meant to be referred to the page not rotated.
+     */
+    void changeSize(const PageSize &size);
+
+    void changeSize(const QSizeF size);
 
 private:
     PagePrivate *d;

@@ -499,6 +499,18 @@ void Generator::setDPI(const QSizeF dpi)
     d->m_dpi = dpi;
 }
 
+void Generator::setDPIUpdatePages(const QSizeF dpi, QVector<Okular::Page *> &pagesVector)
+{
+    Q_D(Generator);
+
+    d->m_dpi = dpi;
+    dpiChangedUpdatePages(pagesVector);
+}
+
+void Generator::dpiChangedUpdatePages(QVector<Okular::Page *> &pagesVector)
+{
+}
+
 QSizeF Generator::dpi() const
 {
     Q_D(const Generator);

@@ -178,8 +178,10 @@ public:
     void performSetAnnotationContents(const QString &newContents, Annotation *annot, int pageNumber);
 
     void recalculateForms();
+    void pageSizeChangedClearPixmaps();
 
     // private slots
+    void screenChanged();
     void saveDocumentInfo() const;
     void slotTimedMemoryCheck();
     void sendGeneratorPixmapRequest();
