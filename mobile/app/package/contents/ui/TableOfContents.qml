@@ -34,7 +34,7 @@ ColumnLayout {
             }
 
             delegate: TreeItem {
-                text: display
+                text: model.display
                 onClicked: {
                     documentItem.currentPage = page - 1;
                     contextDrawer.drawerOpen = false;

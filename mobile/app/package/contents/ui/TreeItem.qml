@@ -17,15 +17,12 @@ import org.kde.kitemmodels 1.0
  * which has to be set as contentItem
  *
  */
-Kirigami.AbstractListItem {
+QQC2.ItemDelegate {
     id: listItem
-    separatorVisible: false
 
     property alias decoration: decoration
 
-    property var icon
-
-    width: ListView.view.width - decoration.width - listItem.padding * 2
+    width: ListView.view.width
 
     data: [
         TreeViewDecoration {
@@ -39,16 +36,6 @@ Kirigami.AbstractListItem {
             parent: listItem
             parentDelegate: listItem
             model: listItem.ListView.view ? listItem.ListView.view.model :null
-        },
-        Binding {
-            target: contentItem.anchors
-            property: "left"
-            value: listItem.left
-        },
-        Binding {
-            target: contentItem.anchors
-            property: "leftMargin"
-            value: decoration.width + listItem.padding * 2 + Kirigami.Units.smallSpacing
         }
     ]
 
@@ -73,7 +60,6 @@ Kirigami.AbstractListItem {
     onDoubleClicked: if (kDescendantExpandable) {
         decoration.model.toggleChildren(index);
     }
-    icon: action ? action.icon.name || action.icon.source : undefined
 
     contentItem: Kirigami.Heading {
         wrapMode: Text.Wrap
@@ -82,10 +68,10 @@ Kirigami.AbstractListItem {
         width: listItem.ListView.view.width - (decoration.width + listItem.padding * 3 + Kirigami.Units.smallSpacing)
     }
 
-    // FIXME: it should probably use leftInset property but Kirigami.AbstractListItem doesn't have it because can't import QQC2 more than 2.0
-    background.anchors {
-        left: listItem.left
-        leftMargin: decoration.width + listItem.padding * 2
-    }
+    leftInset: Qt.application.layoutDirection !== Qt.RightToLeft ? decoration.width + listItem.padding * 2 : 0
+    leftPadding: Qt.application.layoutDirection !== Qt.RightToLeft ? decoration.width + listItem.padding * 2 : 0
+
+    rightPadding: Qt.application.layoutDirection === Qt.RightToLeft ? decoration.width + listItem.padding * 2 : 0
+    rightInset: Qt.application.layoutDirection === Qt.RightToLeft ? decoration.width + listItem.padding * 2 : 0
 }
 

@@ -81,7 +81,7 @@ RowLayout {
                 anchors.centerIn: parent
                 width: Kirigami.Units.iconSizes.small
                 height: width
-                source: kDescendantExpanded ? "go-down-symbolic" : "go-next-symbolic"
+                source: kDescendantExpanded ? "go-down-symbolic" : (Qt.application.layoutDirection == Qt.RightToLeft ? "go-previous-symbolic" : "go-next-symbolic")
                 isMask: true
                 color: controlRoot.hovered ? decorationLayout.decorationHighlightColor ? decorationLayout.decorationHighlightColor :
                 Kirigami.Theme.highlightColor : Kirigami.Theme.textColor
