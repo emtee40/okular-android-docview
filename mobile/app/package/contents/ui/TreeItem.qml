@@ -25,7 +25,7 @@ Kirigami.AbstractListItem {
 
     property var icon
 
-    width: ListView.view.width - Kirigami.Units.gridUnit
+    width: ListView.view.width - decoration.width - listItem.padding * 2
 
     data: [
         TreeViewDecoration {
