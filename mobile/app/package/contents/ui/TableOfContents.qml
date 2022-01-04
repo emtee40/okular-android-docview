@@ -10,10 +10,9 @@ import QtQuick.Layouts 1.2
 import org.kde.kirigami 2.10 as Kirigami
 import org.kde.kitemmodels 1.0
 
-Kirigami.ScrollablePage {
+ColumnLayout {
     id: root
-
-    header: Kirigami.AbstractApplicationHeader {
+    Kirigami.AbstractApplicationHeader {
         topPadding: Kirigami.Units.smallSpacing / 2;
         bottomPadding: Kirigami.Units.smallSpacing / 2;
         rightPadding: Kirigami.Units.smallSpacing
@@ -23,18 +22,24 @@ Kirigami.ScrollablePage {
         Kirigami.SearchField {
             id: searchField
             width: parent.width
-            placeholderText: i18n("Search...")
         }
     }
-    ListView {
-        width: parent.width
-        model: KDescendantsProxyModel {
-            model: documentItem.tableOfContents
-            expandsByDefault: false
-        }
+    QQC2.ScrollView {
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        ListView {
+            model: KDescendantsProxyModel {
+                model: documentItem.tableOfContents
+                expandsByDefault: false
+            }
 
-        delegate: TreeItem {
-           text: display
+            delegate: TreeItem {
+                text: display
+                onClicked: {
+                    documentItem.currentPage = page - 1;
+                    contextDrawer.drawerOpen = false;
+                }
+            }
         }
     }
 }
