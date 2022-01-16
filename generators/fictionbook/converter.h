@@ -61,6 +61,7 @@ private:
     bool convertDate(const QDomElement &element, QDate &date);
     bool convertTextNode(const QDomElement &element, QString &data);
     bool convertAnnotation(const QDomElement &element, QString &data);
+    qreal getTextIndent();
 
     QTextDocument *mTextDocument;
     QTextCursor *mCursor;
