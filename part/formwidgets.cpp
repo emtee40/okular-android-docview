@@ -502,6 +502,11 @@ bool FormLineEdit::event(QEvent *e)
         if (focusEvent->reason() == Qt::OtherFocusReason || focusEvent->reason() == Qt::ActiveWindowFocusReason)
             return true;
 
+        if (m_ff->additionalAction(Okular::FormField::FieldModified) && !m_ff->isReadOnly()) {
+            Okular::FormFieldText *form = static_cast<Okular::FormFieldText *>(m_ff);
+            m_controller->document()->processKeystrokeCommitAction(m_ff->additionalAction(Okular::FormField::FieldModified), form);
+        }
+
         if (const Okular::Action *action = m_ff->additionalAction(Okular::Annotation::FocusOut)) {
             bool ok = false;
             m_controller->document()->processValidateAction(action, static_cast<Okular::FormFieldText *>(m_ff), ok);
