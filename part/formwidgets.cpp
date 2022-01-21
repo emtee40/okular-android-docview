@@ -495,6 +495,18 @@ bool FormLineEdit::event(QEvent *e)
         if (focusEvent->reason() == Qt::OtherFocusReason || focusEvent->reason() == Qt::ActiveWindowFocusReason)
             return true;
 
+        if (m_ff->additionalAction(Okular::FormField::FieldModified) && !m_ff->isReadOnly()) {
+            bool ok = false;
+            Okular::FormFieldText *form = static_cast<Okular::FormFieldText *>(m_ff);
+            QString oldInputText = form->text();
+            form->setText(text());
+            emit m_controller->keystrokeAction(m_ff->additionalAction(Okular::FormField::FieldModified), form, ok, true);
+            form->setText(oldInputText);
+            if (!ok) {
+                setText(QString()); // TODO what should happen here?
+            }
+        }
+
         if (const Okular::Action *action = m_ff->additionalAction(Okular::Annotation::FocusOut)) {
             bool ok = false;
             emit m_controller->validateAction(action, static_cast<Okular::FormFieldText *>(m_ff), ok);
@@ -544,7 +556,7 @@ void FormLineEdit::slotChanged()
         bool ok = false;
         QString oldInputText = form->text();
         form->setText(text());
-        emit m_controller->keystrokeAction(form->additionalAction(Okular::FormField::FieldModified), form, ok);
+        emit m_controller->keystrokeAction(form->additionalAction(Okular::FormField::FieldModified), form, ok, false);
         form->setText(oldInputText);
         if (!ok) {
             setText(oldInputText);
@@ -704,7 +716,7 @@ void TextAreaEdit::slotChanged()
         bool ok = false;
         QString oldInputText = form->text();
         form->setText(toPlainText());
-        emit m_controller->keystrokeAction(form->additionalAction(Okular::FormField::FieldModified), form, ok);
+        emit m_controller->keystrokeAction(form->additionalAction(Okular::FormField::FieldModified), form, ok, false);
         form->setText(oldInputText);
         if (!ok) {
             setText(oldInputText);

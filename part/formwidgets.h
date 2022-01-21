@@ -95,7 +95,7 @@ Q_SIGNALS:
 
     void formatAction(const Okular::Action *action, Okular::FormFieldText *ff);
 
-    void keystrokeAction(const Okular::Action *action, Okular::FormFieldText *ff, bool &ok);
+    void keystrokeAction(const Okular::Action *action, Okular::FormFieldText *ff, bool &ok, bool willCommit);
 
     void validateAction(const Okular::Action *action, Okular::FormFieldText *ff, bool &ok);
 

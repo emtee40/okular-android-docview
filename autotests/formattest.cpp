@@ -112,7 +112,7 @@ void FormatTest::testSpecialFormat()
     fft->setText(text);
     bool ok = false;
     m_document->processFormatAction(fft->additionalAction(Okular::FormField::FormatField), fft);
-    m_document->processKeystrokeAction(fft->additionalAction(Okular::FormField::FieldModified), fft, ok);
+    m_document->processKeystrokeAction(fft->additionalAction(Okular::FormField::FieldModified), fft, ok, false);
 
     QCOMPARE(m_formattedText, result);
     QCOMPARE(ok, edited);
