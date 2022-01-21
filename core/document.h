@@ -686,7 +686,7 @@ public:
      *
      * @since 1.9
      */
-    void processKeystrokeAction(const Action *action, Okular::FormFieldText *fft, const QVariant &newValue);
+    void processKeystrokeAction(const Action *action, Okular::FormFieldText *fft, const QVariant &newValue, bool willCommit);
 
     /**
      * Processes the given focus action on the field.

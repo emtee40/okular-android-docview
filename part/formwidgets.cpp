@@ -502,6 +502,11 @@ bool FormLineEdit::event(QEvent *e)
         if (focusEvent->reason() == Qt::OtherFocusReason || focusEvent->reason() == Qt::ActiveWindowFocusReason)
             return true;
 
+        if (m_ff->additionalAction(Okular::FormField::FieldModified) && !m_ff->isReadOnly()) {
+            Okular::FormFieldText *form = static_cast<Okular::FormFieldText *>(m_ff);
+            m_controller->document()->processKeystrokeAction(m_ff->additionalAction(Okular::FormField::FieldModified), form, text(), true);
+        }
+
         if (const Okular::Action *action = m_ff->additionalAction(Okular::Annotation::FocusOut)) {
             bool ok = false;
             m_controller->document()->processValidateAction(action, static_cast<Okular::FormFieldText *>(m_ff), ok);
@@ -548,7 +553,7 @@ void FormLineEdit::slotChanged()
 
     if (text() != form->text()) {
         if (form->additionalAction(Okular::FormField::FieldModified) && m_editing && !form->isReadOnly()) {
-            m_controller->document()->processKeystrokeAction(form->additionalAction(Okular::FormField::FieldModified), form, text());
+            m_controller->document()->processKeystrokeAction(form->additionalAction(Okular::FormField::FieldModified), form, text(), false);
         }
 
         emit m_controller->formTextChangedByWidget(pageItem()->pageNumber(), form, text(), cursorPos, m_prevCursorPos, m_prevAnchorPos);
@@ -698,8 +703,8 @@ void TextAreaEdit::slotChanged()
     int cursorPos = textCursor().position();
 
     if (toPlainText() != form->text()) {
-        if (form->additionalAction(Okular::FormField::FieldModified) && m_editing && !form->isReadOnly()) {
-            m_controller->document()->processKeystrokeAction(form->additionalAction(Okular::FormField::FieldModified), form, toPlainText());
+        if (form->additionalAction(Okular::FormField::FieldModified) && m_editing && !form->isReadOnly(), false) {
+            m_controller->document()->processKeystrokeAction(form->additionalAction(Okular::FormField::FieldModified), form, toPlainText(), false);
         }
 
         emit m_controller->formTextChangedByWidget(pageItem()->pageNumber(), form, toPlainText(), cursorPos, m_prevCursorPos, m_prevAnchorPos);
