@@ -4132,7 +4132,7 @@ void Document::processFormatAction(const Action *action, Okular::FormFieldText *
     }
 }
 
-void Document::processKeystrokeAction(const Action *action, Okular::FormFieldText *fft, const QVariant &newValue)
+void Document::processKeystrokeAction(const Action *action, Okular::FormFieldText *fft, const QVariant &newValue, bool willCommit)
 {
     if (action->actionType() != Action::Script) {
         qCDebug(OkularCoreDebug) << "Unsupported action type" << action->actionType() << "for keystroke.";
@@ -4148,20 +4148,30 @@ void Document::processKeystrokeAction(const Action *action, Okular::FormFieldTex
 
     std::shared_ptr<Event> event = Event::createKeystrokeEvent(fft, d->m_pagesVector[foundPage]);
     event->setValue(newValue);
+    event->setWillCommit(willCommit);
 
     const ScriptAction *linkscript = static_cast<const ScriptAction *>(action);
 
     d->executeScriptEvent(event, linkscript);
 
-    if (event->returnCode()) {
-        fft->setText(event->value().toString());
+    if (event->willCommit()) {
 
-        // Only refresh the widget to avoid changing the cursor position
-        if (event->value().toString() != newValue.toString()) {
-            emit refreshFormWidget(fft);
+        if (event->returnCode()) {
+            // TODO commit value
+        } else {
+            // TODO reset to committed value?
         }
     } else {
-        emit refreshFormWidget(fft);
+        if (event->returnCode()) {
+            fft->setText(event->value().toString());
+
+            // Only refresh the widget to avoid changing the cursor position
+            if (event->value().toString() != newValue.toString()) {
+                emit refreshFormWidget(fft);
+            }
+        } else {
+            emit refreshFormWidget(fft);
+        }
     }
 }
 
