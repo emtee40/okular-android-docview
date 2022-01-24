@@ -68,6 +68,8 @@ public:
     bool canUndo();
     bool canRedo();
 
+    Okular::Document *document() const;
+
     static bool shouldFormWidgetBeShown(Okular::FormField *form);
 
 Q_SIGNALS:
