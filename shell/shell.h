@@ -101,7 +101,9 @@ protected:
     }
 
     void readSettings();
+    void readRecentFiles();
     void writeSettings();
+    void writeRecentFiles();
     void setFullScreen(bool);
 
     using KParts::MainWindow::setCaption;

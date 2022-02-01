@@ -124,6 +124,7 @@ Shell::Shell(const QString &serializedOptions)
         connectPart(firstPart);
 
         readSettings();
+        readRecentFiles();
 
         m_unique = ShellUtils::unique(serializedOptions);
         if (m_unique) {
@@ -233,6 +234,7 @@ bool Shell::openDocument(const QUrl &url, const QString &serializedOptions)
         return false;
     }
 
+    readRecentFiles(); // sync recent files list with other possibly open instances
     openUrl(url, serializedOptions);
 
     return true;
@@ -270,9 +272,11 @@ void Shell::openUrl(const QUrl &url, const QString &serializedOptions)
             if (m_unique) {
                 applyOptionsToPart(activePart, serializedOptions);
                 activePart->openUrl(url);
+                writeRecentFiles();
             } else {
                 if (qobject_cast<Okular::ViewerInterface *>(activePart)->openNewFilesInTabs()) {
                     openNewTab(url, serializedOptions);
+                    writeRecentFiles();
                 } else {
                     Shell *newShell = new Shell(serializedOptions);
                     newShell->show();
@@ -298,6 +302,7 @@ void Shell::openUrl(const QUrl &url, const QString &serializedOptions)
                     closeTab(activeTab);
                 }
             }
+            writeRecentFiles();
         }
     }
 }
@@ -321,9 +326,6 @@ void Shell::closeUrl()
 
 void Shell::readSettings()
 {
-    m_recent->loadEntries(KSharedConfig::openConfig()->group("Recent Files"));
-    m_recent->setEnabled(true); // force enabling
-
     const KConfigGroup group = KSharedConfig::openConfig()->group("Desktop Entry");
     bool fullScreen = group.readEntry("FullScreen", false);
     setFullScreen(fullScreen);
@@ -334,15 +336,26 @@ void Shell::readSettings()
     }
 }
 
+void Shell::readRecentFiles()
+{
+    m_recent->loadEntries(KSharedConfig::openConfig()->group("Recent Files"));
+    m_recent->setEnabled(true); // force enabling
+}
+
 void Shell::writeSettings()
 {
-    m_recent->saveEntries(KSharedConfig::openConfig()->group("Recent Files"));
     KConfigGroup group = KSharedConfig::openConfig()->group("Desktop Entry");
     group.writeEntry("FullScreen", m_fullScreenAction->isChecked());
     if (m_fullScreenAction->isChecked()) {
         group.writeEntry(shouldShowMenuBarComingFromFullScreen, m_menuBarWasShown);
         group.writeEntry(shouldShowToolBarComingFromFullScreen, m_toolBarWasShown);
     }
+    KSharedConfig::openConfig()->sync();
+}
+
+void Shell::writeRecentFiles()
+{
+    m_recent->saveEntries(KSharedConfig::openConfig()->group("Recent Files"));
     KSharedConfig::openConfig()->sync();
 }
 
@@ -492,6 +505,7 @@ void Shell::fileOpen()
     if (dlg->exec() && dlg) {
         const QList<QUrl> urlList = dlg->selectedUrls();
         for (const QUrl &url : urlList) {
+            readRecentFiles(); // sync recent files list with other possibly open instances
             openUrl(url);
         }
     }
