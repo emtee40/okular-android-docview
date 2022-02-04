@@ -548,19 +548,11 @@ void FormLineEdit::slotChanged()
     int cursorPos = cursorPosition();
 
     if (form->additionalAction(Okular::FormField::FieldModified) && m_editing && !form->isReadOnly()) {
-        bool ok = false;
-        QString oldInputText = form->text();
-        form->setText(text());
-        m_controller->document()->processKeystrokeAction(form->additionalAction(Okular::FormField::FieldModified), form, ok);
-        form->setText(oldInputText);
-        if (!ok) {
-            setText(oldInputText);
-            return;
-        }
+        m_controller->document()->processKeystrokeAction(form->additionalAction(Okular::FormField::FieldModified), form, text());
     }
 
     if (contents != form->text()) {
-        emit m_controller->formTextChangedByWidget(pageItem()->pageNumber(), form, contents, cursorPos, m_prevCursorPos, m_prevAnchorPos);
+        emit m_controller->formTextChangedByWidget(pageItem()->pageNumber(), form, form->text(), cursorPos, m_prevCursorPos, m_prevAnchorPos);
     }
 
     m_prevCursorPos = cursorPos;
@@ -708,15 +700,7 @@ void TextAreaEdit::slotChanged()
     int cursorPos = textCursor().position();
 
     if (form->additionalAction(Okular::FormField::FieldModified) && m_editing && !form->isReadOnly()) {
-        bool ok = false;
-        QString oldInputText = form->text();
-        form->setText(toPlainText());
-        m_controller->document()->processKeystrokeAction(form->additionalAction(Okular::FormField::FieldModified), form, ok);
-        form->setText(oldInputText);
-        if (!ok) {
-            setText(oldInputText);
-            return;
-        }
+        m_controller->document()->processKeystrokeAction(form->additionalAction(Okular::FormField::FieldModified), form, toPlainText());
     }
 
     if (contents != form->text()) {
