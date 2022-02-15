@@ -10,6 +10,7 @@
 #include "core/document.h"
 #include "core/observer.h"
 #include <QModelIndex>
+#include <QTreeView>
 #include <qwidget.h>
 
 #include "okularpart_export.h"
@@ -68,6 +69,14 @@ private:
     QTreeView *m_treeView;
     KTreeViewSearchLine *m_searchLine;
     TOCModel *m_model;
+};
+
+class QTOC : public QTreeView
+{
+public:
+    explicit QTOC(QWidget *parent = nullptr);
+protected:
+    void resizeEvent(QResizeEvent *event) override;
 };
 
 #endif

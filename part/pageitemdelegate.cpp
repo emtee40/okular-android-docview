@@ -7,7 +7,10 @@
 #include "pageitemdelegate.h"
 
 // qt/kde includes
+#include <QAbstractItemDelegate>
 #include <QApplication>
+#include <QDebug>
+#include <QHeaderView>
 #include <QModelIndex>
 #include <QTextDocument>
 #include <QVariant>
@@ -25,12 +28,16 @@ public:
     }
 
     QModelIndex index;
+    QTreeView *parent;
+    QAbstractItemModel *model;
 };
 
-PageItemDelegate::PageItemDelegate(QObject *parent)
+PageItemDelegate::PageItemDelegate(QTreeView *parent, QAbstractItemModel *model)
     : QItemDelegate(parent)
     , d(new Private)
 {
+    d->parent = parent;
+    d->model = model;
 }
 
 PageItemDelegate::~PageItemDelegate()
@@ -41,6 +48,8 @@ PageItemDelegate::~PageItemDelegate()
 void PageItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
     d->index = index;
+//    QStyleOptionViewItem m_option = option;
+//    d->model->setData(index, option.rect.width(), ItemModelWidth);
     QItemDelegate::paint(painter, option, index);
 }
 
@@ -67,10 +76,39 @@ void PageItemDelegate::drawDisplay(QPainter *painter, const QStyleOptionViewItem
         newRect.translate(pageRectWidth + PAGEITEMDELEGATE_INTERNALMARGIN, 0);
     else
         pageRect.translate(newRect.width() + PAGEITEMDELEGATE_INTERNALMARGIN - 2 * margindelta, 0);
+    // Apply word wrapping if applicable
+    //    if (Okular::Settings::self()->tOCWordWrap()) {
+    //        QSize sz = newRect.size();
+    //        QFontMetrics metrics(option.font);
+    //        QRect outRect = metrics.boundingRect(QRect(QPoint(0, 0), sz), Qt::AlignLeft | Qt::TextWordWrap, text);
+    //        sz.setHeight(outRect.height());
+
+    //        newRect.setSize(sz);
+    //    }
+    qDebug() << "Paint width " << option.rect.width() << "FOr index" << text;
     QItemDelegate::drawDisplay(painter, option, newRect, text);
     QStyleOptionViewItem newoption(option);
     newoption.displayAlignment = (option.displayAlignment & ~Qt::AlignHorizontal_Mask) | Qt::AlignRight;
     QItemDelegate::drawDisplay(painter, newoption, pageRect, page);
+}
+
+QSize PageItemDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
+{
+    qDebug() << "PageItemDelegate::sizeHint width" << d->parent->header()->width() << "For Index " << index.data().toString();
+//    QSize sz = QItemDelegate::sizeHint(option, index);
+//     https://stackoverflow.com/questions/34623036/implementing-a-delegate-for-wordwrap-in-a-qtreeview-qt-pyside-pyqt
+    QSize sz = QSize(d->parent->header()->width()*0.6, 10000);
+//    QSize sz = QSize(index.data(ItemModelWidth).toInt(), 10000);
+//    qDebug() << index.data().toString() << sz;
+    QFontMetrics metrics(index.data(Qt::FontRole).value<QFont>());
+    QRect outRect = metrics.boundingRect(QRect(QPoint(0, 0), sz), Qt::AlignLeft | Qt::TextWordWrap, index.data().toString());
+    sz.setHeight(outRect.height());
+    return sz;
+}
+
+void PageItemDelegate::updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const
+{
+    QItemDelegate::updateEditorGeometry(editor, option, index);
 }
 
 #include "moc_pageitemdelegate.cpp"
