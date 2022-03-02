@@ -4155,7 +4155,7 @@ void Document::processKeystrokeAction(const Action *action, Okular::FormFieldTex
     d->executeScriptEvent(event, linkscript);
 
     if (event->returnCode()) {
-        fft->setText(event->value().toString());
+        fft->setText(newValue.toString());
     } else {
         emit refreshFormWidget(fft);
     }
