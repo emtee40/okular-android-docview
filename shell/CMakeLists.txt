@@ -14,6 +14,8 @@ set(okular_SRCS
    recentitemsmodel.cpp
    welcomescreen.cpp
 )
+kconfig_add_kcfg_files(okular_SRCS GENERATE_MOC ../conf/settings_core.kcfgc)
+kconfig_add_kcfg_files(okular_SRCS GENERATE_MOC ../conf/settings.kcfgc)
 
 ki18n_wrap_ui(okular_SRCS
     welcomescreen.ui)

@@ -21,6 +21,7 @@
 // qt/kde includes
 #include <KActionCollection>
 #include <KConfigGroup>
+#include <KConfigGui>
 #include <KIO/Global>
 #include <KLocalizedString>
 #include <KMessageBox>
@@ -54,6 +55,7 @@
 // local includes
 #include "../interfaces/viewerinterface.h"
 #include "kdocumentviewer.h"
+#include "settings.h"
 #include "shellutils.h"
 
 static const char *shouldShowMenuBarComingFromFullScreen = "shouldShowMenuBarComingFromFullScreen";
@@ -137,9 +139,10 @@ Shell::Shell(const QString &serializedOptions)
 
         connectPart(firstPart);
 
+        m_unique = ShellUtils::unique(serializedOptions);
+
         readSettings();
 
-        m_unique = ShellUtils::unique(serializedOptions);
         if (m_unique) {
             m_unique = QDBusConnection::sessionBus().registerService(QStringLiteral("org.kde.okular"));
             if (!m_unique) {
@@ -358,10 +361,12 @@ void Shell::closeUrl()
 
 void Shell::readSettings()
 {
-    m_recent->loadEntries(KSharedConfig::openConfig()->group("Recent Files"));
+    KSharedConfigPtr config = KSharedConfig::openConfig();
+    Okular::Settings::instance(config);
+    m_recent->loadEntries(config->group("Recent Files"));
     m_recent->setEnabled(true); // force enabling
 
-    const KConfigGroup group = KSharedConfig::openConfig()->group("Desktop Entry");
+    const KConfigGroup group = config->group("Desktop Entry");
     bool fullScreen = group.readEntry("FullScreen", false);
     setFullScreen(fullScreen);
 
@@ -369,18 +374,38 @@ void Shell::readSettings()
         m_menuBarWasShown = group.readEntry(shouldShowMenuBarComingFromFullScreen, true);
         m_toolBarWasShown = group.readEntry(shouldShowToolBarComingFromFullScreen, true);
     }
+
+    if (Okular::Settings::self()->shellRestoreOpenDocuments()) {
+        KConfigGroup session = config->group("Session");
+        QStringList urls = session.readEntry("Urls", QStringList {});
+        for (auto const &url : qAsConst(urls)) {
+            openDocument(url);
+        }
+        m_tabWidget->setCurrentIndex(session.readEntry("ActiveTab", 0));
+    }
 }
 
 void Shell::writeSettings()
 {
     saveRecents();
-    KConfigGroup group = KSharedConfig::openConfig()->group("Desktop Entry");
+    KSharedConfigPtr config = KSharedConfig::openConfig();
+    KConfigGroup group = config->group("Desktop Entry");
     group.writeEntry("FullScreen", m_fullScreenAction->isChecked());
     if (m_fullScreenAction->isChecked()) {
         group.writeEntry(shouldShowMenuBarComingFromFullScreen, m_menuBarWasShown);
         group.writeEntry(shouldShowToolBarComingFromFullScreen, m_toolBarWasShown);
     }
-    KSharedConfig::openConfig()->sync();
+
+    KConfigGroup session = config->group("Session");
+    if (Okular::Settings::self()->shellRestoreOpenDocuments() && !m_tabs[0].part->url().isEmpty()) {
+        QStringList urls;
+        for (auto const &tab : qAsConst(m_tabs)) {
+            urls.append(tab.part->url().toString());
+        }
+        session.writeEntry("Urls", urls);
+        session.writeEntry("ActiveTab", m_tabWidget->currentIndex());
+    }
+    config->sync();
 }
 
 void Shell::saveRecents()
@@ -636,31 +661,33 @@ bool Shell::queryClose()
     if (m_tabs.count() > 1) {
         const QString dontAskAgainName = QStringLiteral("ShowTabWarning");
         KMessageBox::ButtonCode dummy = KMessageBox::Yes;
-        if (shouldBeShownYesNo(dontAskAgainName, dummy)) {
-            QDialog *dialog = new QDialog(this);
-            dialog->setWindowTitle(i18n("Confirm Close"));
+        if (!Okular::Settings::self()->shellRestoreOpenDocuments()) {
+            if (shouldBeShownYesNo(dontAskAgainName, dummy)) {
+                QDialog *dialog = new QDialog(this);
+                dialog->setWindowTitle(i18n("Confirm Close"));
 
-            QDialogButtonBox *buttonBox = new QDialogButtonBox(dialog);
-            buttonBox->setStandardButtons(QDialogButtonBox::Yes | QDialogButtonBox::No);
-            KGuiItem::assign(buttonBox->button(QDialogButtonBox::Yes), KGuiItem(i18n("Close Tabs"), QStringLiteral("tab-close")));
-            KGuiItem::assign(buttonBox->button(QDialogButtonBox::No), KStandardGuiItem::cancel());
+                QDialogButtonBox *buttonBox = new QDialogButtonBox(dialog);
+                buttonBox->setStandardButtons(QDialogButtonBox::Yes | QDialogButtonBox::No);
+                KGuiItem::assign(buttonBox->button(QDialogButtonBox::Yes), KGuiItem(i18n("Close Tabs"), QStringLiteral("tab-close")));
+                KGuiItem::assign(buttonBox->button(QDialogButtonBox::No), KStandardGuiItem::cancel());
 
-            bool checkboxResult = true;
-            const int result = KMessageBox::createKMessageBox(dialog,
-                                                              buttonBox,
-                                                              QMessageBox::Question,
-                                                              i18n("You are about to close %1 tabs. Are you sure you want to continue?", m_tabs.count()),
-                                                              QStringList(),
-                                                              i18n("Warn me when I attempt to close multiple tabs"),
-                                                              &checkboxResult,
-                                                              KMessageBox::Notify);
+                bool checkboxResult = true;
+                const int result = KMessageBox::createKMessageBox(dialog,
+                                                                  buttonBox,
+                                                                  QMessageBox::Question,
+                                                                  i18n("You are about to close %1 tabs. Are you sure you want to continue?", m_tabs.count()),
+                                                                  QStringList(),
+                                                                  i18n("Warn me when I attempt to close multiple tabs"),
+                                                                  &checkboxResult,
+                                                                  KMessageBox::Notify);
 
-            if (!checkboxResult) {
-                saveDontShowAgainYesNo(dontAskAgainName, dummy);
-            }
+                if (!checkboxResult) {
+                    saveDontShowAgainYesNo(dontAskAgainName, dummy);
+                }
 
-            if (result != QDialogButtonBox::Yes) {
-                return false;
+                if (result != QDialogButtonBox::Yes) {
+                    return false;
+                }
             }
         }
     }

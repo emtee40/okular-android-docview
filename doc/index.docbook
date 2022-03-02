@@ -2604,6 +2604,15 @@ Context menu actions like Rename Bookmarks etc.)
 					</listitem>
 				</varlistentry>
 				<varlistentry>
+					<term><guilabel>Restore previously open documents on launch</guilabel></term>
+					<listitem>
+						<para>Whether &okular; should restore the documents that were open last time.
+                            Note that even if this option is enabled, Okular will not restore the
+                            previously-open documents when launched with any command-line options or
+                            the path to new document.</para>
+					</listitem>
+				</varlistentry>
+				<varlistentry>
 					<term><guilabel>Obey DRM limitations</guilabel></term>
 					<listitem>
 						<para>Whether &okular; should obey <firstterm>DRM</firstterm>
