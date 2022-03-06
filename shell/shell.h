@@ -23,8 +23,8 @@
 
 class KRecentFilesAction;
 class KToggleAction;
-class QTabWidget;
 class KPluginFactory;
+class OkularTabWidget;
 
 #ifndef Q_OS_WIN
 namespace KActivities
@@ -163,7 +163,7 @@ private:
     KToggleAction *m_showMenuBarAction;
     bool m_menuBarWasShown, m_toolBarWasShown;
     bool m_unique;
-    QTabWidget *m_tabWidget;
+    OkularTabWidget *m_tabWidget;
     KToggleAction *m_openInTab;
 
     struct TabState {
