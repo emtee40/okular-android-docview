@@ -80,14 +80,7 @@ public:
      * Rotates the image and object rects of the page to the given @p orientation.
      */
     void rotateAt(Rotation orientation);
-
-    /**
-     * Changes the size of the page to the given @p size.
-     *
-     * The @p size is meant to be referred to the page not rotated.
-     */
-    void changeSize(const PageSize &size);
-
+    
     /**
      * Clears current text selection highlight areas,
      * creates new ones if @p r is not nullptr,

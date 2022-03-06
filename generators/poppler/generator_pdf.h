@@ -117,6 +117,8 @@ protected:
     bool doCloseDocument() override;
     Okular::TextPage *textPage(Okular::TextRequest *request) override;
 
+    void dpiChangedUpdatePages(QVector<Okular::Page *> &pagesVector) override;
+
 private:
     Okular::Document::OpenResult init(QVector<Okular::Page *> &pagesVector, const QString &password);
 

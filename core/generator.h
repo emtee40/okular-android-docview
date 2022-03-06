@@ -438,6 +438,8 @@ public:
      */
     void setDPI(const QSizeF dpi);
 
+    void setDPIUpdatePages(const QSizeF dpi, QVector<Okular::Page *> &pagesVector);
+
     /**
      * Returns the 'layers model' object of the document or NULL if
      * layers model is not available.
@@ -494,6 +496,8 @@ protected:
      * This method must be called when a text generation has been finished.
      */
     void signalTextGenerationDone(Page *page, TextPage *textPage);
+
+    virtual void dpiChangedUpdatePages(QVector<Okular::Page *> &pagesVector);
 
     /**
      * This method is called when the document is closed and not used

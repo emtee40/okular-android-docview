@@ -411,19 +411,24 @@ void PagePrivate::rotateAt(Rotation orientation)
     }
 }
 
-void PagePrivate::changeSize(const PageSize &size)
+void Page::changeSize(const PageSize &size)
 {
-    if (size.isNull() || (size.width() == m_width && size.height() == m_height))
+    return changeSize(QSizeF(size.width(), size.height()));
+}
+
+void Page::changeSize(const QSizeF size)
+{
+    if (size.isNull() || (size.width() == d->m_width && size.height() == d->m_height))
         return;
 
-    m_page->deletePixmaps();
+    d->m_page->deletePixmaps();
     //    deleteHighlights();
     //    deleteTextSelections();
 
-    m_width = size.width();
-    m_height = size.height();
-    if (m_rotation % 2)
-        qSwap(m_width, m_height);
+    d->m_width = size.width();
+    d->m_height = size.height();
+    if (d->m_rotation % 2)
+        qSwap(d->m_width, d->m_height);
 }
 
 const ObjectRect *Page::objectRect(ObjectRect::ObjectType type, double x, double y, double xScale, double yScale) const

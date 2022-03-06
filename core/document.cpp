@@ -885,6 +885,8 @@ Document::OpenResult DocumentPrivate::openDocumentInternal(const KPluginMetaData
     qCDebug(OkularCoreDebug) << "Output DPI:" << dpi;
     m_generator->setDPI(dpi);
 
+    QObject::connect(m_widget->window()->windowHandle(), &QWindow::screenChanged, m_parent, [this](QScreen *screen) { screenChanged(); });
+
     Document::OpenResult openResult = Document::OpenError;
     if (!isstdin) {
         openResult = m_generator->loadDocumentWithPassword(docFile, m_pagesVector, password);
@@ -2111,6 +2113,29 @@ void DocumentPrivate::executeScriptEvent(const std::shared_ptr<Event> &event, co
 
     // Clear out the event after execution
     m_scripter->setEvent(nullptr);
+}
+
+void DocumentPrivate::screenChanged()
+{
+    const QSizeF dpi = Utils::realDpi(m_widget);
+    qCDebug(OkularCoreDebug) << "Screen changed. New DPI: " << dpi;
+
+    if (dpi == m_generator->dpi()) {
+        qCDebug(OkularCoreDebug) << "DPI did not actually change";
+        return;
+    }
+
+    m_generator->setDPIUpdatePages(dpi, m_pagesVector);
+
+    pageSizeChangedClearPixmaps();
+}
+
+void DocumentPrivate::pageSizeChangedClearPixmaps()
+{
+    // clear 'memory allocation' descriptors
+    qDeleteAll(m_allocatedPixmaps);
+    m_allocatedPixmaps.clear();
+    m_allocatedPixmapsTotalMemory = 0;
 }
 
 Document::Document(QWidget *widget)
@@ -5164,11 +5189,10 @@ void Document::setPageSize(const PageSize &size)
     QVector<Okular::Page *>::const_iterator pIt = d->m_pagesVector.constBegin();
     QVector<Okular::Page *>::const_iterator pEnd = d->m_pagesVector.constEnd();
     for (; pIt != pEnd; ++pIt)
-        (*pIt)->d->changeSize(size);
-    // clear 'memory allocation' descriptors
-    qDeleteAll(d->m_allocatedPixmaps);
-    d->m_allocatedPixmaps.clear();
-    d->m_allocatedPixmapsTotalMemory = 0;
+        (*pIt)->changeSize(size);
+
+    d->pageSizeChangedClearPixmaps();
+
     // notify the generator that the current page size has changed
     d->m_generator->pageSizeChanged(size, d->m_pageSize);
     // set the new page size

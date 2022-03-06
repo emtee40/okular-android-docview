@@ -865,6 +865,21 @@ void PDFGenerator::loadPages(QVector<Okular::Page *> &pagesVector, int rotation,
     }
 }
 
+void PDFGenerator::dpiChangedUpdatePages(QVector<Okular::Page *> &pagesVector) 
+{
+    qCDebug(OkularPdfDebug) << "asd";
+
+
+    for (Okular::Page *p : pagesVector) {
+        Poppler::Page *popPage = pdfdoc->page(p->number());
+        QSizeF popSize = popPage->pageSizeF();
+        double w = popSize.width() / 72.0 * dpi().width();
+        double h = popSize.height() / 72.0 * dpi().height();
+
+        p->changeSize(QSizeF(w, h));
+    }
+}
+
 Okular::DocumentInfo PDFGenerator::generateDocumentInfo(const QSet<Okular::DocumentInfo::Key> &keys) const
 {
     Okular::DocumentInfo docInfo;
