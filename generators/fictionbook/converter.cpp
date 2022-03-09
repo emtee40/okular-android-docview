@@ -441,7 +441,8 @@ bool Converter::convertSection(const QDomElement &element)
                 return false;
         } else if (child.tagName() == QLatin1String("p")) {
             QTextBlockFormat format;
-            format.setTextIndent(10);
+            format.setTextIndent(getTextIndent());
+            format.setAlignment(Qt::AlignJustify);
             mCursor->insertBlock(format);
             if (!convertParagraph(child))
                 return false;
@@ -678,7 +679,7 @@ bool Converter::convertEpigraph(const QDomElement &element)
     while (!child.isNull()) {
         if (child.tagName() == QLatin1String("p")) {
             QTextBlockFormat format;
-            format.setTextIndent(10);
+            format.setTextIndent(getTextIndent());
             mCursor->insertBlock(format);
             if (!convertParagraph(child))
                 return false;
@@ -693,7 +694,7 @@ bool Converter::convertEpigraph(const QDomElement &element)
                 return false;
         } else if (child.tagName() == QLatin1String("text-author")) {
             QTextBlockFormat format;
-            format.setTextIndent(10);
+            format.setTextIndent(getTextIndent());
             mCursor->insertBlock(format);
             if (!convertParagraph(child))
                 return false;
@@ -721,9 +722,10 @@ bool Converter::convertPoem(const QDomElement &element)
         } else if (child.tagName() == QLatin1String("stanza")) {
             if (!convertStanza(child))
                 return false;
+            mCursor->insertText(QStringLiteral("\n\n"));
         } else if (child.tagName() == QLatin1String("text-author")) {
             QTextBlockFormat format;
-            format.setTextIndent(10);
+            format.setTextIndent(getTextIndent());
             mCursor->insertBlock(format);
             if (!convertParagraph(child))
                 return false;
@@ -762,7 +764,7 @@ bool Converter::convertCite(const QDomElement &element)
     while (!child.isNull()) {
         if (child.tagName() == QLatin1String("p")) {
             QTextBlockFormat format;
-            format.setTextIndent(10);
+            format.setTextIndent(getTextIndent());
             mCursor->insertBlock(format);
             if (!convertParagraph(child))
                 return false;
@@ -771,7 +773,7 @@ bool Converter::convertCite(const QDomElement &element)
                 return false;
         } else if (child.tagName() == QLatin1String("text-author")) {
             QTextBlockFormat format;
-            format.setTextIndent(10);
+            format.setTextIndent(getTextIndent());
             mCursor->insertBlock(format);
             if (!convertParagraph(child))
                 return false;
@@ -1036,4 +1038,10 @@ bool Converter::convertTableCellHelper(const QDomElement &element, QTextTable &t
 
     column += colspan;
     return true;
+}
+
+qreal Converter::getTextIndent() {
+    QFont font = mCursor.charFormat().font();
+    QFontMetrics fontMetrics(font);
+    return fontMetrics.averageCharWidth() * 5;
 }
