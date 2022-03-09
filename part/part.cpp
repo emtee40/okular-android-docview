@@ -2934,7 +2934,7 @@ void Part::slotPrintPreview()
     if (m_document->pages() == 0)
         return;
 
-    QPrinter printer;
+    QPrinter *printer = new QPrinter;
     QString tempFilePattern;
 
     if (m_document->printingSupport() == Okular::Document::PostscriptPrinting) {
@@ -2949,14 +2949,33 @@ void Part::slotPrintPreview()
     QTemporaryFile tf(tempFilePattern);
     tf.setAutoRemove(true);
     tf.open();
-    printer.setOutputFileName(tf.fileName());
+    printer->setOutputFileName(tf.fileName());
     tf.close();
-    setupPrint(printer);
-    doPrint(printer);
-    if (QFile::exists(printer.outputFileName())) {
-        Okular::FilePrinterPreview previewdlg(printer.outputFileName(), widget());
-        previewdlg.exec();
-    }
+    setupPrint(*printer);
+
+    PrintJob *job = m_document->print(*printer);
+    Okular::FilePrinterPreview *previewdlg = new Okular::FilePrinterPreview(widget());
+    previewdlg->setAttribute(Qt::WA_DeleteOnClose, true);
+    previewdlg->show();
+
+    connect(job, &KJob::finished, this, [this, job, printer, previewdlg] {
+        if (job->error() == Document::NoPrintError) {
+            if (QFile::exists(printer->outputFileName())) {
+                previewdlg->showFile(printer->outputFileName());
+            }
+        } else {
+            const QString error = Okular::Document::printErrorString(static_cast<Okular::Document::PrintError>(job->error()));
+            if (error.isEmpty()) {
+                KMessageBox::error(widget(), i18n("Could not generate print preview. Unknown error. Please report to bugs.kde.org"));
+            } else {
+                KMessageBox::error(widget(), i18n("Could not generate print preview. Detailed error is \"%1\". Please report to bugs.kde.org", error));
+            }
+        }
+
+        delete printer;
+    });
+
+    job->start();
 }
 
 void Part::slotShowTOCMenu(const Okular::DocumentViewport &vp, const QPoint point, const QString &title)
@@ -3341,14 +3360,14 @@ void Part::slotPrint()
         return;
 
 #ifdef Q_OS_WIN
-    QPrinter printer(QPrinter::HighResolution);
+    QPrinter *printer = new QPrinter(QPrinter::HighResolution);
 #else
-    QPrinter printer;
+    QPrinter *printer = new QPrinter;
 #endif
     QWidget *printConfigWidget = nullptr;
 
     // Must do certain QPrinter setup before creating QPrintDialog
-    setupPrint(printer);
+    setupPrint(*printer);
 
     // Create the Print Dialog with extra config widgets if required
     if (m_document->canConfigurePrinter()) {
@@ -3357,8 +3376,9 @@ void Part::slotPrint()
         printConfigWidget = new DefaultPrintOptionsWidget();
     }
 
-    QPrintDialog printDialog(&printer, widget());
+    QPrintDialog printDialog(printer, widget());
     printDialog.setWindowTitle(i18nc("@title:window", "Print"));
+
     QList<QWidget *> options;
     if (printConfigWidget) {
         options << printConfigWidget;
@@ -3384,23 +3404,46 @@ void Part::slotPrint()
         printDialog.setOption(QAbstractPrintDialog::PrintCurrentPage);
     }
 
-    bool success = true;
     if (printDialog.exec()) {
         // set option for margins if widget is of corresponding type that holds this information
         PrintOptionsWidget *optionWidget = dynamic_cast<PrintOptionsWidget *>(printConfigWidget);
         if (optionWidget != nullptr)
-            printer.setFullPage(optionWidget->ignorePrintMargins());
+            printer->setFullPage(optionWidget->ignorePrintMargins());
         else {
             // printConfigurationWidget() method should always return an object of type Okular::PrintOptionsWidget,
             // (signature does not (yet) require it for ABI stability reasons), so emit a warning if the object is of another type
             qWarning() << "printConfigurationWidget() method did not return an Okular::PrintOptionsWidget. This is strongly discouraged!";
         }
 
-        success = doPrint(printer);
-    }
+        if (!m_document->isAllowed(Okular::AllowPrint)) {
+            KMessageBox::error(widget(), i18n("Printing this document is not allowed."));
+            delete printer;
+            //                 delete printDialog;
+            if (m_cliPrintAndExit)
+                exit(EXIT_FAILURE);
+            return;
+        }
 
-    if (m_cliPrintAndExit)
-        exit(success ? EXIT_SUCCESS : EXIT_FAILURE);
+        PrintJob *job = m_document->print(*printer);
+
+        connect(job, &KJob::finished, this, [this, job, printer] {
+            bool success = job->error() != Document::NoPrintError;
+
+            if (success) {
+                const QString error = Okular::Document::printErrorString(static_cast<Okular::Document::PrintError>(job->error()));
+                if (error.isEmpty()) {
+                    KMessageBox::error(widget(), i18n("Could not print the document. Unknown error. Please report to bugs.kde.org"));
+                } else {
+                    KMessageBox::error(widget(), i18n("Could not print the document. Detailed error is \"%1\". Please report to bugs.kde.org", error));
+                }
+            }
+            delete printer;
+            if (m_cliPrintAndExit)
+                exit(success ? EXIT_SUCCESS : EXIT_FAILURE);
+        });
+
+        job->start();
+    }
 }
 
 void Part::setupPrint(QPrinter &printer)
@@ -3415,26 +3458,6 @@ void Part::setupPrint(QPrinter &printer)
     if (!title.isEmpty()) {
         printer.setDocName(title);
     }
-}
-
-bool Part::doPrint(QPrinter &printer)
-{
-    if (!m_document->isAllowed(Okular::AllowPrint)) {
-        KMessageBox::error(widget(), i18n("Printing this document is not allowed."));
-        return false;
-    }
-
-    const Document::PrintError printError = m_document->print(printer);
-    if (printError != Document::NoPrintError) {
-        const QString error = Okular::Document::printErrorString(printError);
-        if (error.isEmpty()) {
-            KMessageBox::error(widget(), i18n("Could not print the document. Unknown error. Please report to bugs.kde.org"));
-        } else {
-            KMessageBox::error(widget(), i18n("Could not print the document. Detailed error is \"%1\". Please report to bugs.kde.org", error));
-        }
-        return false;
-    }
-    return true;
 }
 
 void Part::psTransformEnded(int exit, QProcess::ExitStatus status)
