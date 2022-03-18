@@ -140,7 +140,6 @@ public:
 
     QUrl realUrl() const;
 
-    void showSourceLocation(const QString &fileName, int line, int column, bool showGraphically = true) override;
     void clearLastShownSourceLocation() override;
     bool isWatchFileModeEnabled() const override;
     void setWatchFileModeEnabled(bool enable) override;
@@ -154,6 +153,7 @@ public:
 public Q_SLOTS: // dbus
     Q_SCRIPTABLE Q_NOREPLY void goToPage(uint page) override;
     Q_SCRIPTABLE Q_NOREPLY void openDocument(const QString &doc);
+    Q_SCRIPTABLE Q_NOREPLY void showSourceLocation(const QString &fileName, int line, int column, bool showGraphically = true) override;
     Q_SCRIPTABLE uint pages();
     Q_SCRIPTABLE uint currentPage();
     Q_SCRIPTABLE QString currentDocument();

@@ -3143,11 +3143,17 @@ QVariant Document::metaData(const QString &key, const QVariant &option) const
     if (key == QLatin1String("NamedViewport") && option.toString().startsWith(QLatin1String("src:"), Qt::CaseInsensitive) && d->m_synctex_scanner) {
         const QString reference = option.toString();
 
-        // The reference is of form "src:1111Filename", where "1111"
-        // points to line number 1111 in the file "Filename".
+        // The reference is of one of the forms
+        // "src:1111Filename", or
+        // "src:1111:314:Filename",
+        // where "1111" points to line number 1111 (first line is "1")
+        // and (optionally) "314" to column number 314 (first column is "1")
+        // in the file "Filename".
+        // The second form is recommended since it reduces ambiguity.
+        // The first form will fail if Filename starts with a digit or a colon.
         // Extract the file name and the numeral part from the reference string.
-        // This will fail if Filename starts with a digit.
-        QString name, lineString;
+        QString name;
+
         // Remove "src:". Presence of substring has been checked before this
         // function is called.
         name = reference.mid(4);
@@ -3159,11 +3165,8 @@ QVariant Document::metaData(const QString &key, const QVariant &option) const
                 break;
             }
         }
-        lineString = name.left(i);
-        name = name.mid(i);
-        // Remove spaces.
-        name = name.trimmed();
-        lineString = lineString.trimmed();
+        const QString lineString = name.left(i);
+
         // Convert line to integer.
         bool ok;
         int line = lineString.toInt(&ok);
@@ -3171,8 +3174,34 @@ QVariant Document::metaData(const QString &key, const QVariant &option) const
             line = -1;
         }
 
-        // Use column == -1 for now.
-        if (synctex_display_query(d->m_synctex_scanner, QFile::encodeName(name).constData(), line, -1, 0) > 0) {
+        // The remaining part
+        name = name.mid(i);
+
+        int col = -1;
+        if (name[0] != QLatin1Char(':')) {
+            // First form, we just remove spaces
+            name = name.trimmed();
+        } else {
+            // Second form
+            // Remove colon
+            name = name.mid(1);
+            for (i = 0; i < nameLength; ++i) {
+                if (!name[i].isDigit())
+                    break;
+            }
+            QString colString = name.left(i);
+
+            // Convert col to integer.
+            bool ok;
+            col = colString.toInt(&ok);
+            if (!ok)
+                col = -1;
+
+            // The remaining part, remove colon as well
+            name = name.mid(i + 1);
+        }
+
+        if (synctex_display_query(d->m_synctex_scanner, QFile::encodeName(name).constData(), line, col, 0) > 0) {
             synctex_node_p node;
             // For now use the first hit. Could possibly be made smarter
             // in case there are multiple hits.
@@ -3185,13 +3214,37 @@ QVariant Document::metaData(const QString &key, const QVariant &option) const
                 if (viewport.pageNumber >= 0) {
                     const QSizeF dpi = d->m_generator->dpi();
 
-                    // TeX small points ...
-                    double px = (synctex_node_visible_h(node) * dpi.width()) / 72.27;
-                    double py = (synctex_node_visible_v(node) * dpi.height()) / 72.27;
-                    viewport.rePos.normalizedX = px / page(viewport.pageNumber)->width();
-                    viewport.rePos.normalizedY = (py + 0.5) / page(viewport.pageNumber)->height();
+                    // Convert TeX points to pixels
+                    const double px = (synctex_node_box_visible_h(node) * dpi.width()) / 72.27;
+                    const double pw = (synctex_node_box_visible_width(node) * dpi.width()) / 72.27;
+
+                    const double py = (synctex_node_box_visible_v(node) * dpi.height()) / 72.27;
+                    const double ph = (synctex_node_box_visible_height(node) * dpi.height()) / 72.27;
+                    const double pd = (synctex_node_box_visible_depth(node) * dpi.height()) / 72.27;
+
+                    // Pixels on page, used to normalize coordinates
+                    const double w = page(viewport.pageNumber)->width();
+                    const double h = page(viewport.pageNumber)->height();
+
+                    // Set the view port (to the middle of the area)
+                    viewport.rePos.normalizedX = (px + pw / 2) / w;
+                    viewport.rePos.normalizedY = (py + (pd - ph) / 2) / h;
                     viewport.rePos.enabled = true;
                     viewport.rePos.pos = Okular::DocumentViewport::Center;
+
+                    // Remove old highlight
+                    // resetSearch(SYNCTEX_SEARCH_ID);
+
+                    // Highlight the area
+                    QColor color(255, 123, 0, 120);
+                    Okular::NormalizedRect rect;
+                    rect.left = px / w;
+                    rect.right = (px + pw) / w;
+                    rect.top = (py - ph) / h;
+                    rect.bottom = (py + pd) / h;
+                    Okular::RegularAreaRect *rects = new Okular::RegularAreaRect;
+                    rects->append(rect);
+                    d->m_pagesVector[viewport.pageNumber]->d->setHighlight(SYNCTEX_SEARCH_ID, rects, color);
 
                     return viewport.toString();
                 }
@@ -3937,6 +3990,19 @@ void Document::resetSearch(int searchID)
         return;
     }
 
+    if (searchID == -1 || searchID == SYNCTEX_SEARCH_ID) {
+        // synctex search is not a real search, we just have to delete the highlights.
+        for (int i = 0; i < d->m_pagesVector.count(); ++i) {
+            if (d->m_pagesVector[i]->hasHighlights(SYNCTEX_SEARCH_ID)) {
+                foreachObserver(notifyPageChanged(i, DocumentObserver::Highlights));
+                d->m_pagesVector[i]->d->deleteHighlights(SYNCTEX_SEARCH_ID);
+            }
+        }
+        if (searchID == SYNCTEX_SEARCH_ID) {
+            return;
+        }
+    }
+
     // check if searchID is present in runningSearches
     QMap<int, RunningSearch *>::iterator searchIt = d->m_searches.find(searchID);
     if (searchIt == d->m_searches.end()) {
@@ -4120,6 +4186,10 @@ void Document::processAction(const Action *action)
             qCWarning(OkularCoreDebug).nospace() << "Action: Error opening '" << filename << "'.";
             break;
         } else {
+            if (d->m_nextDocumentDestination.startsWith(QLatin1String("src:"))) {
+                // Remove old highlight
+                resetSearch(SYNCTEX_SEARCH_ID);
+            }
             const DocumentViewport nextViewport = d->nextDocumentViewport();
             // skip local links that point to nowhere (broken ones)
             if (!nextViewport.isValid()) {
@@ -4523,7 +4593,8 @@ const SourceReference *Document::dynamicSourceReference(int pageNr, double absX,
 
     const QSizeF dpi = d->m_generator->dpi();
 
-    if (synctex_edit_query(d->m_synctex_scanner, pageNr + 1, absX * 72. / dpi.width(), absY * 72. / dpi.height()) > 0) {
+    // We have to convert absolute coordinates to TeX points
+    if (synctex_edit_query(d->m_synctex_scanner, pageNr + 1, absX * 72.27 / dpi.width(), absY * 72.27 / dpi.height()) > 0) {
         synctex_node_p node;
         // TODO what should we do if there is really more than one node?
         while ((node = synctex_scanner_next_result(d->m_synctex_scanner))) {

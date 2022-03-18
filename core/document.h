@@ -66,6 +66,7 @@ class SignatureInfo;
 #define PAGEVIEW_SEARCH_ID 2
 #define SW_SEARCH_ID 3
 #define PRESENTATION_SEARCH_ID 4
+#define SYNCTEX_SEARCH_ID 5
 
 /**
  * The DocumentInfo structure can be filled in by generators to display

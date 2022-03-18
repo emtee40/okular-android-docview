@@ -514,6 +514,7 @@ Part::Part(QWidget *parentWidget, QObject *parent, const QVariantList &args)
     connect(m_findBar, &FindBar::onCloseButtonPressed, m_pageView, QOverload<>::of(&PageView::setFocus));
     connect(m_miniBar, &MiniBar::forwardKeyPressEvent, m_pageView, &PageView::externalKeyPressEvent);
     connect(m_pageView.data(), &PageView::escPressed, m_findBar, &FindBar::resetSearch);
+    connect(m_pageView.data(), &PageView::escPressed, m_document, [this] { m_document->resetSearch(SYNCTEX_SEARCH_ID); });
     connect(m_pageNumberTool, &MiniBar::forwardKeyPressEvent, m_pageView, &PageView::externalKeyPressEvent);
     connect(m_pageView.data(), &PageView::requestOpenFile, this, [this](const QString &filePath, int pageNumber) {
         // We cheat a bit here reusing the urlsDropped signal, but at the end the output is the same, we want to open some files
@@ -1064,9 +1065,7 @@ QUrl Part::realUrl() const
 
 void Part::showSourceLocation(const QString &fileName, int line, int column, bool showGraphically)
 {
-    Q_UNUSED(column);
-
-    const QString u = QStringLiteral("src:%1 %2").arg(line + 1).arg(fileName);
+    const QString u = QStringLiteral("src:%1:%2:%3").arg(line + 1).arg(column + 1).arg(fileName);
     GotoAction action(QString(), u);
     m_document->processAction(&action);
     if (showGraphically) {
