@@ -48,11 +48,7 @@ QString PopplerCertificateInfo::subjectInfo(PopplerCertificateInfo::EntityInfoKe
 
 QString PopplerCertificateInfo::nickName() const
 {
-#ifdef HAVE_POPPLER_SIGNING
     return m_info.nickName();
-#else
-    return i18n("Not Available");
-#endif
 }
 
 QDateTime PopplerCertificateInfo::validityStart() const
@@ -134,12 +130,7 @@ QByteArray PopplerCertificateInfo::certificateData() const
 
 bool PopplerCertificateInfo::checkPassword(const QString &password) const
 {
-#ifdef HAVE_POPPLER_SIGNING
     return m_info.checkPassword(password);
-#else
-    Q_UNUSED(password);
-    return false;
-#endif
 }
 
 PopplerSignatureInfo::PopplerSignatureInfo(const Poppler::SignatureValidationInfo &info)
@@ -264,7 +255,6 @@ const Okular::CertificateInfo &PopplerSignatureInfo::certificateInfo() const
     return *m_certfiticateInfo;
 }
 
-#ifdef HAVE_POPPLER_SIGNING
 PopplerCertificateStore::~PopplerCertificateStore() = default;
 
 QList<Okular::CertificateInfo *> PopplerCertificateStore::signingCertificates(bool *userCancelled) const
@@ -288,4 +278,3 @@ QList<Okular::CertificateInfo *> PopplerCertificateStore::signingCertificates(bo
 
     return vReturnCerts;
 }
-#endif

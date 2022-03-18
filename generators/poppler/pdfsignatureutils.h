@@ -63,8 +63,6 @@ private:
     Okular::CertificateInfo *m_certfiticateInfo;
 };
 
-#ifdef HAVE_POPPLER_SIGNING
-
 class PopplerCertificateStore : public Okular::CertificateStore
 {
 public:
@@ -72,7 +70,5 @@ public:
 
     QList<Okular::CertificateInfo *> signingCertificates(bool *userCancelled) const override;
 };
-
-#endif
 
 #endif
