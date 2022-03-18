@@ -280,7 +280,6 @@ static void setSharedAnnotationPropertiesToPopplerAnnotation(const Okular::Annot
     popplerAnnotation->setModificationDate(okularAnnotation->modificationDate());
 }
 
-#ifdef HAVE_POPPLER_21_10
 static void setPopplerStampAnnotationCustomImage(const Poppler::Page *page, Poppler::StampAnnotation *pStampAnnotation, const Okular::StampAnnotation *oStampAnnotation)
 {
     const QSize size = page->pageSize();
@@ -292,7 +291,6 @@ static void setPopplerStampAnnotationCustomImage(const Poppler::Page *page, Popp
         pStampAnnotation->setStampCustomImage(image);
     }
 }
-#endif
 
 static void updatePopplerAnnotationFromOkularAnnotation(const Okular::TextAnnotation *oTextAnnotation, Poppler::TextAnnotation *pTextAnnotation)
 {
@@ -348,17 +346,10 @@ static void updatePopplerAnnotationFromOkularAnnotation(const Okular::HighlightA
     pHighlightAnnotation->setHighlightQuads(pQuads);
 }
 
-#ifdef HAVE_POPPLER_21_10
 static void updatePopplerAnnotationFromOkularAnnotation(const Okular::StampAnnotation *oStampAnnotation, Poppler::StampAnnotation *pStampAnnotation, const Poppler::Page *page)
 {
     setPopplerStampAnnotationCustomImage(page, pStampAnnotation, oStampAnnotation);
 }
-#else
-static void updatePopplerAnnotationFromOkularAnnotation(const Okular::StampAnnotation *oStampAnnotation, Poppler::StampAnnotation *pStampAnnotation)
-{
-    pStampAnnotation->setStampIconName(oStampAnnotation->stampIconName());
-}
-#endif
 
 static void updatePopplerAnnotationFromOkularAnnotation(const Okular::InkAnnotation *oInkAnnotation, Poppler::InkAnnotation *pInkAnnotation)
 {
@@ -420,7 +411,6 @@ static Poppler::Annotation *createPopplerAnnotationFromOkularAnnotation(const Ok
     return pHighlightAnnotation;
 }
 
-#ifdef HAVE_POPPLER_21_10
 static Poppler::Annotation *createPopplerAnnotationFromOkularAnnotation(const Okular::StampAnnotation *oStampAnnotation, Poppler::Page *page)
 {
     Poppler::StampAnnotation *pStampAnnotation = new Poppler::StampAnnotation();
@@ -430,17 +420,6 @@ static Poppler::Annotation *createPopplerAnnotationFromOkularAnnotation(const Ok
 
     return pStampAnnotation;
 }
-#else
-static Poppler::Annotation *createPopplerAnnotationFromOkularAnnotation(const Okular::StampAnnotation *oStampAnnotation)
-{
-    Poppler::StampAnnotation *pStampAnnotation = new Poppler::StampAnnotation();
-
-    setSharedAnnotationPropertiesToPopplerAnnotation(oStampAnnotation, pStampAnnotation);
-    updatePopplerAnnotationFromOkularAnnotation(oStampAnnotation, pStampAnnotation);
-
-    return pStampAnnotation;
-}
-#endif
 
 static Poppler::Annotation *createPopplerAnnotationFromOkularAnnotation(const Okular::InkAnnotation *oInkAnnotation)
 {
@@ -483,7 +462,6 @@ void PopplerAnnotationProxy::notifyAddition(Okular::Annotation *okl_ann, int pag
         ppl_ann = createPopplerAnnotationFromOkularAnnotation(static_cast<Okular::HighlightAnnotation *>(okl_ann));
         break;
     case Okular::Annotation::AStamp:
-#ifdef HAVE_POPPLER_21_10
     {
         bool wasDenyWriteEnabled = okl_ann->flags() & Okular::Annotation::DenyWrite;
 
@@ -501,9 +479,6 @@ void PopplerAnnotationProxy::notifyAddition(Okular::Annotation *okl_ann, int pag
             }
         }
     }
-#else
-        ppl_ann = createPopplerAnnotationFromOkularAnnotation(static_cast<Okular::StampAnnotation *>(okl_ann));
-#endif
     break;
     case Okular::Annotation::AInk:
         ppl_ann = createPopplerAnnotationFromOkularAnnotation(static_cast<Okular::InkAnnotation *>(okl_ann));
@@ -516,14 +491,7 @@ void PopplerAnnotationProxy::notifyAddition(Okular::Annotation *okl_ann, int pag
         return;
     }
 
-#ifdef HAVE_POPPLER_21_10
     okl_ann->setFlags(okl_ann->flags() | Okular::Annotation::ExternallyDrawn);
-#else
-    // Poppler doesn't render StampAnnotations yet
-    if (ppl_ann->subType() != Poppler::Annotation::AStamp) {
-        okl_ann->setFlags(okl_ann->flags() | Okular::Annotation::ExternallyDrawn);
-    }
-#endif
 
     // Bind poppler object to page
     ppl_page->addAnnotation(ppl_ann);
@@ -595,13 +563,9 @@ void PopplerAnnotationProxy::notifyModification(const Okular::Annotation *okl_an
     case Poppler::Annotation::AStamp: {
         const Okular::StampAnnotation *okl_stampann = static_cast<const Okular::StampAnnotation *>(okl_ann);
         Poppler::StampAnnotation *ppl_stampann = static_cast<Poppler::StampAnnotation *>(ppl_ann);
-#ifdef HAVE_POPPLER_21_10
         Poppler::Page *ppl_page = ppl_doc->page(page);
         updatePopplerAnnotationFromOkularAnnotation(okl_stampann, ppl_stampann, ppl_page);
         delete ppl_page;
-#else
-        updatePopplerAnnotationFromOkularAnnotation(okl_stampann, ppl_stampann);
-#endif
         break;
     }
     case Poppler::Annotation::AInk: {
@@ -630,11 +594,9 @@ void PopplerAnnotationProxy::notifyRemoval(Okular::Annotation *okl_ann, int page
 
     Poppler::Page *ppl_page = ppl_doc->page(page);
     annotationsOnOpenHash->remove(okl_ann);
-#ifdef HAVE_POPPLER_21_10
     if (okl_ann->subType() == Okular::Annotation::AStamp) {
         deletedStampsAnnotationAppearance[static_cast<Okular::StampAnnotation *>(okl_ann)] = std::move(ppl_ann->annotationAppearance());
     }
-#endif
     ppl_page->removeAnnotation(ppl_ann); // Also destroys ppl_ann
     delete ppl_page;
 
@@ -1070,9 +1032,7 @@ Okular::Annotation *createAnnotationFromPopplerAnnotation(Poppler::Annotation *p
         break;
     }
     case Poppler::Annotation::AStamp:
-#ifdef HAVE_POPPLER_21_10
         externallyDrawn = true;
-#endif
         tieToOkularAnn = true;
         *doDelete = false;
         okularAnnotation = createAnnotationFromPopplerAnnotation(static_cast<Poppler::StampAnnotation *>(popplerAnnotation));
@@ -1097,7 +1057,6 @@ Okular::Annotation *createAnnotationFromPopplerAnnotation(Poppler::Annotation *p
         if (externallyDrawn) {
             okularAnnotation->setFlags(okularAnnotation->flags() | Okular::Annotation::ExternallyDrawn);
         }
-#ifdef HAVE_POPPLER_21_10
         if (okularAnnotation->subType() == Okular::Annotation::SubType::AStamp) {
             Okular::StampAnnotation *oStampAnn = static_cast<Okular::StampAnnotation *>(okularAnnotation);
             Poppler::StampAnnotation *pStampAnn = static_cast<Poppler::StampAnnotation *>(popplerAnnotation);
@@ -1108,7 +1067,6 @@ Okular::Annotation *createAnnotationFromPopplerAnnotation(Poppler::Annotation *p
 
             oStampAnn->setFlags(okularAnnotation->flags() | Okular::Annotation::Flag::DenyWrite);
         }
-#endif
 
         // Convert the poppler annotation style to Okular annotation style
         Okular::Annotation::Style &okularStyle = okularAnnotation->style();

@@ -37,9 +37,7 @@ private:
     Poppler::Document *ppl_doc;
     QMutex *mutex;
     QHash<Okular::Annotation *, Poppler::Annotation *> *annotationsOnOpenHash;
-#ifdef HAVE_POPPLER_21_10
     std::unordered_map<Okular::StampAnnotation *, std::unique_ptr<Poppler::AnnotationAppearance>> deletedStampsAnnotationAppearance;
-#endif
 };
 
 #endif
