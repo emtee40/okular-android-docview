@@ -105,7 +105,7 @@ struct PresentationFrame {
     const Okular::Page *page;
     QRect geometry;
     QHash<Okular::Movie *, VideoWidget *> videoWidgets;
-    QLinkedList<SmoothPath> drawings;
+    QVector<SmoothPath> drawings;
 };
 
 // a custom QToolBar that basically does not propagate the event if the widget
