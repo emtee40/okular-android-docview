@@ -40,6 +40,7 @@ class SearchTest : public QObject
 private Q_SLOTS:
     void initTestCase();
     void testNextAndPrevious();
+    void testArabicSearch();
     void test311232();
     void test323262();
     void test323263();
@@ -156,6 +157,32 @@ void SearchTest::testNextAndPrevious()
 
         delete page;
     }
+}
+
+void SearchTest::testArabicSearch()
+{
+    Okular::Document d(nullptr);
+    SearchFinishedReceiver receiver;
+    QSignalSpy spy(&d, SIGNAL(searchFinished(int,Okular::Document::SearchStatus)));
+
+    QObject::connect(&d, SIGNAL(searchFinished(int,Okular::Document::SearchStatus)), &receiver, SLOT(searchFinished(int,Okular::Document::SearchStatus)));
+
+    const QString testFile = QStringLiteral(KDESRCDIR "data/arabic-search-test.pdf");
+    QMimeDatabase db;
+    const QMimeType mime = db.mimeTypeForFile( testFile );
+    d.openDocument(testFile, QUrl(), mime);
+
+    const int searchId = 0;
+    d.searchText(searchId, QStringLiteral("عمان"), true, Qt::CaseSensitive, Okular::Document::NextMatch, false, QColor());
+    QTRY_COMPARE(spy.count(), 1);
+    QCOMPARE(receiver.m_id, searchId);
+    QCOMPARE(receiver.m_status, Okular::Document::MatchFound);
+
+
+    d.continueSearch( searchId, Okular::Document::PreviousMatch );
+    QTRY_COMPARE(spy.count(), 2);
+    QCOMPARE(receiver.m_id, searchId);
+    QCOMPARE(receiver.m_status, Okular::Document::NoMatchFound);
 }
 
 void SearchTest::test311232()

@@ -1626,6 +1626,50 @@ static RegionTextList XYCutForBoundingBoxes(const QList<WordWithCharacters> &wor
 }
 
 /**
+  * reoder RTL words to the correct order
+  */
+TextList  reoderRTLWords (TextList origTxtOrder)
+{
+    TextList tmp;
+    int i, j, k;
+
+    i = 0;
+    while (i < origTxtOrder.length())
+    {
+        // output a left-to-right section
+        for (j = i; j < origTxtOrder.length() && ! origTxtOrder.at(j)->text().isRightToLeft(); ++j) ;
+        for (k = i; k < j; ++k)
+        {
+            tmp.append(origTxtOrder.at(k));
+        }
+        i = j;
+        // output a right-to-left section
+        for(j = i; j < origTxtOrder.length() && (origTxtOrder.at(j)->text().isRightToLeft() || origTxtOrder.at(j)->text() == " "); ++j);
+
+        if(j > i)
+        {
+            tmp.append(new TinyTextEntity(QChar(0x202b), NormalizedRect()));
+            for (k = j - 1; k >= i; --k)
+            {
+                // filp new line char to be first in RTL word.
+                if (origTxtOrder.at(k)->text().contains('\n'))
+                {
+                    QString flipNewLine = origTxtOrder.at(k)->text();
+                    flipNewLine.remove('\n');
+                    flipNewLine.push_front('\n');
+                    tmp.append(new TinyTextEntity(flipNewLine, origTxtOrder.at(k)->area));
+                }
+                else
+                    tmp.append(origTxtOrder.at(k));
+            }
+            tmp.append(new TinyTextEntity(QChar(0x202c), NormalizedRect()));
+            i = j;
+        }
+    }
+    return tmp;
+}
+
+/**
  * Add spaces in between words in a line. It reuses the pointers passed in tree and might add new ones. You will need to take care of deleting them if needed
  */
 WordsWithCharacters addNecessarySpace(RegionTextList tree, int pageWidth, int pageHeight)
@@ -1733,7 +1777,7 @@ void TextPagePrivate::correctTextOrder()
         delete word.word;
         listOfCharacters.append(word.characters);
     }
-    setWordList(listOfCharacters);
+    setWordList(reoderRTLWords(listOfCharacters));
 }
 
 TextEntity::List TextPage::words(const RegularAreaRect *area, TextAreaInclusionBehaviour b) const
