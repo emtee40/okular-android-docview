@@ -1626,9 +1626,9 @@ static RegionTextList XYCutForBoundingBoxes(const QList<WordWithCharacters> &wor
 }
 
 /**
-  * reoder RTL words to the correct order
+  * reorder RTL words to the correct order
   */
-TextList  reoderRTLWords (TextList origTxtOrder)
+TextList  reorderRTLWords (TextList origTxtOrder)
 {
     TextList tmp;
     int i, j, k;
@@ -1777,7 +1777,7 @@ void TextPagePrivate::correctTextOrder()
         delete word.word;
         listOfCharacters.append(word.characters);
     }
-    setWordList(reoderRTLWords(listOfCharacters));
+    setWordList(reorderRTLWords(listOfCharacters));
 }
 
 TextEntity::List TextPage::words(const RegularAreaRect *area, TextAreaInclusionBehaviour b) const
