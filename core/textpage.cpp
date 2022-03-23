@@ -1628,7 +1628,7 @@ static RegionTextList XYCutForBoundingBoxes(const QList<WordWithCharacters> &wor
 /**
   * reorder RTL words to the correct order
   */
-TextList  reorderRTLWords (TextList origTxtOrder)
+TextList reorderRTLWords (const TextList &origTxtOrder)
 {
     TextList tmp;
     int i, j, k;
