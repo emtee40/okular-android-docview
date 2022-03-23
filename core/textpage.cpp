@@ -1651,7 +1651,7 @@ TextList reorderRTLWords (const TextList &origTxtOrder)
             tmp.append(new TinyTextEntity(QChar(0x202b), NormalizedRect()));
             for (k = j - 1; k >= i; --k)
             {
-                // filp new line char to be first in RTL word.
+                // flip new line char to be first in RTL word.
                 if (origTxtOrder.at(k)->text().contains('\n'))
                 {
                     QString flipNewLine = origTxtOrder.at(k)->text();
