@@ -1632,7 +1632,6 @@ TextList reorderRTLWords (const TextList &origTxtOrder)
 {
     TextList tmp;
     int i, j, k;
-
     i = 0;
     while (i < origTxtOrder.length())
     {
@@ -1644,7 +1643,7 @@ TextList reorderRTLWords (const TextList &origTxtOrder)
         }
         i = j;
         // output a right-to-left section
-        for(j = i; j < origTxtOrder.length() && (origTxtOrder.at(j)->text().isRightToLeft() || origTxtOrder.at(j)->text() == " "); ++j);
+        for(j = i; j < origTxtOrder.length() && (origTxtOrder.at(j)->text().isRightToLeft() || origTxtOrder.at(j)->text() == QLatin1String(" ")); ++j);
 
         if(j > i)
         {
