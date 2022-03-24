@@ -1657,9 +1657,9 @@ TextList reorderRTLWords (const TextList &origTxtOrder)
                     flipNewLine.remove('\n');
                     flipNewLine.push_front('\n');
                     tmp.append(new TinyTextEntity(flipNewLine, origTxtOrder.at(k)->area));
-                }
-                else
+                } else {
                     tmp.append(origTxtOrder.at(k));
+                }
             }
             tmp.append(new TinyTextEntity(QChar(0x202c), NormalizedRect()));
             i = j;
