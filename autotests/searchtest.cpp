@@ -163,9 +163,9 @@ void SearchTest::testArabicSearch()
 {
     Okular::Document d(nullptr);
     SearchFinishedReceiver receiver;
-    QSignalSpy spy(&d, SIGNAL(searchFinished(int,Okular::Document::SearchStatus)));
+    QSignalSpy spy(&d, &Okular::Document::searchFinished);
 
-    QObject::connect(&d, SIGNAL(searchFinished(int,Okular::Document::SearchStatus)), &receiver, SLOT(searchFinished(int,Okular::Document::SearchStatus)));
+    QObject::connect(&d, &Okular::Document::searchFinished, &receiver, &SearchFinishedReceiver::searchFinished);
 
     const QString testFile = QStringLiteral(KDESRCDIR "data/arabic-search-test.pdf");
     QMimeDatabase db;
