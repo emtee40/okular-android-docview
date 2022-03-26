@@ -1636,14 +1636,24 @@ TextList reorderRTLWords (const TextList &origTxtOrder)
     while (i < origTxtOrder.length())
     {
         // output a left-to-right section
-        for (j = i; j < origTxtOrder.length() && ! origTxtOrder.at(j)->text().isRightToLeft(); ++j) ;
+        for (j = i; j < origTxtOrder.length(); ++j){
+            if (origTxtOrder.at(j)->text().isRightToLeft()){
+                break;
+            }
+        }
+        
         for (k = i; k < j; ++k)
         {
             tmp.append(origTxtOrder.at(k));
         }
         i = j;
         // output a right-to-left section
-        for(j = i; j < origTxtOrder.length() && (origTxtOrder.at(j)->text().isRightToLeft() || origTxtOrder.at(j)->text() == QLatin1String(" ")); ++j);
+        for(j = i; j < origTxtOrder.length(); ++j) {
+            if (! (origTxtOrder.at(j)->text().isRightToLeft() || origTxtOrder.at(j)->text() == QLatin1String(" "))) {
+                break;
+            }
+        }
+        
 
         if(j > i)
         {
