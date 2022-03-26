@@ -169,7 +169,7 @@ void SearchTest::testArabicSearch()
 
     const QString testFile = QStringLiteral(KDESRCDIR "data/arabic-search-test.pdf");
     QMimeDatabase db;
-    const QMimeType mime = db.mimeTypeForFile( testFile );
+    const QMimeType mime = db.mimeTypeForFile(testFile);
     d.openDocument(testFile, QUrl(), mime);
 
     const int searchId = 0;
@@ -178,8 +178,7 @@ void SearchTest::testArabicSearch()
     QCOMPARE(receiver.m_id, searchId);
     QCOMPARE(receiver.m_status, Okular::Document::MatchFound);
 
-
-    d.continueSearch( searchId, Okular::Document::PreviousMatch );
+    d.continueSearch(searchId, Okular::Document::PreviousMatch);
     QTRY_COMPARE(spy.count(), 2);
     QCOMPARE(receiver.m_id, searchId);
     QCOMPARE(receiver.m_status, Okular::Document::NoMatchFound);
