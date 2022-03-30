@@ -3186,16 +3186,18 @@ QVariant Document::metaData(const QString &key, const QVariant &option) const
             // Remove colon
             name = name.mid(1);
             for (i = 0; i < nameLength; ++i) {
-                if (!name[i].isDigit())
+                if (!name[i].isDigit()) {
                     break;
+                }
             }
             QString colString = name.left(i);
 
             // Convert col to integer.
             bool ok;
             col = colString.toInt(&ok);
-            if (!ok)
+            if (!ok) {
                 col = -1;
+            }
 
             // The remaining part, remove colon as well
             name = name.mid(i + 1);
