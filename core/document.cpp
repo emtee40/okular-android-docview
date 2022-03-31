@@ -3225,14 +3225,17 @@ QVariant Document::metaData(const QString &key, const QVariant &option) const
                     const double pd = (synctex_node_box_visible_depth(node) * dpi.height()) / 72.27;
 
                     // Pixels on page, used to normalize coordinates
-                    const double w = page(viewport.pageNumber)->width();
-                    const double h = page(viewport.pageNumber)->height();
+                    const Okular::Page *currentPage(page(viewport.pageNumber));
 
-                    // Set the view port (to the middle of the area)
-                    viewport.rePos.normalizedX = (px + pw / 2) / w;
-                    viewport.rePos.normalizedY = (py + (pd - ph) / 2) / h;
-                    viewport.rePos.enabled = true;
-                    viewport.rePos.pos = Okular::DocumentViewport::Center;
+                    // Get current (i.e., rotated) width and height.
+                    double w = currentPage->width();
+                    double h = currentPage->height();
+
+                    // We need width and height of the unrotated page
+                    if (currentPage->totalOrientation() == Okular::Rotation90 || currentPage->totalOrientation() == Okular::Rotation270) {
+                        qSwap(w, h);
+                    }
+
 
                     // Remove old highlight
                     // resetSearch(SYNCTEX_SEARCH_ID);
@@ -3244,6 +3247,16 @@ QVariant Document::metaData(const QString &key, const QVariant &option) const
                     rect.right = (px + pw) / w;
                     rect.top = (py - ph) / h;
                     rect.bottom = (py + pd) / h;
+
+                    const QTransform rotationMatrix = Okular::buildRotationMatrix(currentPage->totalOrientation());
+                    rect.transform(rotationMatrix);
+
+                    // Set the view port (to the middle of the area).
+                    viewport.rePos.normalizedX = (rect.left + rect.right) / 2;
+                    viewport.rePos.normalizedY = (rect.top + rect.bottom) / 2;
+                    viewport.rePos.enabled = true;
+                    viewport.rePos.pos = Okular::DocumentViewport::Center;
+
                     Okular::RegularAreaRect *rects = new Okular::RegularAreaRect;
                     rects->append(rect);
                     d->m_pagesVector[viewport.pageNumber]->d->setHighlight(SYNCTEX_SEARCH_ID, rects, color);
