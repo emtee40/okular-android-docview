@@ -3236,7 +3236,6 @@ QVariant Document::metaData(const QString &key, const QVariant &option) const
                         qSwap(w, h);
                     }
 
-
                     // Remove old highlight
                     // resetSearch(SYNCTEX_SEARCH_ID);
 
