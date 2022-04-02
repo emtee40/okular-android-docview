@@ -103,7 +103,7 @@ void removeRCFileIfVersionSmallerThan(const QString &filePath, int version)
 #if KXMLGUI_VERSION < QT_VERSION_CHECK(5, 73, 0)
         const QString fileVersion = findVersionNumber(contents);
 #else
-        const QString fileVersion = KXMLGUIClient::findVersionNumber(contents);
+        const QString fileVersion = KXMLGUIClient::findVersionNumber(QString::fromUtf8(contents));
 #endif
         if (fileVersion.toInt() < version) {
             QFile::remove(filePath);
