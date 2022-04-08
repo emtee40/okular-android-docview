@@ -14,6 +14,7 @@
 
 #include <limits.h>
 #include <memory>
+#include <qalgorithms.h>
 #ifdef Q_OS_WIN
 #define _WIN32_WINNT 0x0500
 #include <windows.h>
@@ -100,6 +101,8 @@
 #if HAVE_MALLOC_TRIM
 #include "malloc.h"
 #endif
+
+#include <private/qstringiterator_p.h>
 
 using namespace Okular;
 
@@ -4342,6 +4345,45 @@ void Document::processFormatAction(const Action *action, Okular::FormFieldText *
     }
 }
 
+void printDiff(QVector<QVector<int>> C, QString X, QString Y, int i, int j) {
+    if (i >= 0 && j >= 0 && X[i] == Y[j]) {
+        printDiff(C, X, Y, i-1, j-1);
+        // qDebug() << "  " << X[i];
+    } else if (j > 0 && (i == 0 || C[i][j-1] >= C[i-1][j])) {
+        printDiff(C, X, Y, i, j-1);
+        // qDebug() <<  "+ " << Y[j];
+    } else if ( i > 0 && (j == 0 || C[i][j-1] < C[i-1][j])) {
+        printDiff(C, X, Y, i-1, j);
+        // qDebug() <<  "- " + X[i];
+    } else {
+//         qDebu ""
+    }
+}
+
+
+QString DocumentPrivate::diff(const QString &oldVal, const QString &newVal)
+{
+    QString diff;
+
+    QStringIterator oldIt(oldVal);
+    QStringIterator newIt(newVal);
+
+    while (oldIt.hasNext() && newIt.hasNext()) {
+        QChar oldToken = oldIt.next();
+        QChar newToken = newIt.next();
+
+        if (oldToken != newToken) {
+            diff += newToken;
+            break;
+        }
+    }
+
+    while (newIt.hasNext()) {
+        diff += newIt.next();
+    }
+    return diff;
+}
+
 void Document::processKeystrokeAction(const Action *action, Okular::FormFieldText *fft, const QVariant &newValue)
 {
     if (action->actionType() != Action::Script) {
@@ -4357,6 +4399,7 @@ void Document::processKeystrokeAction(const Action *action, Okular::FormFieldTex
     }
 
     std::shared_ptr<Event> event = Event::createKeystrokeEvent(fft, d->m_pagesVector[foundPage]);
+    event->setChange(DocumentPrivate::diff(fft->text(), newValue.toString()));
 
     const ScriptAction *linkscript = static_cast<const ScriptAction *>(action);
 
