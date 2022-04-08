@@ -136,8 +136,9 @@ function AFNumber_Format( nDec, sepStyle, negStyle, currStyle, strCurrency, bCur
 
 function AFNumber_Keystroke(nDec, sepStyle, negStyle, currStyle, strCurrency, bCurrencyPrepend)
 {
-    // TODO
-    return;
+    // Only accept digits
+    // TODO handle decimal separators
+    event.rc = !isNaN(parseInt(event.change)) || event.change === ""
 }
 
 function AFMakeNumber(string)
