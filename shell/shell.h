@@ -72,6 +72,14 @@ public:
 
     bool openDocument(const QUrl &url, const QString &serializedOptions);
 
+    /**
+     * Returns the currently running okular services via dbus. Excludes
+     * the current process.
+     *
+     * @return QStringList List of Okular DBus service names
+     */
+    static QStringList otherOkularServices();
+
 public Q_SLOTS:
     Q_SCRIPTABLE Q_NOREPLY void tryRaise();
     Q_SCRIPTABLE bool openDocument(const QString &urlString, const QString &serializedOptions = QString());

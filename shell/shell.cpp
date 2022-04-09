@@ -23,6 +23,8 @@
 #include <KConfigGroup>
 #include <KConfigGui>
 #include <KIO/Global>
+#include <KIO/StatJob>
+#include <KJobWidgets>
 #include <KLocalizedString>
 #include <KMessageBox>
 #include <KPluginFactory>
@@ -165,8 +167,10 @@ Shell::Shell(const QString &serializedOptions)
 
         QDBusConnection::sessionBus().registerObject(QStringLiteral("/okularshell"), this, QDBusConnection::ExportScriptableSlots);
 
-        // Make sure that the welcome scren is visible on startup.
-        showWelcomeScreen();
+        if (m_tabs[0].part->url().isEmpty()) {
+            // Make sure that the welcome screen is visible on startup.
+            showWelcomeScreen();
+        }
     } else {
         m_isValid = false;
         KMessageBox::error(this, i18n("Unable to find the Okular component."));
@@ -275,6 +279,28 @@ bool Shell::openDocument(const QString &urlString, const QString &serializedOpti
     return openDocument(QUrl(urlString), serializedOptions);
 }
 
+QStringList Shell::otherOkularServices()
+{
+    QStringList okularServices;
+    auto *sessionInterface = QDBusConnection::sessionBus().interface();
+    if (!sessionInterface) {
+        return okularServices;
+    }
+
+    const QStringList services = sessionInterface->registeredServiceNames().value();
+    // Don't match the service without trailing "-" (unique instance)
+    const QString pattern = QStringLiteral("org.kde.okular-");
+    const QString myPid = QString::number(qApp->applicationPid());
+
+    // Select the first instance that isn't us (metric may change in future)
+    for (const QString &service : services) {
+        if (service.startsWith(pattern) && !service.endsWith(myPid)) {
+            okularServices.append(service);
+        }
+    }
+    return okularServices;
+}
+
 bool Shell::canOpenDocs(int numDocs, int desktop)
 {
     if (m_tabs.size() <= 0 || numDocs <= 0 || m_unique) {
@@ -375,13 +401,27 @@ void Shell::readSettings()
         m_toolBarWasShown = group.readEntry(shouldShowToolBarComingFromFullScreen, true);
     }
 
-    if (Okular::Settings::self()->shellRestoreOpenDocuments()) {
+    // restore only if we are the only instance
+    if (Okular::Settings::self()->shellRestoreOpenDocuments() && otherOkularServices().empty()) {
         KConfigGroup session = config->group("Session");
         QStringList urls = session.readEntry("Urls", QStringList {});
-        for (auto const &url : qAsConst(urls)) {
-            openDocument(url);
+        for (auto const &urlString : qAsConst(urls)) {
+            // only try to open existing files to avoid error messages on startup
+            QUrl url {urlString};
+            if (url.isLocalFile()) {
+                if (!QFile::exists(url.toLocalFile())) {
+                    continue;
+                }
+            } else {
+                KIO::StatJob *statJob = KIO::stat(url, KIO::StatJob::SourceSide, 0);
+                KJobWidgets::setWindow(statJob, widget());
+                if (!statJob->exec() || statJob->error()) {
+                    continue;
+                }
+            }
+            openDocument(url, QString());
         }
-        m_tabWidget->setCurrentIndex(session.readEntry("ActiveTab", 0));
+        m_tabWidget->setCurrentIndex(session.readEntry<int>("ActiveTab", 0));
     }
 }
 
@@ -397,13 +437,16 @@ void Shell::writeSettings()
     }
 
     KConfigGroup session = config->group("Session");
-    if (Okular::Settings::self()->shellRestoreOpenDocuments() && !m_tabs[0].part->url().isEmpty()) {
-        QStringList urls;
-        for (auto const &tab : qAsConst(m_tabs)) {
-            urls.append(tab.part->url().toString());
+    if (Okular::Settings::self()->shellRestoreOpenDocuments()) {
+        session.deleteGroup();
+        if (!m_tabs[0].part->url().isEmpty()) {
+            QStringList urls;
+            for (auto const &tab : qAsConst(m_tabs)) {
+                urls.append(tab.part->url().toString());
+            }
+            session.writeEntry("Urls", urls);
+            session.writeEntry("ActiveTab", m_tabWidget->currentIndex());
         }
-        session.writeEntry("Urls", urls);
-        session.writeEntry("ActiveTab", m_tabWidget->currentIndex());
     }
     config->sync();
 }
@@ -658,36 +701,34 @@ QSize Shell::sizeHint() const
 
 bool Shell::queryClose()
 {
-    if (m_tabs.count() > 1) {
+    if (m_tabs.count() > 1 && (!Okular::Settings::self()->shellRestoreOpenDocuments() || !otherOkularServices().empty())) {
         const QString dontAskAgainName = QStringLiteral("ShowTabWarning");
         KMessageBox::ButtonCode dummy = KMessageBox::Yes;
-        if (!Okular::Settings::self()->shellRestoreOpenDocuments()) {
-            if (shouldBeShownYesNo(dontAskAgainName, dummy)) {
-                QDialog *dialog = new QDialog(this);
-                dialog->setWindowTitle(i18n("Confirm Close"));
+        if (shouldBeShownYesNo(dontAskAgainName, dummy)) {
+            QDialog *dialog = new QDialog(this);
+            dialog->setWindowTitle(i18n("Confirm Close"));
 
-                QDialogButtonBox *buttonBox = new QDialogButtonBox(dialog);
-                buttonBox->setStandardButtons(QDialogButtonBox::Yes | QDialogButtonBox::No);
-                KGuiItem::assign(buttonBox->button(QDialogButtonBox::Yes), KGuiItem(i18n("Close Tabs"), QStringLiteral("tab-close")));
-                KGuiItem::assign(buttonBox->button(QDialogButtonBox::No), KStandardGuiItem::cancel());
+            QDialogButtonBox *buttonBox = new QDialogButtonBox(dialog);
+            buttonBox->setStandardButtons(QDialogButtonBox::Yes | QDialogButtonBox::No);
+            KGuiItem::assign(buttonBox->button(QDialogButtonBox::Yes), KGuiItem(i18n("Close Tabs"), QStringLiteral("tab-close")));
+            KGuiItem::assign(buttonBox->button(QDialogButtonBox::No), KStandardGuiItem::cancel());
 
-                bool checkboxResult = true;
-                const int result = KMessageBox::createKMessageBox(dialog,
-                                                                  buttonBox,
-                                                                  QMessageBox::Question,
-                                                                  i18n("You are about to close %1 tabs. Are you sure you want to continue?", m_tabs.count()),
-                                                                  QStringList(),
-                                                                  i18n("Warn me when I attempt to close multiple tabs"),
-                                                                  &checkboxResult,
-                                                                  KMessageBox::Notify);
+            bool checkboxResult = true;
+            const int result = KMessageBox::createKMessageBox(dialog,
+                                                              buttonBox,
+                                                              QMessageBox::Question,
+                                                              i18n("You are about to close %1 tabs. Are you sure you want to continue?", m_tabs.count()),
+                                                              QStringList(),
+                                                              i18n("Warn me when I attempt to close multiple tabs"),
+                                                              &checkboxResult,
+                                                              KMessageBox::Notify);
 
-                if (!checkboxResult) {
-                    saveDontShowAgainYesNo(dontAskAgainName, dummy);
-                }
+            if (!checkboxResult) {
+                saveDontShowAgainYesNo(dontAskAgainName, dummy);
+            }
 
-                if (result != QDialogButtonBox::Yes) {
-                    return false;
-                }
+            if (result != QDialogButtonBox::Yes) {
+                return false;
             }
         }
     }

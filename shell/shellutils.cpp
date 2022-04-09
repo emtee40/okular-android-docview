@@ -150,4 +150,5 @@ QString editorCmd(const QString &serializedOptions)
     unserializeOptions(serializedOptions, &dummy, &dummy, &dummy, &dummy, &dummy, &dummyString, &dummyString, &result);
     return QString::fromUtf8(QByteArray::fromBase64(result.toLatin1()));
 }
+
 }

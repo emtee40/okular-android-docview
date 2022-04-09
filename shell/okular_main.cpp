@@ -67,27 +67,22 @@ static bool attachExistingInstance(const QStringList &paths, const QString &seri
         return false;
     }
 
-    const QStringList services = sessionInterface->registeredServiceNames().value();
+    const QStringList services = Shell::otherOkularServices();
 
-    // Don't match the service without trailing "-" (unique instance)
-    const QString pattern = QStringLiteral("org.kde.okular-");
-    const QString myPid = QString::number(qApp->applicationPid());
     QScopedPointer<QDBusInterface> bestService;
     const int desktop = KWindowSystem::currentDesktop();
 
-    // Select the first instance that isn't us (metric may change in future)
+    // Select the first instance that can open documents and isn't us (metric may change in future)
     for (const QString &service : services) {
-        if (service.startsWith(pattern) && !service.endsWith(myPid)) {
-            bestService.reset(new QDBusInterface(service, QStringLiteral("/okularshell"), QStringLiteral("org.kde.okular")));
+        bestService.reset(new QDBusInterface(service, QStringLiteral("/okularshell"), QStringLiteral("org.kde.okular")));
 
-            // Find a window that can handle our documents
-            const QDBusReply<bool> reply = bestService->call(QStringLiteral("canOpenDocs"), paths.count(), desktop);
-            if (reply.isValid() && reply.value()) {
-                break;
-            }
-
-            bestService.reset();
+        // Find a window that can handle our documents
+        const QDBusReply<bool> reply = bestService->call(QStringLiteral("canOpenDocs"), paths.count(), desktop);
+        if (reply.isValid() && reply.value()) {
+            break;
         }
+
+        bestService.reset();
     }
 
     if (!bestService) {
