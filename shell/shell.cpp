@@ -57,7 +57,6 @@
 // local includes
 #include "../interfaces/viewerinterface.h"
 #include "kdocumentviewer.h"
-#include "settings.h"
 #include "shellutils.h"
 
 static const char *shouldShowMenuBarComingFromFullScreen = "shouldShowMenuBarComingFromFullScreen";
@@ -388,7 +387,6 @@ void Shell::closeUrl()
 void Shell::readSettings()
 {
     KSharedConfigPtr config = KSharedConfig::openConfig();
-    Okular::Settings::instance(config);
     m_recent->loadEntries(config->group("Recent Files"));
     m_recent->setEnabled(true); // force enabling
 
@@ -402,7 +400,9 @@ void Shell::readSettings()
     }
 
     // restore only if we are the only instance
-    if (Okular::Settings::self()->shellRestoreOpenDocuments() && otherOkularServices().empty()) {
+    KParts::ReadWritePart *const part = m_tabs[0].part;
+    const bool restoreDocuments = qobject_cast<Okular::ViewerInterface *>(part)->restoreOpenDocuments();
+    if (restoreDocuments && otherOkularServices().empty()) {
         KConfigGroup session = config->group("Session");
         QStringList urls = session.readEntry("Urls", QStringList {});
         for (auto const &urlString : qAsConst(urls)) {
@@ -437,7 +437,9 @@ void Shell::writeSettings()
     }
 
     KConfigGroup session = config->group("Session");
-    if (Okular::Settings::self()->shellRestoreOpenDocuments()) {
+    KParts::ReadWritePart *const part = m_tabs[0].part;
+    const bool restoreDocuments = qobject_cast<Okular::ViewerInterface *>(part)->restoreOpenDocuments();
+    if (restoreDocuments) {
         session.deleteGroup();
         if (!m_tabs[0].part->url().isEmpty()) {
             QStringList urls;
@@ -701,7 +703,9 @@ QSize Shell::sizeHint() const
 
 bool Shell::queryClose()
 {
-    if (m_tabs.count() > 1 && (!Okular::Settings::self()->shellRestoreOpenDocuments() || !otherOkularServices().empty())) {
+    KParts::ReadWritePart *const part = m_tabs[0].part;
+    const bool restoreDocuments = qobject_cast<Okular::ViewerInterface *>(part)->restoreOpenDocuments();
+    if (m_tabs.count() > 1 && (!restoreDocuments || !otherOkularServices().empty())) {
         const QString dontAskAgainName = QStringLiteral("ShowTabWarning");
         KMessageBox::ButtonCode dummy = KMessageBox::Yes;
         if (shouldBeShownYesNo(dontAskAgainName, dummy)) {

@@ -1120,6 +1120,11 @@ bool Part::openNewFilesInTabs() const
     return Okular::Settings::self()->shellOpenFileInTabs();
 }
 
+bool Part::restoreOpenDocuments() const
+{
+    return Okular::Settings::self()->shellRestoreOpenDocuments();
+}
+
 bool Part::activateTabIfAlreadyOpenFile() const
 {
     return Okular::Settings::self()->switchToTabIfOpen();
