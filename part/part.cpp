@@ -1005,7 +1005,7 @@ void Part::setupActions()
         QString curUrl = this->realUrl().toString();
         QStringList args;
         args << curUrl;
-        QProcess::startDetached("okular", args);
+        QProcess::startDetached(QStringLiteral("okular"), args);
         this->close();
     };
     connect(m_detachTab, &QAction::triggered, this, detachAction);
@@ -2226,10 +2226,10 @@ void Part::updateViewActions()
         }
         if (m_selectCurrentPage) {
             m_selectCurrentPage->setEnabled(true);
-<<<<<<< HEAD
         }
-        if(m_detachTab)
+        if(m_detachTab) {
             m_detachTab->setEnabled(true);
+        }
     } else {
         m_gotoPage->setEnabled(false);
         m_beginningOfDocument->setEnabled(false);
@@ -2251,10 +2251,10 @@ void Part::updateViewActions()
         }
         if (m_selectCurrentPage) {
             m_selectCurrentPage->setEnabled(false);
-<<<<<<< HEAD
         }
-        if(m_detachTab)
+        if(m_detachTab) {
             m_detachTab->setEnabled(false);
+        }
     }
 
     if (factory()) {

@@ -200,11 +200,11 @@ void MainShellTest::testShell_data()
     file1AndToc << QStringLiteral(KDESRCDIR "data/tocreload.pdf");
     const QString tocReload = QStringLiteral(KDESRCDIR "data/tocreload.pdf");
 
-    const QString optionsPage2 = ShellUtils::serializeOptions(false, false, false, false, false, QStringLiteral("2"), QString(), QString());
-    const QString optionsPage2Presentation = ShellUtils::serializeOptions(true, false, false, false, false, QStringLiteral("2"), QString(), QString());
-    const QString optionsPrint = ShellUtils::serializeOptions(false, true, false, false, false, QString(), QString(), QString());
-    const QString optionsUnique = ShellUtils::serializeOptions(false, false, false, true, false, QString(), QString(), QString());
-    const QString optionsFind = ShellUtils::serializeOptions(false, false, false, false, false, QString(), QStringLiteral("si:next-testing parameters!"), QString());
+    const QString optionsPage2 = ShellUtils::serializeOptions(false, false, false, false, false, QStringLiteral("2"), QString(), QString(), false);
+    const QString optionsPage2Presentation = ShellUtils::serializeOptions(true, false, false, false, false, QStringLiteral("2"), QString(), QString(), false);
+    const QString optionsPrint = ShellUtils::serializeOptions(false, true, false, false, false, QString(), QString(), QString(), false);
+    const QString optionsUnique = ShellUtils::serializeOptions(false, false, false, true, false, QString(), QString(), QString(), false);
+    const QString optionsFind = ShellUtils::serializeOptions(false, false, false, false, false, QString(), QStringLiteral("si:next-testing parameters!"), QString(), false);
 
     QTest::newRow("just show shell") << QStringList() << QString() << false << QString() << 0u << false << false << false << 0u << false << false << QString();
     QTest::newRow("open file") << file1 << QString() << false << QString() << 0u << false << false << false << 0u << false << false << QString();
@@ -415,9 +415,9 @@ void MainShellTest::testFileRemembersPagePosition()
     const QStringList paths = QStringList(QStringLiteral(KDESRCDIR "data/contents.epub"));
     QString serializedOptions;
     if (mode == 1 || mode == 3) {
-        serializedOptions = ShellUtils::serializeOptions(false, false, false, false, false, QString(), QString(), QString());
+        serializedOptions = ShellUtils::serializeOptions(false, false, false, false, false, QString(), QString(), QString(), false);
     } else {
-        serializedOptions = ShellUtils::serializeOptions(false, false, false, true, false, QString(), QString(), QString());
+        serializedOptions = ShellUtils::serializeOptions(false, false, false, true, false, QString(), QString(), QString(), false);
     }
 
     Okular::Settings::self()->setShellOpenFileInTabs(mode == 3);
@@ -467,11 +467,11 @@ void MainShellTest::test2FilesError_data()
 {
     QTest::addColumn<QString>("serializedOptions");
 
-    QTest::newRow("startInPresentation") << ShellUtils::serializeOptions(true, false, false, false, false, QString(), QString(), QString());
-    QTest::newRow("showPrintDialog") << ShellUtils::serializeOptions(false, true, false, false, false, QString(), QString(), QString());
-    QTest::newRow("unique") << ShellUtils::serializeOptions(false, false, false, true, false, QString(), QString(), QString());
-    QTest::newRow("pageNumber") << ShellUtils::serializeOptions(false, false, false, false, false, QStringLiteral("3"), QString(), QString());
-    QTest::newRow("find") << ShellUtils::serializeOptions(false, false, false, false, false, QString(), QStringLiteral("silly"), QString());
+    QTest::newRow("startInPresentation") << ShellUtils::serializeOptions(true, false, false, false, false, QString(), QString(), QString(), false);
+    QTest::newRow("showPrintDialog") << ShellUtils::serializeOptions(false, true, false, false, false, QString(), QString(), QString(), false);
+    QTest::newRow("unique") << ShellUtils::serializeOptions(false, false, false, true, false, QString(), QString(), QString(), false);
+    QTest::newRow("pageNumber") << ShellUtils::serializeOptions(false, false, false, false, false, QStringLiteral("3"), QString(), QString(), false);
+    QTest::newRow("find") << ShellUtils::serializeOptions(false, false, false, false, false, QString(), QStringLiteral("silly"), QString(), false);
 }
 
 void MainShellTest::test2FilesError()
@@ -498,7 +498,7 @@ void MainShellTest::testSessionRestore_data()
     QStringList twoDocPaths(oneDocPaths);
     twoDocPaths << QStringLiteral(KDESRCDIR "data/formSamples.pdf");
 
-    const QString options = ShellUtils::serializeOptions(false, false, false, false, false, QString(), QString(), QString());
+    const QString options = ShellUtils::serializeOptions(false, false, false, false, false, QString(), QString(), QString(), false);
 
     QTest::newRow("1 doc, 1 window, tabs") << oneDocPaths << options << true << true;
     QTest::newRow("2 docs, 1 window, tabs") << twoDocPaths << options << true << true;
@@ -591,7 +591,7 @@ void MainShellTest::testOpenInvalidFiles_data()
     QTest::addColumn<QList<QUrl>>("files");
     QTest::addColumn<QString>("options");
 
-    QString options = ShellUtils::serializeOptions(false, false, false, false, false, QString(), QString(), QString());
+    QString options = ShellUtils::serializeOptions(false, false, false, false, false, QString(), QString(), QString(), false);
     QUrl validFile1 = ShellUtils::urlFromArg(QStringLiteral(KDESRCDIR "data/file1.pdf"), ShellUtils::qfileExistFunc(), QString());
     QUrl validFile2 = ShellUtils::urlFromArg(QStringLiteral(KDESRCDIR "data/file2.pdf"), ShellUtils::qfileExistFunc(), QString());
     QUrl invalidFile = ShellUtils::urlFromArg(QStringLiteral(KDESRCDIR "data/non-existing-doc.pdf"), ShellUtils::qfileExistFunc(), QString());
@@ -647,7 +647,7 @@ void MainShellTest::testOpenInvalidFiles()
 
 void MainShellTest::testOpenTheSameFileSeveralTimes()
 {
-    QString options = ShellUtils::serializeOptions(false, false, false, false, false, QString(), QString(), QString());
+    QString options = ShellUtils::serializeOptions(false, false, false, false, false, QString(), QString(), QString(), false);
 
     Okular::Settings::self()->setShellOpenFileInTabs(true);
     Okular::Status status = Okular::main(QStringList(), options);
@@ -686,7 +686,7 @@ void MainShellTest::testMiddleButtonCloseUndo()
 {
     const QStringList paths = {QStringLiteral(KDESRCDIR "data/file1.pdf"), QStringLiteral(KDESRCDIR "data/file2.pdf")};
     QString serializedOptions;
-    serializedOptions = ShellUtils::serializeOptions(false, false, false, false, false, QString(), QString(), QString());
+    serializedOptions = ShellUtils::serializeOptions(false, false, false, false, false, QString(), QString(), QString(), false);
 
     Okular::Settings::self()->setShellOpenFileInTabs(true);
     Okular::Status status = Okular::main(paths, serializedOptions);

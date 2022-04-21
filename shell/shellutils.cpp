@@ -56,29 +56,31 @@ QString serializeOptions(const QCommandLineParser &args)
     const bool showPrintDialogAndExit = args.isSet(QStringLiteral("print-and-exit"));
     const bool unique = args.isSet(QStringLiteral("unique")) && args.positionalArguments().count() <= 1;
     const bool noRaise = args.isSet(QStringLiteral("noraise"));
+    const bool newInstance = args.isSet(QStringLiteral("new-instance"));
     const QString page = args.value(QStringLiteral("page"));
     const QString find = args.value(QStringLiteral("find"));
     const QString editorCmd = args.value(QStringLiteral("editor-cmd"));
 
-    return serializeOptions(startInPresentation, showPrintDialog, showPrintDialogAndExit, unique, noRaise, page, find, editorCmd);
+    return serializeOptions(startInPresentation, showPrintDialog, showPrintDialogAndExit, unique, noRaise, page, find, editorCmd, newInstance);
 }
 
-QString serializeOptions(bool startInPresentation, bool showPrintDialog, bool showPrintDialogAndExit, bool unique, bool noRaise, const QString &page, const QString &find, const QString &editorCmd)
+QString serializeOptions(bool startInPresentation, bool showPrintDialog, bool showPrintDialogAndExit, bool unique, bool noRaise, const QString &page, const QString &find, const QString &editorCmd, bool newInstance)
 {
-    return QStringLiteral("%1:%2:%3:%4:%5:%6:%7:%8")
+    return QStringLiteral("%1:%2:%3:%4:%5:%6:%7:%8:%9")
         .arg(startInPresentation)
         .arg(showPrintDialog)
         .arg(showPrintDialogAndExit)
         .arg(unique)
         .arg(noRaise)
-        .arg(page, QString::fromLatin1(find.toUtf8().toBase64()), QString::fromLatin1(editorCmd.toUtf8().toBase64()));
+        .arg(page, QString::fromLatin1(find.toUtf8().toBase64()), QString::fromLatin1(editorCmd.toUtf8().toBase64()))
+        .arg(newInstance);
 }
 
-static bool unserializeOptions(const QString &serializedOptions, bool *presentation, bool *print, bool *print_and_exit, bool *unique, bool *noraise, QString *page, QString *find, QString *editorCmd)
+static bool unserializeOptions(const QString &serializedOptions, bool *presentation, bool *print, bool *print_and_exit, bool *unique, bool *noraise, QString *page, QString *find, QString *editorCmd, bool *newInstance)
 {
     const QStringList args = serializedOptions.split(QStringLiteral(":"));
 
-    if (args.count() >= 8) {
+    if (args.count() >= 9) {
         *presentation = args[0] == QLatin1String("1");
         *print = args[1] == QLatin1String("1");
         *print_and_exit = args[2] == QLatin1String("1");
@@ -87,6 +89,7 @@ static bool unserializeOptions(const QString &serializedOptions, bool *presentat
         *page = args[5];
         *find = args[6];
         *editorCmd = args[7];
+        *newInstance = args[8] == QLatin1String("1");
         return true;
     }
     return false;
@@ -96,42 +99,42 @@ bool startInPresentation(const QString &serializedOptions)
 {
     bool result, dummy;
     QString dummyString;
-    return unserializeOptions(serializedOptions, &result, &dummy, &dummy, &dummy, &dummy, &dummyString, &dummyString, &dummyString) && result;
+    return unserializeOptions(serializedOptions, &result, &dummy, &dummy, &dummy, &dummy, &dummyString, &dummyString, &dummyString, &dummy) && result;
 }
 
 bool showPrintDialog(const QString &serializedOptions)
 {
     bool result, dummy;
     QString dummyString;
-    return unserializeOptions(serializedOptions, &dummy, &result, &dummy, &dummy, &dummy, &dummyString, &dummyString, &dummyString) && result;
+    return unserializeOptions(serializedOptions, &dummy, &result, &dummy, &dummy, &dummy, &dummyString, &dummyString, &dummyString, &dummy) && result;
 }
 
 bool showPrintDialogAndExit(const QString &serializedOptions)
 {
     bool result, dummy;
     QString dummyString;
-    return unserializeOptions(serializedOptions, &dummy, &dummy, &result, &dummy, &dummy, &dummyString, &dummyString, &dummyString) && result;
+    return unserializeOptions(serializedOptions, &dummy, &dummy, &result, &dummy, &dummy, &dummyString, &dummyString, &dummyString, &dummy) && result;
 }
 
 bool unique(const QString &serializedOptions)
 {
     bool result, dummy;
     QString dummyString;
-    return unserializeOptions(serializedOptions, &dummy, &dummy, &dummy, &result, &dummy, &dummyString, &dummyString, &dummyString) && result;
+    return unserializeOptions(serializedOptions, &dummy, &dummy, &dummy, &result, &dummy, &dummyString, &dummyString, &dummyString, &dummy) && result;
 }
 
 bool noRaise(const QString &serializedOptions)
 {
     bool result, dummy;
     QString dummyString;
-    return unserializeOptions(serializedOptions, &dummy, &dummy, &dummy, &dummy, &result, &dummyString, &dummyString, &dummyString) && result;
+    return unserializeOptions(serializedOptions, &dummy, &dummy, &dummy, &dummy, &result, &dummyString, &dummyString, &dummyString, &dummy) && result;
 }
 
 QString page(const QString &serializedOptions)
 {
     QString result, dummyString;
     bool dummy;
-    unserializeOptions(serializedOptions, &dummy, &dummy, &dummy, &dummy, &dummy, &result, &dummyString, &dummyString);
+    unserializeOptions(serializedOptions, &dummy, &dummy, &dummy, &dummy, &dummy, &result, &dummyString, &dummyString, &dummy);
     return result;
 }
 
@@ -139,7 +142,7 @@ QString find(const QString &serializedOptions)
 {
     QString result, dummyString;
     bool dummy;
-    unserializeOptions(serializedOptions, &dummy, &dummy, &dummy, &dummy, &dummy, &dummyString, &result, &dummyString);
+    unserializeOptions(serializedOptions, &dummy, &dummy, &dummy, &dummy, &dummy, &dummyString, &result, &dummyString, &dummy);
     return QString::fromUtf8(QByteArray::fromBase64(result.toLatin1()));
 }
 
@@ -147,7 +150,14 @@ QString editorCmd(const QString &serializedOptions)
 {
     QString result, dummyString;
     bool dummy;
-    unserializeOptions(serializedOptions, &dummy, &dummy, &dummy, &dummy, &dummy, &dummyString, &dummyString, &result);
+    unserializeOptions(serializedOptions, &dummy, &dummy, &dummy, &dummy, &dummy, &dummyString, &dummyString, &result, &dummy);
     return QString::fromUtf8(QByteArray::fromBase64(result.toLatin1()));
+}
+
+bool newInstance(const QString &serializedOptions)
+{
+    bool result, dummy;
+    QString dummyString;
+    return unserializeOptions(serializedOptions, &dummy, &dummy, &dummy, &dummy, &dummy, &dummyString, &dummyString, &dummyString, &result) && result;
 }
 }
