@@ -1004,7 +1004,7 @@ void Part::setupActions()
     auto detachAction = [this]() {
         QString curUrl = this->realUrl().toString();
         QStringList args;
-        args << curUrl;
+        args << QStringLiteral("--new-instance") << curUrl;
         QProcess::startDetached(QStringLiteral("okular"), args);
         this->close();
     };
