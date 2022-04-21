@@ -335,6 +335,7 @@ Part::Part(QWidget *parentWidget, QObject *parent, const QVariantList &args)
 #endif
 
     numberOfParts++;
+    qDebug() << "number of parts " << numberOfParts << "\n";
     if (numberOfParts == 1) {
         m_registerDbusName = QStringLiteral("/okular");
     } else {
@@ -997,6 +998,15 @@ void Part::setupActions()
     QAction *playPauseAction = new QAction(i18n("Play/Pause Presentation"), ac);
     ac->addAction(QStringLiteral("presentation_play_pause"), playPauseAction);
     playPauseAction->setEnabled(false);
+
+    m_detachTab = ac->addAction(QStringLiteral("detach_tab"));
+    m_detachTab->setText(i18n("Detach the tab"));
+    m_detachTab->setEnabled(false);
+    auto detachAction = [this]() {
+        QMessageBox::information(NULL, "just a test title", "Open url " + this->realUrl().toString());
+    };
+    connect(m_detachTab, &QAction::triggered, this, detachAction);
+    ac->setDefaultShortcut(m_detachTab, QKeySequence(Qt::Key_D | Qt::CTRL | Qt::SHIFT));
 }
 
 Part::~Part()
@@ -2213,7 +2223,10 @@ void Part::updateViewActions()
         }
         if (m_selectCurrentPage) {
             m_selectCurrentPage->setEnabled(true);
+<<<<<<< HEAD
         }
+        if(m_detachTab)
+            m_detachTab->setEnabled(true);
     } else {
         m_gotoPage->setEnabled(false);
         m_beginningOfDocument->setEnabled(false);
@@ -2235,7 +2248,10 @@ void Part::updateViewActions()
         }
         if (m_selectCurrentPage) {
             m_selectCurrentPage->setEnabled(false);
+<<<<<<< HEAD
         }
+        if(m_detachTab)
+            m_detachTab->setEnabled(false);
     }
 
     if (factory()) {
