@@ -434,7 +434,7 @@ void Shell::setupActions()
     auto detachAction = [this]() {
         int activeTab = this->m_tabWidget->currentIndex();
         int nTab = this->m_tabs.size();
-        if(activeTab >= 0 && activeTab < nTab) {
+        if (activeTab >= 0 && activeTab < nTab) {
             KParts::ReadWritePart *const activePart = this->m_tabs[activeTab].part;
             QStringList args;
             args << QStringLiteral("--new-instance") << activePart->url().toString();

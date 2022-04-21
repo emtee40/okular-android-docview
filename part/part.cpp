@@ -997,7 +997,6 @@ void Part::setupActions()
     QAction *playPauseAction = new QAction(i18n("Play/Pause Presentation"), ac);
     ac->addAction(QStringLiteral("presentation_play_pause"), playPauseAction);
     playPauseAction->setEnabled(false);
-
 }
 
 Part::~Part()
