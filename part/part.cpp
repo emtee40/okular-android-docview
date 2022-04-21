@@ -335,7 +335,6 @@ Part::Part(QWidget *parentWidget, QObject *parent, const QVariantList &args)
 #endif
 
     numberOfParts++;
-    qDebug() << "number of parts " << numberOfParts << "\n";
     if (numberOfParts == 1) {
         m_registerDbusName = QStringLiteral("/okular");
     } else {
@@ -1003,7 +1002,11 @@ void Part::setupActions()
     m_detachTab->setText(i18n("Detach the tab"));
     m_detachTab->setEnabled(false);
     auto detachAction = [this]() {
-        QMessageBox::information(NULL, "just a test title", "Open url " + this->realUrl().toString());
+        QString curUrl = this->realUrl().toString();
+        QStringList args;
+        args << curUrl;
+        QProcess::startDetached("okular", args);
+        this->close();
     };
     connect(m_detachTab, &QAction::triggered, this, detachAction);
     ac->setDefaultShortcut(m_detachTab, QKeySequence(Qt::Key_D | Qt::CTRL | Qt::SHIFT));
