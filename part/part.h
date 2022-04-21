@@ -423,7 +423,6 @@ private:
 #endif
     QAction *m_closeFindBar;
     DrawingToolActions *m_presentationDrawingActions;
-    QAction *m_detachTab;
 
     BrowserExtension *m_bExtension;
 

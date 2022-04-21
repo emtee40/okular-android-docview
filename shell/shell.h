@@ -194,6 +194,7 @@ private:
     QAction *m_nextTabAction;
     QAction *m_prevTabAction;
     QAction *m_undoCloseTab;
+    QAction *m_detachTab;
 
 #ifndef Q_OS_WIN
     KActivities::ResourceInstance *m_activityResource;

@@ -427,6 +427,23 @@ void Shell::setupActions()
     m_undoCloseTab->setIcon(QIcon::fromTheme(QStringLiteral("edit-undo")));
     m_undoCloseTab->setEnabled(false);
     connect(m_undoCloseTab, &QAction::triggered, this, &Shell::undoCloseTab);
+
+    m_detachTab = actionCollection()->addAction(QStringLiteral("detach_tab"));
+    m_detachTab->setText(i18n("Detach the tab"));
+    m_detachTab->setEnabled(true);
+    auto detachAction = [this]() {
+        int activeTab = this->m_tabWidget->currentIndex();
+        int nTab = this->m_tabs.size();
+        if(activeTab >= 0 && activeTab < nTab) {
+            KParts::ReadWritePart *const activePart = this->m_tabs[activeTab].part;
+            QStringList args;
+            args << QStringLiteral("--new-instance") << activePart->url().toString();
+            QProcess::startDetached(QStringLiteral("okular"), args);
+            this->m_tabWidget->tabCloseRequested(activeTab);
+        }
+    };
+    connect(m_detachTab, &QAction::triggered, this, detachAction);
+    actionCollection()->setDefaultShortcut(m_detachTab, QKeySequence(Qt::Key_D | Qt::CTRL | Qt::SHIFT));
 }
 
 void Shell::saveProperties(KConfigGroup &group)

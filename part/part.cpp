@@ -998,18 +998,6 @@ void Part::setupActions()
     ac->addAction(QStringLiteral("presentation_play_pause"), playPauseAction);
     playPauseAction->setEnabled(false);
 
-    m_detachTab = ac->addAction(QStringLiteral("detach_tab"));
-    m_detachTab->setText(i18n("Detach the tab"));
-    m_detachTab->setEnabled(false);
-    auto detachAction = [this]() {
-        QString curUrl = this->realUrl().toString();
-        QStringList args;
-        args << QStringLiteral("--new-instance") << curUrl;
-        QProcess::startDetached(QStringLiteral("okular"), args);
-        this->close();
-    };
-    connect(m_detachTab, &QAction::triggered, this, detachAction);
-    ac->setDefaultShortcut(m_detachTab, QKeySequence(Qt::Key_D | Qt::CTRL | Qt::SHIFT));
 }
 
 Part::~Part()
@@ -2227,9 +2215,6 @@ void Part::updateViewActions()
         if (m_selectCurrentPage) {
             m_selectCurrentPage->setEnabled(true);
         }
-        if(m_detachTab) {
-            m_detachTab->setEnabled(true);
-        }
     } else {
         m_gotoPage->setEnabled(false);
         m_beginningOfDocument->setEnabled(false);
@@ -2251,9 +2236,6 @@ void Part::updateViewActions()
         }
         if (m_selectCurrentPage) {
             m_selectCurrentPage->setEnabled(false);
-        }
-        if(m_detachTab) {
-            m_detachTab->setEnabled(false);
         }
     }
 
