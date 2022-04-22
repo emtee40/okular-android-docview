@@ -439,7 +439,7 @@ void Shell::setupActions()
             QStringList args;
             args << QStringLiteral("--new-instance") << activePart->url().toString();
             QProcess::startDetached(QStringLiteral("okular"), args);
-            this->m_tabWidget->tabCloseRequested(activeTab);
+            Q_EMIT this->m_tabWidget->tabCloseRequested(activeTab);
         }
     };
     connect(m_detachTab, &QAction::triggered, this, detachAction);
