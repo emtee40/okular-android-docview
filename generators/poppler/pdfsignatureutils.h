@@ -8,6 +8,8 @@
 #define _OKULAR_GENERATOR_PDF_SIGNATUREUTILS_H_
 
 #include <poppler-form.h>
+#include <poppler-version.h>
+#define POPPLER_VERSION_MACRO ((POPPLER_VERSION_MAJOR << 16) | (POPPLER_VERSION_MINOR << 8) | (POPPLER_VERSION_MICRO))
 
 #include "core/signatureutils.h"
 
@@ -63,7 +65,7 @@ private:
     Okular::CertificateInfo *m_certfiticateInfo;
 };
 
-#ifdef HAVE_POPPLER_SIGNING
+#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(21, 1, 0)
 
 class PopplerCertificateStore : public Okular::CertificateStore
 {
