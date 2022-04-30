@@ -188,48 +188,49 @@ void Shell::keyPressEvent(QKeyEvent *e)
     }
 }
 
-namespace {
-    // see okular_main.cpp:attachExistingInstance for a similar search
-    static std::unique_ptr<QDBusInterface> getInstanceAtPoint(int globalX, int globalY)
-    {
-        auto *sessionInterface = QDBusConnection::sessionBus().interface();
-        std::unique_ptr<QDBusInterface> connection;
-        // If DBus isn't running, we can't attach to an existing instance.
-        if (!sessionInterface) {
-            return connection;
-        }
-
-        const QStringList services = sessionInterface->registeredServiceNames().value();
-        // Don't match the service without trailing "-" (unique instance)
-        const QString pattern = QStringLiteral("org.kde.okular-");
-        const QString myPid = QString::number(qApp->applicationPid());
-        const int desktop = KWindowSystem::currentDesktop();
-        // Select the first instance that isn't us (metric may change in future)
-        for (const QString &service : services) {
-            if (service.startsWith(pattern) && !service.endsWith(myPid)) {
-                auto curService = new QDBusInterface(service, QStringLiteral("/okularshell"), QStringLiteral("org.kde.okular"));
-                
-                // check if the service's window contains the mouse
-                QDBusReply<bool> reply = curService->call(QStringLiteral("isInMyWindow"), globalX, globalY, desktop);
-                if(!(reply.isValid() && reply.value())) {
-                    delete curService;
-                    continue;
-                }
-
-                // Check if the instance can handle our documents
-                reply = curService->call(QStringLiteral("canOpenDocs"), 1, desktop);
-                if (!(reply.isValid() && reply.value())) {
-                    delete curService;
-                    continue;
-                }
-
-                // if we got here, we found a suitable instance
-                connection.reset(curService);
-                break;
-            }
-        }
+namespace
+{
+// see okular_main.cpp:attachExistingInstance for a similar search
+static std::unique_ptr<QDBusInterface> getInstanceAtPoint(int globalX, int globalY)
+{
+    auto *sessionInterface = QDBusConnection::sessionBus().interface();
+    std::unique_ptr<QDBusInterface> connection;
+    // If DBus isn't running, we can't attach to an existing instance.
+    if (!sessionInterface) {
         return connection;
     }
+
+    const QStringList services = sessionInterface->registeredServiceNames().value();
+    // Don't match the service without trailing "-" (unique instance)
+    const QString pattern = QStringLiteral("org.kde.okular-");
+    const QString myPid = QString::number(qApp->applicationPid());
+    const int desktop = KWindowSystem::currentDesktop();
+    // Select the first instance that isn't us (metric may change in future)
+    for (const QString &service : services) {
+        if (service.startsWith(pattern) && !service.endsWith(myPid)) {
+            auto curService = new QDBusInterface(service, QStringLiteral("/okularshell"), QStringLiteral("org.kde.okular"));
+
+            // check if the service's window contains the mouse
+            QDBusReply<bool> reply = curService->call(QStringLiteral("isInMyWindow"), globalX, globalY, desktop);
+            if (!(reply.isValid() && reply.value())) {
+                delete curService;
+                continue;
+            }
+
+            // Check if the instance can handle our documents
+            reply = curService->call(QStringLiteral("canOpenDocs"), 1, desktop);
+            if (!(reply.isValid() && reply.value())) {
+                delete curService;
+                continue;
+            }
+
+            // if we got here, we found a suitable instance
+            connection.reset(curService);
+            break;
+        }
+    }
+    return connection;
+}
 }
 
 bool Shell::eventFilter(QObject *obj, QEvent *event)
@@ -259,27 +260,27 @@ bool Shell::eventFilter(QObject *obj, QEvent *event)
                 return true;
             }
         }
-        if(mEvent->button() == Qt::LeftButton) {
+        if (mEvent->button() == Qt::LeftButton) {
             auto globPos = mEvent->globalPos();
             auto widgetAtPos = qApp->topLevelAt(globPos);
-            if(widgetAtPos == nullptr) {
+            if (widgetAtPos == nullptr) {
                 // check for another instance, which contains the released point
                 auto instanceAtPoint = getInstanceAtPoint(globPos.x(), globPos.y());
-                if(instanceAtPoint) {
+                if (instanceAtPoint) {
                     int activeTab = this->m_tabWidget->currentIndex();
                     int nTab = this->m_tabs.size();
                     if (activeTab >= 0 && activeTab < nTab) {
                         KParts::ReadWritePart *const activePart = this->m_tabs[activeTab].part;
                         QString serializedOptions;
                         const QDBusReply<bool> reply = instanceAtPoint->call(QStringLiteral("openDocument"), activePart->url().toString(), serializedOptions);
-                        if(reply.isValid() && reply.value()) {
+                        if (reply.isValid() && reply.value()) {
                             Q_EMIT this->m_tabWidget->tabCloseRequested(activeTab);
                         } else {
                             qInfo() << "could not re open the document when detaching";
                         }
                     }
                 } else {
-                    if(m_detachTab) {
+                    if (m_detachTab) {
                         m_detachTab->trigger();
                     }
                 }
@@ -369,7 +370,7 @@ bool Shell::isInMyWindow(int globalX, int globalY, int desktop)
     if (winfo.desktop() != desktop) {
         return false;
     }
-    
+
     auto widgetAtPos = qApp->topLevelAt(globalX, globalY);
     return widgetAtPos != nullptr;
 }
