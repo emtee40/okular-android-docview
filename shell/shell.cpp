@@ -188,6 +188,50 @@ void Shell::keyPressEvent(QKeyEvent *e)
     }
 }
 
+namespace {
+    // see okular_main.cpp:attachExistingInstance for a similar search
+    static std::unique_ptr<QDBusInterface> getInstanceAtPoint(int globalX, int globalY)
+    {
+        auto *sessionInterface = QDBusConnection::sessionBus().interface();
+        std::unique_ptr<QDBusInterface> connection;
+        // If DBus isn't running, we can't attach to an existing instance.
+        if (!sessionInterface) {
+            return connection;
+        }
+
+        const QStringList services = sessionInterface->registeredServiceNames().value();
+        // Don't match the service without trailing "-" (unique instance)
+        const QString pattern = QStringLiteral("org.kde.okular-");
+        const QString myPid = QString::number(qApp->applicationPid());
+        const int desktop = KWindowSystem::currentDesktop();
+        // Select the first instance that isn't us (metric may change in future)
+        for (const QString &service : services) {
+            if (service.startsWith(pattern) && !service.endsWith(myPid)) {
+                auto curService = new QDBusInterface(service, QStringLiteral("/okularshell"), QStringLiteral("org.kde.okular"));
+                
+                // check if the service's window contains the mouse
+                QDBusReply<bool> reply = curService->call(QStringLiteral("isInMyWindow"), globalX, globalY, desktop);
+                if(!(reply.isValid() && reply.value())) {
+                    delete curService;
+                    continue;
+                }
+
+                // Check if the instance can handle our documents
+                reply = curService->call(QStringLiteral("canOpenDocs"), 1, desktop);
+                if (!(reply.isValid() && reply.value())) {
+                    delete curService;
+                    continue;
+                }
+
+                // if we got here, we found a suitable instance
+                connection.reset(curService);
+                break;
+            }
+        }
+        return connection;
+    }
+}
+
 bool Shell::eventFilter(QObject *obj, QEvent *event)
 {
     QDragMoveEvent *dmEvent = dynamic_cast<QDragMoveEvent *>(event);
@@ -216,10 +260,17 @@ bool Shell::eventFilter(QObject *obj, QEvent *event)
             }
         }
         if(mEvent->button() == Qt::LeftButton) {
-            auto widgetAtPos = qApp->topLevelAt(mEvent->globalPos());
+            auto globPos = mEvent->globalPos();
+            auto widgetAtPos = qApp->topLevelAt(globPos);
             if(widgetAtPos == nullptr) {
-                if(m_detachTab) {
-                    m_detachTab->trigger();
+                // check for another instance, which contains the released point
+                auto instanceAtPoint = getInstanceAtPoint(globPos.x(), globPos.y());
+                if(instanceAtPoint) {
+                    qDebug() << "found an instance\n";
+                } else {
+                    if(m_detachTab) {
+                        m_detachTab->trigger();
+                    }
                 }
             }
         }
