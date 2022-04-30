@@ -266,7 +266,18 @@ bool Shell::eventFilter(QObject *obj, QEvent *event)
                 // check for another instance, which contains the released point
                 auto instanceAtPoint = getInstanceAtPoint(globPos.x(), globPos.y());
                 if(instanceAtPoint) {
-                    qDebug() << "found an instance\n";
+                    int activeTab = this->m_tabWidget->currentIndex();
+                    int nTab = this->m_tabs.size();
+                    if (activeTab >= 0 && activeTab < nTab) {
+                        KParts::ReadWritePart *const activePart = this->m_tabs[activeTab].part;
+                        QString serializedOptions;
+                        const QDBusReply<bool> reply = instanceAtPoint->call(QStringLiteral("openDocument"), activePart->url().toString(), serializedOptions);
+                        if(reply.isValid() && reply.value()) {
+                            Q_EMIT this->m_tabWidget->tabCloseRequested(activeTab);
+                        } else {
+                            qInfo() << "could not re open the document when detaching";
+                        }
+                    }
                 } else {
                     if(m_detachTab) {
                         m_detachTab->trigger();
