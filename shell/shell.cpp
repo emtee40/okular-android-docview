@@ -233,6 +233,33 @@ static std::unique_ptr<QDBusInterface> getInstanceAtPoint(int globalX, int globa
 }
 }
 
+void Shell::moveEvent(QMoveEvent *event)
+{
+    /** if there is only one window and we release
+     * the mouse above another okular window,
+     * we attach this window to the other instance.
+     */
+    int nTab = this->m_tabs.size();
+    qDebug() << "moved window\n";
+    if(nTab == 1) {
+        qDebug() << "moved window has exactly one tab\n";
+        auto newPos = event->pos();
+        auto instanceAtPoint = getInstanceAtPoint(newPos.x(), newPos.y());
+        qDebug() << "moved window with exactly one tab to position " << newPos << " \n";
+        if (instanceAtPoint) {
+            qDebug() << "found one instance\n";
+            KParts::ReadWritePart *const activePart = this->m_tabs[0].part;
+            QString serializedOptions;
+            const QDBusReply<bool> reply = instanceAtPoint->call(QStringLiteral("openDocument"), activePart->url().toString(), serializedOptions);
+            if (reply.isValid() && reply.value()) {
+                this->closeUrl();
+            } else {
+                qInfo() << "could not open the document in the other instance";
+            }
+        }
+    }
+}
+
 bool Shell::eventFilter(QObject *obj, QEvent *event)
 {
     QDragMoveEvent *dmEvent = dynamic_cast<QDragMoveEvent *>(event);
@@ -288,7 +315,6 @@ bool Shell::eventFilter(QObject *obj, QEvent *event)
             }
         }
     }
-
 
     return KParts::MainWindow::eventFilter(obj, event);
 }

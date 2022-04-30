@@ -115,6 +115,7 @@ protected:
 
     void showEvent(QShowEvent *event) override;
     void keyPressEvent(QKeyEvent *) override;
+    void moveEvent(QMoveEvent *event) override;
 
 private Q_SLOTS:
     void fileOpen();
