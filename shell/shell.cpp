@@ -210,7 +210,6 @@ static std::unique_ptr<QDBusInterface> getInstanceAtPoint(int globalX, int globa
         if (service.startsWith(pattern) && !service.endsWith(myPid)) {
             auto curService = new QDBusInterface(service, QStringLiteral("/okularshell"), QStringLiteral("org.kde.okular"));
 
-            qDebug() << "check instance at " << globalX << " " << globalY << "\n";
             // check if the service's window contains the mouse
             QDBusReply<bool> reply = curService->call(QStringLiteral("isInMyWindow"), globalX, globalY, desktop);
             if (!(reply.isValid() && reply.value())) {
@@ -234,7 +233,7 @@ static std::unique_ptr<QDBusInterface> getInstanceAtPoint(int globalX, int globa
 }
 }
 
-void Shell::moveEvent(QMoveEvent *event)
+void Shell::moveEvent(QMoveEvent * /*event*/)
 {
     /* if there is only one window and we release
      * the mouse above another okular window,
@@ -247,17 +246,13 @@ void Shell::moveEvent(QMoveEvent *event)
      * this instance will be closed.
      */
     int nTab = this->m_tabs.size();
-    qDebug() << "moved window\n";
     if(nTab == 1) {
-        qDebug() << "moved window has exactly one tab\n";
         KParts::ReadWritePart *const activePart = this->m_tabs[0].part;
         auto url = activePart->url().toString();
         if(url.length() > 0) {
-            auto newPos = event->pos();
+            auto newPos = QCursor::pos();
             auto instanceAtPoint = getInstanceAtPoint(newPos.x(), newPos.y());
-            qDebug() << "moved window with exactly one tab to position " << newPos << " \n";
             if (instanceAtPoint) {
-                qDebug() << "found one instance\n";
                 QString serializedOptions;
                 const QDBusReply<bool> reply = instanceAtPoint->call(QStringLiteral("openDocument"), url, serializedOptions);
                 if (reply.isValid() && reply.value()) {
@@ -407,7 +402,6 @@ bool Shell::canOpenDocs(int numDocs, int desktop)
 bool Shell::isInMyWindow(int globalX, int globalY, int desktop)
 {
     const KWindowInfo winfo(window()->effectiveWinId(), KWindowSystem::WMDesktop);
-    qDebug() << "check my Window at " << globalX << " " << globalY << " " << desktop << "\n";
     if (winfo.desktop() != desktop) {
         return false;
     }
@@ -425,11 +419,22 @@ bool Shell::isInMyWindow(int globalX, int globalY, int desktop)
      */
     bool found = false;
     auto allWidgets = qApp->topLevelWidgets();
+    QPoint pGlob(globalX, globalY);
     for(auto& widget : allWidgets) {
-        auto rect = widget->rect();
-        if(rect.contains(globalX, globalY, true)) {
-            found = true;
-            break;
+        /* qt checks for visibility. But if we allow to attach from another window,
+         * the other window is below, thus not hidden, but also not visible.
+         */
+        if(!widget->isHidden()) {
+            /* the documentation of "childAt" states "Returns the visible child widget"
+             * Thus I map from the global to local and check if the local coordinates are valid
+             */
+            auto pFromGlob = widget->mapFromGlobal(pGlob);
+            if( pFromGlob.rx() > 0 && pFromGlob.rx() < widget->width()) {
+                if( pFromGlob.ry() > 0 && pFromGlob.ry() < widget->height()) {
+                    found = true;
+                    break;
+                }
+            }
         }
     }
     return found;
