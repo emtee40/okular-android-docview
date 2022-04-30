@@ -210,6 +210,7 @@ static std::unique_ptr<QDBusInterface> getInstanceAtPoint(int globalX, int globa
         if (service.startsWith(pattern) && !service.endsWith(myPid)) {
             auto curService = new QDBusInterface(service, QStringLiteral("/okularshell"), QStringLiteral("org.kde.okular"));
 
+            qDebug() << "check instance at " << globalX << " " << globalY << "\n";
             // check if the service's window contains the mouse
             QDBusReply<bool> reply = curService->call(QStringLiteral("isInMyWindow"), globalX, globalY, desktop);
             if (!(reply.isValid() && reply.value())) {
@@ -235,9 +236,15 @@ static std::unique_ptr<QDBusInterface> getInstanceAtPoint(int globalX, int globa
 
 void Shell::moveEvent(QMoveEvent *event)
 {
-    /** if there is only one window and we release
+    /* if there is only one window and we release
      * the mouse above another okular window,
      * we attach this window to the other instance.
+     */
+
+    /* the problem with this approach is the side effect when
+     * a new window is spawned. This also leads to a move event.
+     * If this instance was created as detach from another instance, 
+     * this instance will be closed.
      */
     int nTab = this->m_tabs.size();
     qDebug() << "moved window\n";
@@ -396,12 +403,33 @@ bool Shell::canOpenDocs(int numDocs, int desktop)
 bool Shell::isInMyWindow(int globalX, int globalY, int desktop)
 {
     const KWindowInfo winfo(window()->effectiveWinId(), KWindowSystem::WMDesktop);
+    qDebug() << "check my Window at " << globalX << " " << globalY << " " << desktop << "\n";
     if (winfo.desktop() != desktop) {
         return false;
     }
 
-    auto widgetAtPos = qApp->topLevelAt(globalX, globalY);
+#if 1
+    /** this approach does not find a widget below the top level window
+     *  In turn, one cannot attach a single-tab instance to a multi tab instance
+     */
+    //auto widgetAtPos = qApp->topLevelAt(globalX, globalY);
+    auto widgetAtPos = qApp->widgetAt(globalX, globalY);
     return widgetAtPos != nullptr;
+#else
+    /** This approach always finds a window, but feels inefficient. In addition
+     * this "always detect" a widget leads to the behavior explained in Shell::moveEvent.
+     */
+    bool found = false;
+    auto allWidgets = qApp->topLevelWidgets();
+    for(auto& widget : allWidgets) {
+        auto rect = widget->rect();
+        if(rect.contains(globalX, globalY, true)) {
+            found = true;
+            break;
+        }
+    }
+    return found;
+#endif
 }
 
 void Shell::openUrl(const QUrl &url, const QString &serializedOptions)
