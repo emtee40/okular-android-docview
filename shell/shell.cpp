@@ -250,18 +250,22 @@ void Shell::moveEvent(QMoveEvent *event)
     qDebug() << "moved window\n";
     if(nTab == 1) {
         qDebug() << "moved window has exactly one tab\n";
-        auto newPos = event->pos();
-        auto instanceAtPoint = getInstanceAtPoint(newPos.x(), newPos.y());
-        qDebug() << "moved window with exactly one tab to position " << newPos << " \n";
-        if (instanceAtPoint) {
-            qDebug() << "found one instance\n";
-            KParts::ReadWritePart *const activePart = this->m_tabs[0].part;
-            QString serializedOptions;
-            const QDBusReply<bool> reply = instanceAtPoint->call(QStringLiteral("openDocument"), activePart->url().toString(), serializedOptions);
-            if (reply.isValid() && reply.value()) {
-                this->closeUrl();
-            } else {
-                qInfo() << "could not open the document in the other instance";
+        KParts::ReadWritePart *const activePart = this->m_tabs[0].part;
+        auto url = activePart->url().toString();
+        if(url.length() > 0) {
+            auto newPos = event->pos();
+            auto instanceAtPoint = getInstanceAtPoint(newPos.x(), newPos.y());
+            qDebug() << "moved window with exactly one tab to position " << newPos << " \n";
+            if (instanceAtPoint) {
+                qDebug() << "found one instance\n";
+                QString serializedOptions;
+                const QDBusReply<bool> reply = instanceAtPoint->call(QStringLiteral("openDocument"), url, serializedOptions);
+                if (reply.isValid() && reply.value()) {
+                    this->close();
+                    //this->closeUrl();
+                } else {
+                    qInfo() << "could not open the document in the other instance";
+                }
             }
         }
     }
@@ -408,7 +412,7 @@ bool Shell::isInMyWindow(int globalX, int globalY, int desktop)
         return false;
     }
 
-#if 1
+#if 0
     /** this approach does not find a widget below the top level window
      *  In turn, one cannot attach a single-tab instance to a multi tab instance
      */
