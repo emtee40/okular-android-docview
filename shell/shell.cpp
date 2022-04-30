@@ -242,14 +242,14 @@ void Shell::moveEvent(QMoveEvent * /*event*/)
 
     /* the problem with this approach is the side effect when
      * a new window is spawned. This also leads to a move event.
-     * If this instance was created as detach from another instance, 
+     * If this instance was created as detach from another instance,
      * this instance will be closed.
      */
     int nTab = this->m_tabs.size();
-    if(nTab == 1) {
+    if (nTab == 1) {
         KParts::ReadWritePart *const activePart = this->m_tabs[0].part;
         auto url = activePart->url().toString();
-        if(url.length() > 0) {
+        if (url.length() > 0) {
             auto newPos = QCursor::pos();
             auto instanceAtPoint = getInstanceAtPoint(newPos.x(), newPos.y());
             if (instanceAtPoint) {
@@ -257,7 +257,7 @@ void Shell::moveEvent(QMoveEvent * /*event*/)
                 const QDBusReply<bool> reply = instanceAtPoint->call(QStringLiteral("openDocument"), url, serializedOptions);
                 if (reply.isValid() && reply.value()) {
                     this->close();
-                    //this->closeUrl();
+                    // this->closeUrl();
                 } else {
                     qInfo() << "could not open the document in the other instance";
                 }
@@ -420,17 +420,17 @@ bool Shell::isInMyWindow(int globalX, int globalY, int desktop)
     bool found = false;
     auto allWidgets = qApp->topLevelWidgets();
     QPoint pGlob(globalX, globalY);
-    for(auto& widget : allWidgets) {
+    for (auto &widget : allWidgets) {
         /* qt checks for visibility. But if we allow to attach from another window,
          * the other window is below, thus not hidden, but also not visible.
          */
-        if(!widget->isHidden()) {
+        if (!widget->isHidden()) {
             /* the documentation of "childAt" states "Returns the visible child widget"
              * Thus I map from the global to local and check if the local coordinates are valid
              */
             auto pFromGlob = widget->mapFromGlobal(pGlob);
-            if( pFromGlob.rx() > 0 && pFromGlob.rx() < widget->width()) {
-                if( pFromGlob.ry() > 0 && pFromGlob.ry() < widget->height()) {
+            if (pFromGlob.rx() > 0 && pFromGlob.rx() < widget->width()) {
+                if (pFromGlob.ry() > 0 && pFromGlob.ry() < widget->height()) {
                     found = true;
                     break;
                 }
