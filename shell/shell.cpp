@@ -250,9 +250,9 @@ bool Shell::eventFilter(QObject *obj, QEvent *event)
         return true;
     }
 
-    // Handle middle button click events on the tab bar
     if (obj == m_tabWidget->tabBar() && event->type() == QEvent::MouseButtonRelease) {
         QMouseEvent *mEvent = static_cast<QMouseEvent *>(event);
+        // Handle middle button click events on the tab bar
         if (mEvent->button() == Qt::MiddleButton) {
             int tabIndex = m_tabWidget->tabBar()->tabAt(mEvent->pos());
             if (tabIndex != -1) {
@@ -260,6 +260,7 @@ bool Shell::eventFilter(QObject *obj, QEvent *event)
                 return true;
             }
         }
+        // Handle drag & detach/attach via left button
         if (mEvent->button() == Qt::LeftButton) {
             auto globPos = mEvent->globalPos();
             auto widgetAtPos = qApp->topLevelAt(globPos);
@@ -287,6 +288,8 @@ bool Shell::eventFilter(QObject *obj, QEvent *event)
             }
         }
     }
+
+
     return KParts::MainWindow::eventFilter(obj, event);
 }
 
