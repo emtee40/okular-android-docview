@@ -76,6 +76,7 @@ public Q_SLOTS:
     Q_SCRIPTABLE Q_NOREPLY void tryRaise();
     Q_SCRIPTABLE bool openDocument(const QString &urlString, const QString &serializedOptions = QString());
     Q_SCRIPTABLE bool canOpenDocs(int numDocs, int desktop);
+    Q_SCRIPTABLE bool isInMyWindow(int globalX, int globalY, int desktop);
 
 protected:
     /**

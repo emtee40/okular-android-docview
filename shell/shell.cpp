@@ -301,6 +301,17 @@ bool Shell::canOpenDocs(int numDocs, int desktop)
     return true;
 }
 
+bool Shell::isInMyWindow(int globalX, int globalY, int desktop)
+{
+    const KWindowInfo winfo(window()->effectiveWinId(), KWindowSystem::WMDesktop);
+    if (winfo.desktop() != desktop) {
+        return false;
+    }
+    
+    auto widgetAtPos = qApp->topLevelAt(globalX, globalY);
+    return widgetAtPos != nullptr;
+}
+
 void Shell::openUrl(const QUrl &url, const QString &serializedOptions)
 {
     hideWelcomeScreen();
