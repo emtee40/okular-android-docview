@@ -215,6 +215,14 @@ bool Shell::eventFilter(QObject *obj, QEvent *event)
                 return true;
             }
         }
+        if(mEvent->button() == Qt::LeftButton) {
+            auto widgetAtPos = qApp->topLevelAt(mEvent->globalPos());
+            if(widgetAtPos == nullptr) {
+                if(m_detachTab) {
+                    m_detachTab->trigger();
+                }
+            }
+        }
     }
     return KParts::MainWindow::eventFilter(obj, event);
 }
