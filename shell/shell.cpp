@@ -233,39 +233,6 @@ static std::unique_ptr<QDBusInterface> getInstanceAtPoint(int globalX, int globa
 }
 }
 
-void Shell::moveEvent(QMoveEvent * /*event*/)
-{
-    /* if there is only one window and we release
-     * the mouse above another okular window,
-     * we attach this window to the other instance.
-     */
-
-    /* the problem with this approach is the side effect when
-     * a new window is spawned. This also leads to a move event.
-     * If this instance was created as detach from another instance,
-     * this instance will be closed.
-     */
-    int nTab = this->m_tabs.size();
-    if (nTab == 1) {
-        KParts::ReadWritePart *const activePart = this->m_tabs[0].part;
-        auto url = activePart->url().toString();
-        if (url.length() > 0) {
-            auto newPos = QCursor::pos();
-            auto instanceAtPoint = getInstanceAtPoint(newPos.x(), newPos.y());
-            if (instanceAtPoint) {
-                QString serializedOptions;
-                const QDBusReply<bool> reply = instanceAtPoint->call(QStringLiteral("openDocument"), url, serializedOptions);
-                if (reply.isValid() && reply.value()) {
-                    this->close();
-                    // this->closeUrl();
-                } else {
-                    qInfo() << "could not open the document in the other instance";
-                }
-            }
-        }
-    }
-}
-
 bool Shell::eventFilter(QObject *obj, QEvent *event)
 {
     QDragMoveEvent *dmEvent = dynamic_cast<QDragMoveEvent *>(event);
