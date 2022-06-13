@@ -184,6 +184,9 @@
   <entry key="SwitchToTabIfOpen" type="Bool">
     <default>true</default>
   </entry>
+  <entry key="KeepLastTab" type="Bool">
+    <default>false</default>
+  </entry>
   <entry key="ShowOSD" type="Bool" >
     <default>true</default>
   </entry>

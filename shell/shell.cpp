@@ -874,7 +874,10 @@ void Shell::closeTab(int tab)
         m_closedTabUrls.append(url);
 
         if (m_tabWidget->count() == 1) {
-            m_tabWidget->tabBar()->hide();
+            KParts::ReadWritePart *const part = m_tabs[0].part;
+            const bool keepLastTab = qobject_cast<Okular::ViewerInterface *>(part)->keepLastTab();
+            if(! keepLastTab)
+                m_tabWidget->tabBar()->hide();
             m_nextTabAction->setEnabled(false);
             m_prevTabAction->setEnabled(false);
         }
