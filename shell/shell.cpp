@@ -113,7 +113,6 @@ Shell::Shell(const QString &serializedOptions)
         m_tabWidget = new QTabWidget(this);
         m_tabWidget->setTabsClosable(true);
         m_tabWidget->setElideMode(Qt::ElideRight);
-        //m_tabWidget->tabBar()->hide();
         m_tabWidget->setDocumentMode(true);
         m_tabWidget->setMovable(true);
 
@@ -1028,7 +1027,7 @@ int Shell::findTabIndex(const QUrl &url) const
 void Shell::setTabBarVisibility()
 {
     if (m_tabs.size() < 1) {
-        return ;
+        return;
     }
     KParts::ReadWritePart *const part = m_tabs[0].part;
     const bool keepLastTab = qobject_cast<Okular::ViewerInterface *>(part)->keepLastTab();
