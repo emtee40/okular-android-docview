@@ -113,7 +113,7 @@ Shell::Shell(const QString &serializedOptions)
         m_tabWidget = new QTabWidget(this);
         m_tabWidget->setTabsClosable(true);
         m_tabWidget->setElideMode(Qt::ElideRight);
-        m_tabWidget->tabBar()->hide();
+        //m_tabWidget->tabBar()->hide();
         m_tabWidget->setDocumentMode(true);
         m_tabWidget->setMovable(true);
 
@@ -134,7 +134,7 @@ Shell::Shell(const QString &serializedOptions)
 
         m_tabs.append(TabState(firstPart));
         m_tabWidget->addTab(firstPart->widget(), QString()); // triggers setActiveTab that calls createGUI( part )
-
+        setTabBarVisibility();
         connectPart(firstPart);
 
         readSettings();
@@ -841,10 +841,7 @@ void Shell::closeTab(int tab)
         m_closedTabUrls.append(url);
 
         if (m_tabWidget->count() == 1) {
-            KParts::ReadWritePart *const part = m_tabs[0].part;
-            const bool keepLastTab = qobject_cast<Okular::ViewerInterface *>(part)->keepLastTab();
-            if (!keepLastTab)
-                m_tabWidget->tabBar()->hide();
+            setTabBarVisibility();
             m_nextTabAction->setEnabled(false);
             m_prevTabAction->setEnabled(false);
         }
@@ -1026,6 +1023,20 @@ int Shell::findTabIndex(const QUrl &url) const
 {
     auto it = std::find_if(m_tabs.begin(), m_tabs.end(), [&url](const TabState state) { return state.part->url() == url; });
     return (it != m_tabs.end()) ? std::distance(m_tabs.begin(), it) : -1;
+}
+
+void Shell::setTabBarVisibility()
+{
+    if (m_tabs.size() < 1) {
+        return ;
+    }
+    KParts::ReadWritePart *const part = m_tabs[0].part;
+    const bool keepLastTab = qobject_cast<Okular::ViewerInterface *>(part)->keepLastTab();
+    if (keepLastTab) {
+        m_tabWidget->tabBar()->show();
+    } else {
+        m_tabWidget->tabBar()->hide();
+    }
 }
 
 void Shell::handleDroppedUrls(const QList<QUrl> &urls)

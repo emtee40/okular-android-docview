@@ -159,6 +159,9 @@ private:
     void connectPart(QObject *part);
     int findTabIndex(QObject *sender) const;
     int findTabIndex(const QUrl &url) const;
+    /** checks if we should show the tab bar and sets the visibility
+     * accordingly */
+    void setTabBarVisibility();
 
 private:
     void reloadAllXML();
