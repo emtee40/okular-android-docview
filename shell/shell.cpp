@@ -36,16 +36,16 @@
 #include <KXMLGUIFactory>
 #include <QApplication>
 #include <QDBusConnection>
+#include <QDrag>
 #include <QDragMoveEvent>
 #include <QFileDialog>
 #include <QMenuBar>
+#include <QMimeData>
 #include <QObject>
 #include <QScreen>
 #include <QTabBar>
 #include <QTabWidget>
 #include <QTimer>
-#include <QDrag>
-#include <QMimeData>
 #ifdef WITH_KACTIVITIES
 #include <KActivities/ResourceInstance>
 #endif
@@ -192,7 +192,7 @@ void Shell::keyPressEvent(QKeyEvent *e)
 
 bool Shell::eventFilter(QObject *obj, QEvent *event)
 {
-    QDragEnterEvent* deEvent = dynamic_cast<QDragEnterEvent *>(event);
+    QDragEnterEvent *deEvent = dynamic_cast<QDragEnterEvent *>(event);
     if (deEvent) {
         QStringList formats = deEvent->mimeData()->formats();
         qDebug() << "deEvent->formats: " << formats << "\n";
