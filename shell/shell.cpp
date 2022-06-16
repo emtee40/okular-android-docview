@@ -44,6 +44,8 @@
 #include <QTabBar>
 #include <QTabWidget>
 #include <QTimer>
+#include <QDrag>
+#include <QMimeData>
 #ifdef WITH_KACTIVITIES
 #include <KActivities/ResourceInstance>
 #endif
@@ -70,6 +72,7 @@ Shell::Shell(const QString &serializedOptions)
     , m_activityResource(nullptr)
 #endif
     , m_isValid(true)
+    , m_tabBarLeftMouse(false)
 {
     setObjectName(QStringLiteral("okular::Shell#"));
     setContextMenuPolicy(Qt::NoContextMenu);
@@ -187,66 +190,74 @@ void Shell::keyPressEvent(QKeyEvent *e)
     }
 }
 
-namespace
-{
-// see okular_main.cpp:attachExistingInstance for a similar search
-static std::unique_ptr<QDBusInterface> getInstanceAtPoint(int globalX, int globalY)
-{
-    auto *sessionInterface = QDBusConnection::sessionBus().interface();
-    std::unique_ptr<QDBusInterface> connection;
-    // If DBus isn't running, we can't attach to an existing instance.
-    if (!sessionInterface) {
-        return connection;
-    }
-
-    const QStringList services = sessionInterface->registeredServiceNames().value();
-    // Don't match the service without trailing "-" (unique instance)
-    const QString pattern = QStringLiteral("org.kde.okular-");
-    const QString myPid = QString::number(qApp->applicationPid());
-    const int desktop = KWindowSystem::currentDesktop();
-    // Select the first instance that isn't us (metric may change in future)
-    for (const QString &service : services) {
-        if (service.startsWith(pattern) && !service.endsWith(myPid)) {
-            auto curService = new QDBusInterface(service, QStringLiteral("/okularshell"), QStringLiteral("org.kde.okular"));
-
-            // check if the service's window contains the mouse
-            QDBusReply<bool> reply = curService->call(QStringLiteral("isInMyWindow"), globalX, globalY, desktop);
-            if (!(reply.isValid() && reply.value())) {
-                delete curService;
-                continue;
-            }
-
-            // Check if the instance can handle our documents
-            reply = curService->call(QStringLiteral("canOpenDocs"), 1, desktop);
-            if (!(reply.isValid() && reply.value())) {
-                delete curService;
-                continue;
-            }
-
-            // if we got here, we found a suitable instance
-            connection.reset(curService);
-            break;
-        }
-    }
-    return connection;
-}
-}
-
 bool Shell::eventFilter(QObject *obj, QEvent *event)
 {
-    QDragMoveEvent *dmEvent = dynamic_cast<QDragMoveEvent *>(event);
-    if (dmEvent) {
-        bool accept = dmEvent->mimeData()->hasUrls();
-        event->setAccepted(accept);
+    QDragEnterEvent* deEvent = dynamic_cast<QDragEnterEvent *>(event);
+    if (deEvent) {
+        QStringList formats = deEvent->mimeData()->formats();
+        qDebug() << "deEvent->formats: " << formats << "\n";
+        bool accept = deEvent->mimeData()->hasUrls();
+        deEvent->setAccepted(accept);
         return accept;
     }
 
     QDropEvent *dEvent = dynamic_cast<QDropEvent *>(event);
     if (dEvent) {
+        QStringList formats = dEvent->mimeData()->formats();
+        qDebug() << "dEvent->formats: " << formats << "\n";
         const QList<QUrl> list = KUrlMimeData::urlsFromMimeData(dEvent->mimeData());
         handleDroppedUrls(list);
         dEvent->setAccepted(true);
         return true;
+    }
+
+    if (obj == m_tabWidget->tabBar() && event->type() == QEvent::MouseButtonPress) {
+        QMouseEvent *mEvent = static_cast<QMouseEvent *>(event);
+        // prepare drag & detach/attach via left button
+        if (mEvent->button() == Qt::LeftButton) {
+            m_tabBarLeftMouse = true;
+        }
+    }
+
+    if (obj == m_tabWidget->tabBar() && event->type() == QEvent::MouseMove) {
+        if (m_tabBarLeftMouse) {
+            QMouseEvent *mEvent = static_cast<QMouseEvent *>(event);
+            auto globPos = mEvent->globalPos();
+            auto widgetAtPos = qApp->topLevelAt(globPos);
+
+            // we are outside of our own window
+            if (widgetAtPos == nullptr) {
+                int activeTab = this->m_tabWidget->currentIndex();
+                int nTab = this->m_tabs.size();
+                QDrag *drag = new QDrag(this);
+                QMimeData *mimeData = new QMimeData;
+                if (activeTab >= 0 && activeTab < nTab) {
+                    KParts::ReadWritePart *const activePart = this->m_tabs[activeTab].part;
+                    Qt::KeyboardModifiers keyModifiers = QGuiApplication::queryKeyboardModifiers();
+                    // spawn a new instance if control is pressed when releasing the mouse button
+                    if (keyModifiers & Qt::ControlModifier) {
+                        if (m_detachTab) {
+                            m_detachTab->trigger();
+                        }
+                    } else {
+                        QList<QUrl> mimeUrls;
+                        mimeUrls.append(activePart->url());
+                        mimeData->setUrls(mimeUrls);
+                        drag->setMimeData(mimeData);
+                        drag->exec();
+                        m_tabBarLeftMouse = false;
+                        /** The drag operation eats the release of the left mouse button.
+                         * Therefore the tab element in the tabbar stays somewhere instead of jumping back.
+                         * By sending a ReleaseEvent manually the button jumps, where it belongs to.
+                         */
+                        {
+                            QMouseEvent myEvent(QEvent::MouseButtonRelease, mEvent->pos(), Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+                            QGuiApplication::instance()->notify(m_tabWidget->tabBar(), &myEvent);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     if (obj == m_tabWidget->tabBar() && event->type() == QEvent::MouseButtonRelease) {
@@ -259,32 +270,9 @@ bool Shell::eventFilter(QObject *obj, QEvent *event)
                 return true;
             }
         }
-        // Handle drag & detach/attach via left button
+        // deactivate drag & detach/attach via left button
         if (mEvent->button() == Qt::LeftButton) {
-            auto globPos = mEvent->globalPos();
-            auto widgetAtPos = qApp->topLevelAt(globPos);
-            if (widgetAtPos == nullptr) {
-                // check for another instance, which contains the released point
-                auto instanceAtPoint = getInstanceAtPoint(globPos.x(), globPos.y());
-                if (instanceAtPoint) {
-                    int activeTab = this->m_tabWidget->currentIndex();
-                    int nTab = this->m_tabs.size();
-                    if (activeTab >= 0 && activeTab < nTab) {
-                        KParts::ReadWritePart *const activePart = this->m_tabs[activeTab].part;
-                        QString serializedOptions;
-                        const QDBusReply<bool> reply = instanceAtPoint->call(QStringLiteral("openDocument"), activePart->url().toString(), serializedOptions);
-                        if (reply.isValid() && reply.value()) {
-                            Q_EMIT this->m_tabWidget->tabCloseRequested(activeTab);
-                        } else {
-                            qInfo() << "could not re open the document when detaching";
-                        }
-                    }
-                } else {
-                    if (m_detachTab) {
-                        m_detachTab->trigger();
-                    }
-                }
-            }
+            m_tabBarLeftMouse = false;
         }
     }
 

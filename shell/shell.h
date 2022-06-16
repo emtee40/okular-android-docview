@@ -204,6 +204,7 @@ private:
     KActivities::ResourceInstance *m_activityResource;
 #endif
     bool m_isValid;
+    bool m_tabBarLeftMouse;
 };
 
 #endif
