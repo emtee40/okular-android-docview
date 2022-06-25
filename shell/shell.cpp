@@ -235,8 +235,9 @@ bool Shell::eventFilter(QObject *obj, QEvent *event)
                     KParts::ReadWritePart *const activePart = this->m_tabs[activeTab].part;
                     Qt::KeyboardModifiers keyModifiers = QGuiApplication::queryKeyboardModifiers();
                     // spawn a new instance if control is pressed when releasing the mouse button
-                    if (keyModifiers & Qt::ControlModifier) {
-                        if (m_detachTab) {
+                    if (keyModifiers & Qt::ShiftModifier) {
+                        // detach only if we have at least two tabs
+                        if (m_detachTab && nTab > 1) {
                             m_detachTab->trigger();
                         }
                     } else {
