@@ -213,7 +213,7 @@ bool Shell::eventFilter(QObject *obj, QEvent *event)
 
     if (obj == m_tabWidget->tabBar() && event->type() == QEvent::MouseButtonPress) {
         QMouseEvent *mEvent = static_cast<QMouseEvent *>(event);
-        // prepare drag & detach/attach via left button
+        // prepare drag and drop via left button
         if (mEvent->button() == Qt::LeftButton) {
             m_tabBarLeftMouse = true;
         }
@@ -233,28 +233,19 @@ bool Shell::eventFilter(QObject *obj, QEvent *event)
                 QMimeData *mimeData = new QMimeData;
                 if (activeTab >= 0 && activeTab < nTab) {
                     KParts::ReadWritePart *const activePart = this->m_tabs[activeTab].part;
-                    Qt::KeyboardModifiers keyModifiers = QGuiApplication::queryKeyboardModifiers();
-                    // spawn a new instance if control is pressed when releasing the mouse button
-                    if (keyModifiers & Qt::ShiftModifier) {
-                        // detach only if we have at least two tabs
-                        if (m_detachTab && nTab > 1) {
-                            m_detachTab->trigger();
-                        }
-                    } else {
-                        QList<QUrl> mimeUrls;
-                        mimeUrls.append(activePart->url());
-                        mimeData->setUrls(mimeUrls);
-                        drag->setMimeData(mimeData);
-                        drag->exec();
-                        m_tabBarLeftMouse = false;
-                        /** The drag operation eats the release of the left mouse button.
-                         * Therefore the tab element in the tabbar stays somewhere instead of jumping back.
-                         * By sending a ReleaseEvent manually the button jumps, where it belongs to.
-                         */
-                        {
-                            QMouseEvent myEvent(QEvent::MouseButtonRelease, mEvent->pos(), Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
-                            QGuiApplication::instance()->notify(m_tabWidget->tabBar(), &myEvent);
-                        }
+                    QList<QUrl> mimeUrls;
+                    mimeUrls.append(activePart->url());
+                    mimeData->setUrls(mimeUrls);
+                    drag->setMimeData(mimeData);
+                    drag->exec();
+                    m_tabBarLeftMouse = false;
+                    /** The drag operation eats the release of the left mouse button.
+                     * Therefore the tab element in the tabbar stays somewhere instead of jumping back.
+                     * By sending a ReleaseEvent manually the button jumps, where it belongs to.
+                     */
+                    {
+                        QMouseEvent myEvent(QEvent::MouseButtonRelease, mEvent->pos(), Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+                        QGuiApplication::instance()->notify(m_tabWidget->tabBar(), &myEvent);
                     }
                 }
             }
@@ -271,9 +262,21 @@ bool Shell::eventFilter(QObject *obj, QEvent *event)
                 return true;
             }
         }
-        // deactivate drag & detach/attach via left button
+
+        // deactivate drag and drop via left button
         if (mEvent->button() == Qt::LeftButton) {
             m_tabBarLeftMouse = false;
+        }
+
+        // new instance via right button
+        if (mEvent->button() == Qt::RightButton) {
+            int nTab = this->m_tabs.size();
+            if(nTab > 1 && m_detachTab) {
+                int activeTab = this->m_tabWidget->currentIndex();
+                if (activeTab >= 0 && activeTab < nTab) {
+                    m_detachTab->trigger();
+                }
+            }
         }
     }
 
