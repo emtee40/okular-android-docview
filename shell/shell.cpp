@@ -271,7 +271,7 @@ bool Shell::eventFilter(QObject *obj, QEvent *event)
         // new instance via right button
         if (mEvent->button() == Qt::RightButton) {
             int nTab = this->m_tabs.size();
-            if(nTab > 1 && m_detachTab) {
+            if (nTab > 1 && m_detachTab) {
                 int activeTab = this->m_tabWidget->currentIndex();
                 if (activeTab >= 0 && activeTab < nTab) {
                     m_detachTab->trigger();
