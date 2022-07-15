@@ -19,7 +19,7 @@ protected:
     QSize tabSizeHint(int index) const override;
 };
 
-class OkularTabWidget: public QTabWidget
+class OkularTabWidget : public QTabWidget
 {
 public:
     OkularTabWidget(QWidget *parent = nullptr);

@@ -58,8 +58,8 @@
 // local includes
 #include "../interfaces/viewerinterface.h"
 #include "kdocumentviewer.h"
-#include "shellutils.h"
 #include "okulartabwidget.h"
+#include "shellutils.h"
 
 static const char *shouldShowMenuBarComingFromFullScreen = "shouldShowMenuBarComingFromFullScreen";
 static const char *shouldShowToolBarComingFromFullScreen = "shouldShowToolBarComingFromFullScreen";
