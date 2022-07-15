@@ -11,12 +11,9 @@ set(okular_SRCS
    okular_main.cpp
    shell.cpp
    shellutils.cpp
-<<<<<<< HEAD
    recentitemsmodel.cpp
    welcomescreen.cpp
-=======
    okulartabwidget.cpp
->>>>>>> 84fbfcf93 (Shell: Better width calculation for tabs)
 )
 
 ki18n_wrap_ui(okular_SRCS

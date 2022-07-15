@@ -10,19 +10,22 @@
 #ifndef _OKULAR_TABWIDGET_H_
 #define _OKULAR_TABWIDGET_H_
 
-#include <QTabWidget>
 #include <QTabBar>
+#include <QTabWidget>
 
-class OkularTabBar: public QTabBar{
+class OkularTabBar : public QTabBar
+{
 protected:
     QSize tabSizeHint(int index) const override;
 };
 
-class OkularTabWidget: public QTabWidget{
+class OkularTabWidget: public QTabWidget
+{
 public:
     OkularTabWidget(QWidget *parent = nullptr);
+
 private:
-    OkularTabBar* m_TabBar;
+    OkularTabBar *m_TabBar;
 };
 
 #endif
