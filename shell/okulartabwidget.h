@@ -15,12 +15,14 @@
 
 class OkularTabBar : public QTabBar
 {
+    Q_OBJECT
 protected:
     QSize tabSizeHint(int index) const override;
 };
 
 class OkularTabWidget : public QTabWidget
 {
+    Q_OBJECT
 public:
     OkularTabWidget(QWidget *parent = nullptr);
 
