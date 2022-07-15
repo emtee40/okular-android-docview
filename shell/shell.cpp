@@ -46,6 +46,7 @@
 #include <QTabBar>
 #include <QTabWidget>
 #include <QTimer>
+#include <QMenu>
 #ifdef WITH_KACTIVITIES
 #include <KActivities/ResourceInstance>
 #endif
@@ -274,7 +275,26 @@ bool Shell::eventFilter(QObject *obj, QEvent *event)
             if (nTab > 1 && m_detachTab) {
                 int activeTab = this->m_tabWidget->currentIndex();
                 if (activeTab >= 0 && activeTab < nTab) {
-                    m_detachTab->trigger();
+                    auto closeOthers = [this, activeTab]() {
+                        // close the tabs before
+                        for(int k(0); k < activeTab - 1; ++k) {
+                            this->closeTab(k);
+                        }
+                        // close all others until there is only one tab
+                        int nTab = this->m_tabs.size();
+                        while(nTab > 1) {
+                            this->closeTab(1);
+                            nTab = this->m_tabs.size();
+                        }
+                    };
+                    QAction closeOthersAction(i18nc("close all other tabs", "closeOthers"));
+                    connect(&closeOthersAction, &QAction::triggered, this, closeOthers);
+                    QList<QAction*> actions;
+                    actions.append(m_detachTab);
+                    actions.append(m_closeAction);
+                    actions.append(&closeOthersAction);
+                    QMenu rhsMenu;
+                    rhsMenu.exec(actions, mEvent->globalPos()); 
                 }
             }
         }
