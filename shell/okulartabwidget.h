@@ -24,7 +24,7 @@ class OkularTabWidget : public QTabWidget
 {
     Q_OBJECT
 public:
-    OkularTabWidget(QWidget *parent = nullptr);
+    explicit OkularTabWidget(QWidget *parent = nullptr);
 
 private:
     OkularTabBar *m_TabBar;
