@@ -125,7 +125,7 @@ DlgGeneral::DlgGeneral(QWidget *parent, Okular::EmbedMode embedMode)
         layout->addRow(QString(), switchToTab);
 
         QCheckBox *keepTab = new QCheckBox(this);
-        keepTab->setText(i18nc("@option:check Config dialog, general page", "Keep the tab field, even if there is only one file"));
+        keepTab->setText(i18nc("@option:check", "Always show tab bar"));
         keepTab->setObjectName(QStringLiteral("kcfg_KeepLastTab"));
         layout->addRow(QString(), keepTab);
 
