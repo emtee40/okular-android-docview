@@ -287,7 +287,7 @@ bool Shell::eventFilter(QObject *obj, QEvent *event)
                             nTab = this->m_tabs.size();
                         }
                     };
-                    QAction closeOthersAction(i18nc("close all other tabs", "closeOthers"));
+                    QAction closeOthersAction(i18nc("@action:inmenu", "Close Others Tabs"));
                     connect(&closeOthersAction, &QAction::triggered, this, closeOthers);
                     QList<QAction *> actions;
                     actions.append(m_detachTab);
