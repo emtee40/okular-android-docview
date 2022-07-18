@@ -555,7 +555,7 @@ void Shell::setupActions()
     connect(m_undoCloseTab, &QAction::triggered, this, &Shell::undoCloseTab);
 
     m_detachTab = actionCollection()->addAction(QStringLiteral("detach_tab"));
-    m_detachTab->setText(i18n("Detach the tab"));
+    m_detachTab->setText(i18nc("action:inmenu", "Detach Tab"));
     m_detachTab->setEnabled(true);
     auto detachAction = [this]() {
         int activeTab = this->m_tabWidget->currentIndex();
