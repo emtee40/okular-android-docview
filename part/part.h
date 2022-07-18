@@ -147,7 +147,7 @@ public:
     bool areSourceLocationsShownGraphically() const override;
     void setShowSourceLocationsGraphically(bool show) override;
     bool openNewFilesInTabs() const override;
-    bool keepLastTab() const override;
+    bool alwaysShowTabBar() const override;
     Q_INVOKABLE bool activateTabIfAlreadyOpenFile() const;
 
     void setModified(bool modified) override;

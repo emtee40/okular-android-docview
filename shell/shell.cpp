@@ -1042,8 +1042,8 @@ void Shell::setTabBarVisibility()
         return;
     }
     KParts::ReadWritePart *const part = m_tabs[0].part;
-    const bool keepLastTab = qobject_cast<Okular::ViewerInterface *>(part)->keepLastTab();
-    if (keepLastTab) {
+    const bool alwaysShowTabBar = qobject_cast<Okular::ViewerInterface *>(part)->alwaysShowTabBar();
+    if (alwaysShowTabBar) {
         m_tabWidget->tabBar()->show();
     } else {
         m_tabWidget->tabBar()->hide();
