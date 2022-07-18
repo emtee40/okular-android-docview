@@ -21,6 +21,7 @@
 // qt/kde includes
 #include <KActionCollection>
 #include <KConfigGroup>
+#include <KIO/CommandLauncherJob>
 #include <KIO/Global>
 #include <KLocalizedString>
 #include <KMessageBox>
@@ -34,7 +35,6 @@
 #include <KUrlMimeData>
 #include <KWindowSystem>
 #include <KXMLGUIFactory>
-#include <KIO/CommandLauncherJob>
 #include <QApplication>
 #include <QDBusConnection>
 #include <QDrag>
