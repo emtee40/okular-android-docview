@@ -34,6 +34,7 @@
 #include <KUrlMimeData>
 #include <KWindowSystem>
 #include <KXMLGUIFactory>
+#include <KIO/CommandLauncherJob>
 #include <QApplication>
 #include <QDBusConnection>
 #include <QDrag>
@@ -564,7 +565,8 @@ void Shell::setupActions()
             KParts::ReadWritePart *const activePart = this->m_tabs[activeTab].part;
             QStringList args;
             args << QStringLiteral("--new-instance") << activePart->url().toString();
-            QProcess::startDetached(QStringLiteral("okular"), args);
+            KIO::CommandLauncherJob job(QStringLiteral("okular"), args);
+            job.start();
             Q_EMIT this->m_tabWidget->tabCloseRequested(activeTab);
         }
     };
