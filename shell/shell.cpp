@@ -278,8 +278,8 @@ bool Shell::eventFilter(QObject *obj, QEvent *event)
                 if (activeTab >= 0 && activeTab < nTab) {
                     auto closeOthers = [this, activeTab]() {
                         // close the tabs before
-                        for (int k(0); k < activeTab - 1; ++k) {
-                            this->closeTab(k);
+                        for (int k(0); k < activeTab ; ++k) {
+                            this->closeTab(0);
                         }
                         // close all others until there is only one tab
                         int nTab = this->m_tabs.size();
