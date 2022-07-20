@@ -276,11 +276,11 @@ bool Shell::eventFilter(QObject *obj, QEvent *event)
             if (nTab > 1 && m_detachTab) {
                 int activeTab = this->m_tabWidget->currentIndex();
                 if (activeTab >= 0 && activeTab < nTab) {
-                    auto localPos = mEvent->pos(); 
+                    auto localPos = mEvent->pos();
                     int tabNr = this->m_tabWidget->tabBar()->tabAt(localPos);
                     auto closeOthers = [this, tabNr]() {
                         // close the tabs before
-                        for (int k(0); k < tabNr ; ++k) {
+                        for (int k(0); k < tabNr; ++k) {
                             this->closeTab(0);
                         }
                         /** closing the first tab until there is only one tab in total
