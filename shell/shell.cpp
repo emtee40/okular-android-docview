@@ -276,16 +276,18 @@ bool Shell::eventFilter(QObject *obj, QEvent *event)
             if (nTab > 1 && m_detachTab) {
                 int activeTab = this->m_tabWidget->currentIndex();
                 if (activeTab >= 0 && activeTab < nTab) {
-                    auto closeOthers = [this, activeTab]() {
+                    auto localPos = mEvent->pos(); 
+                    int tabNr = this->m_tabWidget->tabBar()->tabAt(localPos);
+                    auto closeOthers = [this, tabNr]() {
                         // close the tabs before
-                        for (int k(0); k < activeTab ; ++k) {
+                        for (int k(0); k < tabNr ; ++k) {
                             this->closeTab(0);
                         }
-                        // close all others until there is only one tab
-                        int nTab = this->m_tabs.size();
-                        while (nTab > 1) {
+                        /** closing the first tab until there is only one tab in total
+                         * closes all tabs behind the selected one.
+                         */
+                        while (this->m_tabs.size() > 1) {
                             this->closeTab(1);
-                            nTab = this->m_tabs.size();
                         }
                     };
                     QAction closeOthersAction(i18nc("@action:inmenu", "Close Others Tabs"));
