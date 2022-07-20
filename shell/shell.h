@@ -138,6 +138,8 @@ private Q_SLOTS:
     void activatePrevTab();
     void undoCloseTab();
     void moveTabData(int from, int to);
+    void detachTab(int tabNr);
+    void detachActiveTab();
 
     void slotFitWindowToPage(const QSize pageViewSize, const QSize pageSize);
 

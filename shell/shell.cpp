@@ -292,8 +292,13 @@ bool Shell::eventFilter(QObject *obj, QEvent *event)
                     };
                     QAction closeOthersAction(i18nc("@action:inmenu", "Close Others Tabs"));
                     connect(&closeOthersAction, &QAction::triggered, this, closeOthers);
+                    auto detachTab = [this, tabNr]() {
+                        this->detachTab(tabNr); 
+                    };
+                    QAction detachAction(i18nc("action:inmenu", "Detach Tab"));
+                    connect(&detachAction, &QAction::triggered, this, detachTab);
                     QList<QAction *> actions;
-                    actions.append(m_detachTab);
+                    actions.append(&detachAction);
                     actions.append(m_closeAction);
                     actions.append(&closeOthersAction);
                     QMenu rhsMenu;
@@ -560,19 +565,7 @@ void Shell::setupActions()
     m_detachTab = actionCollection()->addAction(QStringLiteral("detach_tab"));
     m_detachTab->setText(i18nc("action:inmenu", "Detach Tab"));
     m_detachTab->setEnabled(true);
-    auto detachAction = [this]() {
-        int activeTab = this->m_tabWidget->currentIndex();
-        int nTab = this->m_tabs.size();
-        if (activeTab >= 0 && activeTab < nTab) {
-            KParts::ReadWritePart *const activePart = this->m_tabs[activeTab].part;
-            QStringList args;
-            args << QStringLiteral("--new-instance") << activePart->url().toString();
-            KIO::CommandLauncherJob job(QStringLiteral("okular"), args);
-            job.start();
-            Q_EMIT this->m_tabWidget->tabCloseRequested(activeTab);
-        }
-    };
-    connect(m_detachTab, &QAction::triggered, this, detachAction);
+    connect(m_detachTab, &QAction::triggered, this, &Shell::detachActiveTab);
     actionCollection()->setDefaultShortcut(m_detachTab, QKeySequence(Qt::Key_D | Qt::CTRL | Qt::SHIFT));
 }
 
@@ -1064,6 +1057,25 @@ void Shell::handleDroppedUrls(const QList<QUrl> &urls)
 void Shell::moveTabData(int from, int to)
 {
     m_tabs.move(from, to);
+}
+
+void Shell::detachTab(int tabNr)
+{     
+    int nTab = this->m_tabs.size();
+    if (tabNr >= 0 && tabNr < nTab) {
+        KParts::ReadWritePart *const activePart = this->m_tabs[tabNr].part;
+        QStringList args;
+        args << QStringLiteral("--new-instance") << activePart->url().toString();
+        KIO::CommandLauncherJob job(QStringLiteral("okular"), args);
+        job.start();
+        Q_EMIT this->m_tabWidget->tabCloseRequested(tabNr);
+    }
+
+}
+
+void Shell::detachActiveTab()
+{
+   detachTab(this->m_tabWidget->currentIndex());
 }
 
 void Shell::slotFitWindowToPage(const QSize pageViewSize, const QSize pageSize)
