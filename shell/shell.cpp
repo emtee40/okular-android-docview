@@ -292,9 +292,7 @@ bool Shell::eventFilter(QObject *obj, QEvent *event)
                     };
                     QAction closeOthersAction(i18nc("@action:inmenu", "Close Others Tabs"));
                     connect(&closeOthersAction, &QAction::triggered, this, closeOthers);
-                    auto detachTab = [this, tabNr]() {
-                        this->detachTab(tabNr); 
-                    };
+                    auto detachTab = [this, tabNr]() { this->detachTab(tabNr); };
                     QAction detachAction(i18nc("action:inmenu", "Detach Tab"));
                     connect(&detachAction, &QAction::triggered, this, detachTab);
                     QList<QAction *> actions;
@@ -1060,7 +1058,7 @@ void Shell::moveTabData(int from, int to)
 }
 
 void Shell::detachTab(int tabNr)
-{     
+{
     int nTab = this->m_tabs.size();
     if (tabNr >= 0 && tabNr < nTab) {
         KParts::ReadWritePart *const activePart = this->m_tabs[tabNr].part;
@@ -1070,12 +1068,11 @@ void Shell::detachTab(int tabNr)
         job.start();
         Q_EMIT this->m_tabWidget->tabCloseRequested(tabNr);
     }
-
 }
 
 void Shell::detachActiveTab()
 {
-   detachTab(this->m_tabWidget->currentIndex());
+    detachTab(this->m_tabWidget->currentIndex());
 }
 
 void Shell::slotFitWindowToPage(const QSize pageViewSize, const QSize pageSize)
