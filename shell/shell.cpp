@@ -295,9 +295,12 @@ bool Shell::eventFilter(QObject *obj, QEvent *event)
                     auto detachTab = [this, tabNr]() { this->detachTab(tabNr); };
                     QAction detachAction(i18nc("action:inmenu", "Detach Tab"));
                     connect(&detachAction, &QAction::triggered, this, detachTab);
+                    auto closeTab = [this, tabNr]() { this->closeTab(tabNr); };
+                    QAction closeAction(i18nc("action:inmenu", "Close tab"));
+                    connect(&closeAction, &QAction::triggered, this, closeTab);
                     QList<QAction *> actions;
                     actions.append(&detachAction);
-                    actions.append(m_closeAction);
+                    actions.append(&closeAction);
                     actions.append(&closeOthersAction);
                     QMenu rhsMenu;
                     rhsMenu.exec(actions, mEvent->globalPos());
