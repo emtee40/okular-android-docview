@@ -21,7 +21,9 @@
 // qt/kde includes
 #include <KActionCollection>
 #include <KConfigGroup>
+#ifdef USE_COMMANDLAUNCHER
 #include <KIO/CommandLauncherJob>
+#endif
 #include <KIO/Global>
 #include <KLocalizedString>
 #include <KMessageBox>
@@ -1067,8 +1069,12 @@ void Shell::detachTab(int tabNr)
         KParts::ReadWritePart *const activePart = this->m_tabs[tabNr].part;
         QStringList args;
         args << QStringLiteral("--new-instance") << activePart->url().toString();
+#ifdef USE_COMMANDLAUNCHER
         KIO::CommandLauncherJob job(QStringLiteral("okular"), args);
         job.start();
+#else
+        QProcess::startDetached(QStringLiteral("okular"), args);
+#endif
         Q_EMIT this->m_tabWidget->tabCloseRequested(tabNr);
     }
 }
