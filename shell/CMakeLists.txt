@@ -24,9 +24,7 @@ ecm_add_app_icon(okular_SRCS ICONS ${ICONS_SRCS})
 add_executable(okular ${okular_SRCS})
 # with ecm version greater then 74 the commandlauncher should be definitly there
 # previous versions us the QProcess to launch okular
-message("HAS ECM_VERSION_MINOR: ${ECM_VERSION_MINOR}")
 if(ECM_VERSION_MINOR VERSION_GREATER 74)
-    message("use the command launcher")
     target_compile_definitions(okular PRIVATE -DUSE_COMMANDLAUNCHER)
 endif()
 
