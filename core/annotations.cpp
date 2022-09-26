@@ -952,11 +952,10 @@ void AnnotationPrivate::translate(const NormalizedPoint &coord)
 
 void AnnotationPrivate::adjust(const NormalizedPoint &deltaCoord1, const NormalizedPoint &deltaCoord2)
 {
-    m_boundary.left = m_boundary.left + qBound(-m_boundary.left, deltaCoord1.x, m_boundary.right - m_boundary.left);
-    m_boundary.top = m_boundary.top + qBound(-m_boundary.top, deltaCoord1.y, m_boundary.bottom - m_boundary.top);
-    ;
-    m_boundary.right = m_boundary.right + qBound(m_boundary.left - m_boundary.right, deltaCoord2.x, 1. - m_boundary.right);
-    m_boundary.bottom = m_boundary.bottom + qBound(m_boundary.top - m_boundary.bottom, deltaCoord2.y, 1. - m_boundary.bottom);
+    m_boundary.left = m_boundary.left + deltaCoord1.x;
+    m_boundary.top = m_boundary.top + deltaCoord1.y;
+    m_boundary.right = m_boundary.right + deltaCoord2.x;
+    m_boundary.bottom = m_boundary.bottom + deltaCoord2.y;
 }
 
 bool AnnotationPrivate::openDialogAfterCreation() const
