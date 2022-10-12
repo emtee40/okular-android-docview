@@ -42,7 +42,14 @@ static bool attachUniqueInstance(const QStringList &paths, const QString &serial
     const QString page = ShellUtils::page(serializedOptions);
     iface.call(QStringLiteral("openDocument"), ShellUtils::urlFromArg(paths[0], ShellUtils::qfileExistFunc(), page).url(), serializedOptions);
     if (!ShellUtils::noRaise(serializedOptions)) {
-        iface.call(QStringLiteral("tryRaise"));
+        QString token;
+
+        if (KWindowSystem::isPlatformWayland()) {
+            token = qEnvironmentVariable("XDG_ACTIVATION_TOKEN");
+            qunsetenv("XDG_ACTIVATION_TOKEN");
+        }
+
+        iface.call(QStringLiteral("tryRaise"), token);
     }
 
     return true;
@@ -136,7 +143,14 @@ static bool attachExistingInstance(const QStringList &paths, const QString &seri
         exit(1);
     }
 
-    bestService->call(QStringLiteral("tryRaise"));
+    QString token;
+
+    if (KWindowSystem::isPlatformWayland()) {
+        token = qEnvironmentVariable("XDG_ACTIVATION_TOKEN");
+        qunsetenv("XDG_ACTIVATION_TOKEN");
+    }
+
+    bestService->call(QStringLiteral("tryRaise"), token);
 
     return true;
 }
