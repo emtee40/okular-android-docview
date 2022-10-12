@@ -29,6 +29,7 @@
 #include <KRecentFilesAction>
 #include <KSharedConfig>
 #include <KStandardAction>
+#include <KStartupInfo>
 #include <KToggleFullScreenAction>
 #include <KToolBar>
 #include <KUrlMimeData>
@@ -660,9 +661,15 @@ void Shell::fileOpen()
     }
 }
 
-void Shell::tryRaise()
+void Shell::tryRaise(const QString &activationToken)
 {
-    KWindowSystem::forceActiveWindow(window()->effectiveWinId());
+    if (KWindowSystem::isPlatformWayland()) {
+        KWindowSystem::setCurrentXdgActivationToken(activationToken);
+    } else if (KWindowSystem::isPlatformX11()) {
+        KStartupInfo::setNewStartupId(window()->windowHandle(), activationToken.toUtf8());
+    }
+
+    KWindowSystem::activateWindow(window()->windowHandle());
 }
 
 // only called when starting the program
