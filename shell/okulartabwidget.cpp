@@ -1,3 +1,10 @@
+/*
+    SPDX-FileCopyrightText: 2020 Theresa Gier <theresa@fam-gier.de>
+    SPDX-FileCopyrightText: 2022 Tom Knuf <tom.knuf@outlook.com>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
+
 #include "okulartabwidget.h"
 
 QSize OkularTabBar::tabSizeHint(int index) const
