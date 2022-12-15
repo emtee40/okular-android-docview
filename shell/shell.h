@@ -76,6 +76,7 @@ public Q_SLOTS:
     Q_SCRIPTABLE Q_NOREPLY void tryRaise();
     Q_SCRIPTABLE bool openDocument(const QString &urlString, const QString &serializedOptions = QString());
     Q_SCRIPTABLE bool canOpenDocs(int numDocs, int desktop);
+    Q_SCRIPTABLE bool isInMyWindow(int globalX, int globalY, int desktop);
 
 protected:
     /**
@@ -137,6 +138,8 @@ private Q_SLOTS:
     void activatePrevTab();
     void undoCloseTab();
     void moveTabData(int from, int to);
+    void detachTab(int tabNr);
+    void detachActiveTab();
 
     void slotFitWindowToPage(const QSize pageViewSize, const QSize pageSize);
 
@@ -158,6 +161,9 @@ private:
     void connectPart(QObject *part);
     int findTabIndex(QObject *sender) const;
     int findTabIndex(const QUrl &url) const;
+    /** checks if we should show the tab bar and sets the visibility
+     * accordingly */
+    void setTabBarVisibility();
 
 private:
     void reloadAllXML();
@@ -194,11 +200,13 @@ private:
     QAction *m_nextTabAction;
     QAction *m_prevTabAction;
     QAction *m_undoCloseTab;
+    QAction *m_detachTab;
 
 #ifndef Q_OS_WIN
     KActivities::ResourceInstance *m_activityResource;
 #endif
     bool m_isValid;
+    bool m_tabBarLeftMouse;
 };
 
 #endif

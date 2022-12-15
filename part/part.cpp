@@ -1107,6 +1107,11 @@ bool Part::openNewFilesInTabs() const
     return Okular::Settings::self()->shellOpenFileInTabs();
 }
 
+bool Part::alwaysShowTabBar() const
+{
+    return Okular::Settings::self()->alwaysShowTabBar();
+}
+
 bool Part::activateTabIfAlreadyOpenFile() const
 {
     return Okular::Settings::self()->switchToTabIfOpen();

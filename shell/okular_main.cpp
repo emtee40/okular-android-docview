@@ -175,8 +175,15 @@ Status main(const QStringList &paths, const QString &serializedOptions)
         return Error;
     }
 
+    const bool newInstance = ShellUtils::newInstance(serializedOptions);
+    if (ShellUtils::unique(serializedOptions) && newInstance) {
+        QTextStream stream(stderr);
+        stream << i18n("Cannot unique and new-instance exclude each other") << endl;
+        return Error;
+    }
+
     // try to attach to existing session, unique or not
-    if (attachUniqueInstance(paths, serializedOptions) || attachExistingInstance(paths, serializedOptions)) {
+    if (!newInstance && (attachUniqueInstance(paths, serializedOptions) || attachExistingInstance(paths, serializedOptions))) {
         return AttachedOtherProcess;
     }
 

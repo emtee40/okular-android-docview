@@ -125,9 +125,16 @@ DlgGeneral::DlgGeneral(QWidget *parent, Okular::EmbedMode embedMode)
         switchToTab->setObjectName(QStringLiteral("kcfg_SwitchToTabIfOpen"));
         layout->addRow(QString(), switchToTab);
 
+        QCheckBox *alwaysShowTabBar = new QCheckBox(this);
+        alwaysShowTabBar->setText(i18nc("@option:check", "Always show tab bar"));
+        alwaysShowTabBar->setObjectName(QStringLiteral("kcfg_AlwaysShowTabBar"));
+        layout->addRow(QString(), alwaysShowTabBar);
+
         useTabs->setChecked(false);
         switchToTab->setEnabled(false);
+        alwaysShowTabBar->setEnabled(false);
         connect(useTabs, &QCheckBox::toggled, switchToTab, &QWidget::setEnabled);
+        connect(useTabs, &QCheckBox::toggled, alwaysShowTabBar, &QWidget::setEnabled);
     }
 
 #if !OKULAR_FORCE_DRM

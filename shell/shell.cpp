@@ -21,6 +21,9 @@
 // qt/kde includes
 #include <KActionCollection>
 #include <KConfigGroup>
+#ifdef USE_COMMANDLAUNCHER
+#include <KIO/CommandLauncherJob>
+#endif
 #include <KIO/Global>
 #include <KLocalizedString>
 #include <KMessageBox>
@@ -36,9 +39,12 @@
 #include <KXMLGUIFactory>
 #include <QApplication>
 #include <QDBusConnection>
+#include <QDrag>
 #include <QDragMoveEvent>
 #include <QFileDialog>
+#include <QMenu>
 #include <QMenuBar>
+#include <QMimeData>
 #include <QObject>
 #include <QScreen>
 #include <QTabBar>
@@ -70,6 +76,7 @@ Shell::Shell(const QString &serializedOptions)
     , m_activityResource(nullptr)
 #endif
     , m_isValid(true)
+    , m_tabBarLeftMouse(false)
 {
     setObjectName(QStringLiteral("okular::Shell#"));
     setContextMenuPolicy(Qt::NoContextMenu);
@@ -113,7 +120,6 @@ Shell::Shell(const QString &serializedOptions)
         m_tabWidget = new QTabWidget(this);
         m_tabWidget->setTabsClosable(true);
         m_tabWidget->setElideMode(Qt::ElideRight);
-        m_tabWidget->tabBar()->hide();
         m_tabWidget->setDocumentMode(true);
         m_tabWidget->setMovable(true);
 
@@ -134,7 +140,7 @@ Shell::Shell(const QString &serializedOptions)
 
         m_tabs.append(TabState(firstPart));
         m_tabWidget->addTab(firstPart->widget(), QString()); // triggers setActiveTab that calls createGUI( part )
-
+        setTabBarVisibility();
         connectPart(firstPart);
 
         readSettings();
@@ -188,24 +194,69 @@ void Shell::keyPressEvent(QKeyEvent *e)
 
 bool Shell::eventFilter(QObject *obj, QEvent *event)
 {
-    QDragMoveEvent *dmEvent = dynamic_cast<QDragMoveEvent *>(event);
-    if (dmEvent) {
-        bool accept = dmEvent->mimeData()->hasUrls();
-        event->setAccepted(accept);
+    QDragEnterEvent *deEvent = dynamic_cast<QDragEnterEvent *>(event);
+    if (deEvent) {
+        QStringList formats = deEvent->mimeData()->formats();
+        qDebug() << "deEvent->formats: " << formats << "\n";
+        bool accept = deEvent->mimeData()->hasUrls();
+        deEvent->setAccepted(accept);
         return accept;
     }
 
     QDropEvent *dEvent = dynamic_cast<QDropEvent *>(event);
     if (dEvent) {
+        QStringList formats = dEvent->mimeData()->formats();
+        qDebug() << "dEvent->formats: " << formats << "\n";
         const QList<QUrl> list = KUrlMimeData::urlsFromMimeData(dEvent->mimeData());
         handleDroppedUrls(list);
         dEvent->setAccepted(true);
         return true;
     }
 
-    // Handle middle button click events on the tab bar
+    if (obj == m_tabWidget->tabBar() && event->type() == QEvent::MouseButtonPress) {
+        QMouseEvent *mEvent = static_cast<QMouseEvent *>(event);
+        // prepare drag and drop via left button
+        if (mEvent->button() == Qt::LeftButton) {
+            m_tabBarLeftMouse = true;
+        }
+    }
+
+    if (obj == m_tabWidget->tabBar() && event->type() == QEvent::MouseMove) {
+        if (m_tabBarLeftMouse) {
+            QMouseEvent *mEvent = static_cast<QMouseEvent *>(event);
+            auto globPos = mEvent->globalPos();
+            auto widgetAtPos = qApp->topLevelAt(globPos);
+
+            // we are outside of our own window
+            if (widgetAtPos == nullptr) {
+                int activeTab = this->m_tabWidget->currentIndex();
+                int nTab = this->m_tabs.size();
+                QDrag *drag = new QDrag(this);
+                QMimeData *mimeData = new QMimeData;
+                if (activeTab >= 0 && activeTab < nTab) {
+                    KParts::ReadWritePart *const activePart = this->m_tabs[activeTab].part;
+                    QList<QUrl> mimeUrls;
+                    mimeUrls.append(activePart->url());
+                    mimeData->setUrls(mimeUrls);
+                    drag->setMimeData(mimeData);
+                    drag->exec();
+                    m_tabBarLeftMouse = false;
+                    /** The drag operation eats the release of the left mouse button.
+                     * Therefore the tab element in the tabbar stays somewhere instead of jumping back.
+                     * By sending a ReleaseEvent manually the button jumps, where it belongs to.
+                     */
+                    {
+                        QMouseEvent myEvent(QEvent::MouseButtonRelease, mEvent->pos(), Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+                        QGuiApplication::instance()->notify(m_tabWidget->tabBar(), &myEvent);
+                    }
+                }
+            }
+        }
+    }
+
     if (obj == m_tabWidget->tabBar() && event->type() == QEvent::MouseButtonRelease) {
         QMouseEvent *mEvent = static_cast<QMouseEvent *>(event);
+        // Handle middle button click events on the tab bar
         if (mEvent->button() == Qt::MiddleButton) {
             int tabIndex = m_tabWidget->tabBar()->tabAt(mEvent->pos());
             if (tabIndex != -1) {
@@ -213,7 +264,51 @@ bool Shell::eventFilter(QObject *obj, QEvent *event)
                 return true;
             }
         }
+
+        // deactivate drag and drop via left button
+        if (mEvent->button() == Qt::LeftButton) {
+            m_tabBarLeftMouse = false;
+        }
+
+        // new instance via right button
+        if (mEvent->button() == Qt::RightButton) {
+            int nTab = this->m_tabs.size();
+            if (nTab > 1 && m_detachTab) {
+                int activeTab = this->m_tabWidget->currentIndex();
+                if (activeTab >= 0 && activeTab < nTab) {
+                    auto localPos = mEvent->pos();
+                    int tabNr = this->m_tabWidget->tabBar()->tabAt(localPos);
+                    auto closeOthers = [this, tabNr]() {
+                        // close the tabs before
+                        for (int k(0); k < tabNr; ++k) {
+                            this->closeTab(0);
+                        }
+                        /** closing the first tab until there is only one tab in total
+                         * closes all tabs behind the selected one.
+                         */
+                        while (this->m_tabs.size() > 1) {
+                            this->closeTab(1);
+                        }
+                    };
+                    QAction closeOthersAction(i18nc("@action:inmenu", "Close Others Tabs"));
+                    connect(&closeOthersAction, &QAction::triggered, this, closeOthers);
+                    auto detachTab = [this, tabNr]() { this->detachTab(tabNr); };
+                    QAction detachAction(i18nc("action:inmenu", "Detach Tab"));
+                    connect(&detachAction, &QAction::triggered, this, detachTab);
+                    auto closeTab = [this, tabNr]() { this->closeTab(tabNr); };
+                    QAction closeAction(i18nc("action:inmenu", "Close tab"));
+                    connect(&closeAction, &QAction::triggered, this, closeTab);
+                    QList<QAction *> actions;
+                    actions.append(&detachAction);
+                    actions.append(&closeAction);
+                    actions.append(&closeOthersAction);
+                    QMenu rhsMenu;
+                    rhsMenu.exec(actions, mEvent->globalPos());
+                }
+            }
+        }
     }
+
     return KParts::MainWindow::eventFilter(obj, event);
 }
 
@@ -289,6 +384,48 @@ bool Shell::canOpenDocs(int numDocs, int desktop)
     }
 
     return true;
+}
+
+bool Shell::isInMyWindow(int globalX, int globalY, int desktop)
+{
+    const KWindowInfo winfo(window()->effectiveWinId(), KWindowSystem::WMDesktop);
+    if (winfo.desktop() != desktop) {
+        return false;
+    }
+
+#if 0
+    /** this approach does not find a widget below the top level window
+     *  In turn, one cannot attach a single-tab instance to a multi tab instance
+     */
+    //auto widgetAtPos = qApp->topLevelAt(globalX, globalY);
+    auto widgetAtPos = qApp->widgetAt(globalX, globalY);
+    return widgetAtPos != nullptr;
+#else
+    /** This approach always finds a window, but feels inefficient. In addition
+     * this "always detect" a widget leads to the behavior explained in Shell::moveEvent.
+     */
+    bool found = false;
+    auto allWidgets = qApp->topLevelWidgets();
+    QPoint pGlob(globalX, globalY);
+    for (auto &widget : allWidgets) {
+        /* qt checks for visibility. But if we allow to attach from another window,
+         * the other window is below, thus not hidden, but also not visible.
+         */
+        if (!widget->isHidden()) {
+            /* the documentation of "childAt" states "Returns the visible child widget"
+             * Thus I map from the global to local and check if the local coordinates are valid
+             */
+            auto pFromGlob = widget->mapFromGlobal(pGlob);
+            if (pFromGlob.rx() > 0 && pFromGlob.rx() < widget->width()) {
+                if (pFromGlob.ry() > 0 && pFromGlob.ry() < widget->height()) {
+                    found = true;
+                    break;
+                }
+            }
+        }
+    }
+    return found;
+#endif
 }
 
 void Shell::openUrl(const QUrl &url, const QString &serializedOptions)
@@ -425,6 +562,12 @@ void Shell::setupActions()
     m_undoCloseTab->setIcon(QIcon::fromTheme(QStringLiteral("edit-undo")));
     m_undoCloseTab->setEnabled(false);
     connect(m_undoCloseTab, &QAction::triggered, this, &Shell::undoCloseTab);
+
+    m_detachTab = actionCollection()->addAction(QStringLiteral("detach_tab"));
+    m_detachTab->setText(i18nc("action:inmenu", "Detach Tab"));
+    m_detachTab->setEnabled(true);
+    connect(m_detachTab, &QAction::triggered, this, &Shell::detachActiveTab);
+    actionCollection()->setDefaultShortcut(m_detachTab, QKeySequence(Qt::Key_D | Qt::CTRL | Qt::SHIFT));
 }
 
 void Shell::saveProperties(KConfigGroup &group)
@@ -696,7 +839,7 @@ void Shell::closeTab(int tab)
         m_closedTabUrls.append(url);
 
         if (m_tabWidget->count() == 1) {
-            m_tabWidget->tabBar()->hide();
+            setTabBarVisibility();
             m_nextTabAction->setEnabled(false);
             m_prevTabAction->setEnabled(false);
         }
@@ -880,6 +1023,20 @@ int Shell::findTabIndex(const QUrl &url) const
     return (it != m_tabs.end()) ? std::distance(m_tabs.begin(), it) : -1;
 }
 
+void Shell::setTabBarVisibility()
+{
+    if (m_tabs.size() < 1) {
+        return;
+    }
+    KParts::ReadWritePart *const part = m_tabs[0].part;
+    const bool alwaysShowTabBar = qobject_cast<Okular::ViewerInterface *>(part)->alwaysShowTabBar();
+    if (alwaysShowTabBar) {
+        m_tabWidget->tabBar()->show();
+    } else {
+        m_tabWidget->tabBar()->hide();
+    }
+}
+
 void Shell::handleDroppedUrls(const QList<QUrl> &urls)
 {
     for (const QUrl &url : urls) {
@@ -890,6 +1047,28 @@ void Shell::handleDroppedUrls(const QList<QUrl> &urls)
 void Shell::moveTabData(int from, int to)
 {
     m_tabs.move(from, to);
+}
+
+void Shell::detachTab(int tabNr)
+{
+    int nTab = this->m_tabs.size();
+    if (tabNr >= 0 && tabNr < nTab) {
+        KParts::ReadWritePart *const activePart = this->m_tabs[tabNr].part;
+        QStringList args;
+        args << QStringLiteral("--new-instance") << activePart->url().toString();
+#ifdef USE_COMMANDLAUNCHER
+        KIO::CommandLauncherJob job(QStringLiteral("okular"), args);
+        job.start();
+#else
+        QProcess::startDetached(QStringLiteral("okular"), args);
+#endif
+        Q_EMIT this->m_tabWidget->tabCloseRequested(tabNr);
+    }
+}
+
+void Shell::detachActiveTab()
+{
+    detachTab(this->m_tabWidget->currentIndex());
 }
 
 void Shell::slotFitWindowToPage(const QSize pageViewSize, const QSize pageSize)
