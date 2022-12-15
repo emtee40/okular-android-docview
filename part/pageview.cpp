@@ -109,9 +109,9 @@ static const int searchTextPreviewLength = 21;
 // When following a link, only a preview of this length will be used to set the text of the action.
 static const int linkTextPreviewLength = 30;
 
-static inline double normClamp(double value, double def)
+static inline double normClamp(double value)
 {
-    return (value < 0.0 || value > 1.0) ? def : value;
+    return value < 0.0 ? 0.0 : (value > 1.0 ? 1.0 : value);
 }
 
 struct TableSelectionPart {
@@ -1396,8 +1396,8 @@ void PageView::setShowSourceLocationsGraphically(bool show)
 void PageView::setLastSourceLocationViewport(const Okular::DocumentViewport &vp)
 {
     if (vp.rePos.enabled) {
-        d->lastSourceLocationViewportNormalizedX = normClamp(vp.rePos.normalizedX, 0.5);
-        d->lastSourceLocationViewportNormalizedY = normClamp(vp.rePos.normalizedY, 0.0);
+        d->lastSourceLocationViewportNormalizedX = normClamp(vp.rePos.normalizedX);
+        d->lastSourceLocationViewportNormalizedY = normClamp(vp.rePos.normalizedY);
     } else {
         d->lastSourceLocationViewportNormalizedX = 0.5;
         d->lastSourceLocationViewportNormalizedY = 0.0;
@@ -3715,12 +3715,12 @@ QPoint PageView::viewportToContentArea(const Okular::DocumentViewport &vp) const
         const double normalized_on_crop_y = (vp.rePos.normalizedY - crop.top) / (crop.bottom - crop.top);
 
         if (vp.rePos.pos == Okular::DocumentViewport::Center) {
-            c.rx() += qRound(normClamp(normalized_on_crop_x, 0.5) * (double)r.width());
-            c.ry() += qRound(normClamp(normalized_on_crop_y, 0.0) * (double)r.height());
+            c.rx() += qRound(normClamp(normalized_on_crop_x) * (double)r.width());
+            c.ry() += qRound(normClamp(normalized_on_crop_y) * (double)r.height());
         } else {
             // TopLeft
-            c.rx() += qRound(normClamp(normalized_on_crop_x, 0.0) * (double)r.width() + viewport()->width() / 2.0);
-            c.ry() += qRound(normClamp(normalized_on_crop_y, 0.0) * (double)r.height() + viewport()->height() / 2.0);
+            c.rx() += qRound(normClamp(normalized_on_crop_x) * (double)r.width() + viewport()->width() / 2.0);
+            c.ry() += qRound(normClamp(normalized_on_crop_y) * (double)r.height() + viewport()->height() / 2.0);
         }
     } else {
         // exact repositioning disabled, align page top margin with viewport top border by default
