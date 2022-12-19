@@ -21,7 +21,10 @@
 // qt/kde includes
 #include <KActionCollection>
 #include <KConfigGroup>
+#include <KConfigGui>
 #include <KIO/Global>
+#include <KIO/StatJob>
+#include <KJobWidgets>
 #include <KLocalizedString>
 #include <KMessageBox>
 #include <KPluginFactory>
@@ -137,9 +140,10 @@ Shell::Shell(const QString &serializedOptions)
 
         connectPart(firstPart);
 
+        m_unique = ShellUtils::unique(serializedOptions);
+
         readSettings();
 
-        m_unique = ShellUtils::unique(serializedOptions);
         if (m_unique) {
             m_unique = QDBusConnection::sessionBus().registerService(QStringLiteral("org.kde.okular"));
             if (!m_unique) {
@@ -162,8 +166,10 @@ Shell::Shell(const QString &serializedOptions)
 
         QDBusConnection::sessionBus().registerObject(QStringLiteral("/okularshell"), this, QDBusConnection::ExportScriptableSlots);
 
-        // Make sure that the welcome scren is visible on startup.
-        showWelcomeScreen();
+        if (m_tabs[0].part->url().isEmpty()) {
+            // Make sure that the welcome screen is visible on startup.
+            showWelcomeScreen();
+        }
     } else {
         m_isValid = false;
         KMessageBox::error(this, i18n("Unable to find the Okular component."));
@@ -270,6 +276,28 @@ bool Shell::openDocument(const QString &urlString, const QString &serializedOpti
     return openDocument(QUrl(urlString), serializedOptions);
 }
 
+QStringList Shell::otherOkularServices()
+{
+    QStringList okularServices;
+    auto *sessionInterface = QDBusConnection::sessionBus().interface();
+    if (!sessionInterface) {
+        return okularServices;
+    }
+
+    const QStringList services = sessionInterface->registeredServiceNames().value();
+    // Don't match the service without trailing "-" (unique instance)
+    const QString pattern = QStringLiteral("org.kde.okular-");
+    const QString myPid = QString::number(qApp->applicationPid());
+
+    // Select the first instance that isn't us (metric may change in future)
+    for (const QString &service : services) {
+        if (service.startsWith(pattern) && !service.endsWith(myPid)) {
+            okularServices.append(service);
+        }
+    }
+    return okularServices;
+}
+
 bool Shell::canOpenDocs(int numDocs, int desktop)
 {
     if (m_tabs.size() <= 0 || numDocs <= 0 || m_unique) {
@@ -356,10 +384,11 @@ void Shell::closeUrl()
 
 void Shell::readSettings()
 {
-    m_recent->loadEntries(KSharedConfig::openConfig()->group("Recent Files"));
+    KSharedConfigPtr config = KSharedConfig::openConfig();
+    m_recent->loadEntries(config->group("Recent Files"));
     m_recent->setEnabled(true); // force enabling
 
-    const KConfigGroup group = KSharedConfig::openConfig()->group("Desktop Entry");
+    const KConfigGroup group = config->group("Desktop Entry");
     bool fullScreen = group.readEntry("FullScreen", false);
     setFullScreen(fullScreen);
 
@@ -367,18 +396,59 @@ void Shell::readSettings()
         m_menuBarWasShown = group.readEntry(shouldShowMenuBarComingFromFullScreen, true);
         m_toolBarWasShown = group.readEntry(shouldShowToolBarComingFromFullScreen, true);
     }
+
+    // restore only if we are the only instance
+    KParts::ReadWritePart *const part = m_tabs[0].part;
+    const bool restoreDocuments = qobject_cast<Okular::ViewerInterface *>(part)->restoreOpenDocuments();
+    if (restoreDocuments && otherOkularServices().empty()) {
+        KConfigGroup session = config->group("Session");
+        QStringList urls = session.readEntry("Urls", QStringList {});
+        for (auto const &urlString : qAsConst(urls)) {
+            // only try to open existing files to avoid error messages on startup
+            QUrl url {urlString};
+            if (url.isLocalFile()) {
+                if (!QFile::exists(url.toLocalFile())) {
+                    continue;
+                }
+            } else {
+                KIO::StatJob *statJob = KIO::stat(url, KIO::StatJob::SourceSide, 0);
+                KJobWidgets::setWindow(statJob, widget());
+                if (!statJob->exec() || statJob->error()) {
+                    continue;
+                }
+            }
+            openDocument(url, QString());
+        }
+        m_tabWidget->setCurrentIndex(session.readEntry<int>("ActiveTab", 0));
+    }
 }
 
 void Shell::writeSettings()
 {
     saveRecents();
-    KConfigGroup group = KSharedConfig::openConfig()->group("Desktop Entry");
+    KSharedConfigPtr config = KSharedConfig::openConfig();
+    KConfigGroup group = config->group("Desktop Entry");
     group.writeEntry("FullScreen", m_fullScreenAction->isChecked());
     if (m_fullScreenAction->isChecked()) {
         group.writeEntry(shouldShowMenuBarComingFromFullScreen, m_menuBarWasShown);
         group.writeEntry(shouldShowToolBarComingFromFullScreen, m_toolBarWasShown);
     }
-    KSharedConfig::openConfig()->sync();
+
+    KConfigGroup session = config->group("Session");
+    KParts::ReadWritePart *const part = m_tabs[0].part;
+    const bool restoreDocuments = qobject_cast<Okular::ViewerInterface *>(part)->restoreOpenDocuments();
+    if (restoreDocuments) {
+        session.deleteGroup();
+        if (!m_tabs[0].part->url().isEmpty()) {
+            QStringList urls;
+            for (auto const &tab : qAsConst(m_tabs)) {
+                urls.append(tab.part->url().toString());
+            }
+            session.writeEntry("Urls", urls);
+            session.writeEntry("ActiveTab", m_tabWidget->currentIndex());
+        }
+    }
+    config->sync();
 }
 
 void Shell::saveRecents()
@@ -623,7 +693,9 @@ QSize Shell::sizeHint() const
 
 bool Shell::queryClose()
 {
-    if (m_tabs.count() > 1) {
+    KParts::ReadWritePart *const part = m_tabs[0].part;
+    const bool restoreDocuments = qobject_cast<Okular::ViewerInterface *>(part)->restoreOpenDocuments();
+    if (m_tabs.count() > 1 && (!restoreDocuments || !otherOkularServices().empty())) {
         const QString dontAskAgainName = QStringLiteral("ShowTabWarning");
         KMessageBox::ButtonCode dummy = KMessageBox::Yes;
         if (shouldBeShownYesNo(dontAskAgainName, dummy)) {

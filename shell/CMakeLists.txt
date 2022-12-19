@@ -23,11 +23,22 @@ ecm_add_app_icon(okular_SRCS ICONS ${ICONS_SRCS})
 
 add_executable(okular ${okular_SRCS})
 
-target_link_libraries(okular KF5::I18n KF5::Parts KF5::WindowSystem KF5::Crash KF5::IconThemes Qt5::DBus)
+target_link_libraries(okular
+    KF5::I18n
+    KF5::Parts
+    KF5::WindowSystem
+    KF5::Crash
+    KF5::IconThemes
+    KF5::KIOCore
+    KF5::KIOWidgets
+    KF5::ConfigWidgets
+    Qt5::DBus
+)
+
 if(TARGET KF5::Activities)
     target_compile_definitions(okular PUBLIC -DWITH_KACTIVITIES=1)
 
-	target_link_libraries(okular KF5::Activities)
+    target_link_libraries(okular KF5::Activities)
 endif()
 
 install(TARGETS okular ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})

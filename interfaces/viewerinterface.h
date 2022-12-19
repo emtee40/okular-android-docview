@@ -79,6 +79,11 @@ public:
      */
     virtual bool openNewFilesInTabs() const = 0;
 
+    /**
+     * Should the shell restore lastly closed documents when starting
+     */
+    virtual bool restoreOpenDocuments() const = 0;
+
     // SIGNALS
     /**
      * The signal 'openSourceReference' is emitted whenever the user has triggered a source
