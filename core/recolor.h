@@ -4,11 +4,16 @@
 
 #include <QImage>
 
-namespace Okular {
+namespace Okular
+{
 
 class OKULARCORE_EXPORT Recolor
 {
 public:
+    /**
+     * Creates a new QThread which will recolor the given image according to the settings in Okular::Settings.
+     */
+    static QThread *recolorThread(QImage *image);
     /**
      * Collapse color space (from white to black) to a line from @p foreground to @p background.
      */
@@ -35,6 +40,7 @@ public:
      * Shifts hue of each pixel by 240 degrees, by simply swapping channels.
      */
     static void hueShiftNegative(QImage *image);
+
 private:
     /**
      * Inverts luma of a pixel given in @p R, @p G, @p B,

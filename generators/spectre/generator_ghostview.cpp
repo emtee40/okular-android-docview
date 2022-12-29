@@ -168,9 +168,7 @@ void GSGenerator::slotImageGenerated(QImage *img, Okular::PixmapRequest *request
     }
 
     m_request = nullptr;
-    QPixmap *pix = new QPixmap(QPixmap::fromImage(*img));
-    delete img;
-    request->page()->setPixmap(request->observer(), pix);
+    request->page()->setImage(request->observer(), img);
     signalPixmapRequestDone(request);
 }
 
