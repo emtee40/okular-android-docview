@@ -68,7 +68,6 @@ ColorModeMenu::ColorModeMenu(KActionCollection *ac, QObject *parent)
 
     connect(m_colorModeActionGroup, &QActionGroup::triggered, this, &ColorModeMenu::slotColorModeActionTriggered);
     connect(Okular::SettingsCore::self(), &Okular::SettingsCore::colorModesChanged, this, &ColorModeMenu::slotConfigChanged);
-    connect(Okular::Settings::self(), &Okular::Settings::colorModesChanged2, this, &ColorModeMenu::slotConfigChanged);
     connect(this, &QAction::changed, this, &ColorModeMenu::slotChanged);
 
     // Allow to configure a toggle shortcut.

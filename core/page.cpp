@@ -26,6 +26,7 @@
 #include "action.h"
 #include "annotations.h"
 #include "annotations_p.h"
+#include "core/recolor.h"
 #include "debug_p.h"
 #include "document.h"
 #include "document_p.h"
@@ -35,6 +36,7 @@
 #include "pagecontroller_p.h"
 #include "pagesize.h"
 #include "pagetransition.h"
+#include "qthread.h"
 #include "rotationjob_p.h"
 #include "textpage_p.h"
 #include "tile.h"
@@ -80,6 +82,8 @@ PagePrivate::PagePrivate(Page *page, uint n, double w, double h, Rotation o)
     , m_closingAction(nullptr)
     , m_duration(-1)
     , m_isBoundingBoxKnown(false)
+    , recolorThread(nullptr)
+    , recolorIsPartial(false)
 {
     // avoid Division-By-Zero problems in the program
     if (m_width <= 0) {
@@ -546,9 +550,43 @@ QList<FormField *> Page::formFields() const
     return d->formfields;
 }
 
-void Page::setPixmap(DocumentObserver *observer, QPixmap *pixmap, const NormalizedRect &rect)
+void Page::setImage(DocumentObserver *observer, QImage *image, const NormalizedRect &rect, bool isPartial)
 {
-    d->setPixmap(observer, pixmap, rect, false /*isPartialPixmap*/);
+    // Here we must recolor the image if the appropriate accessibility settings are turned on.
+
+    // cancel the old thread if it was just recoloring a partial pixmap
+    // (sometimes partial updates can come faster than recolors)
+    QThread *oldThread = d->recolorThread;
+    if (oldThread != nullptr && d->recolorIsPartial) {
+        oldThread->disconnect(this);
+        QObject::connect(oldThread, &QThread::finished, oldThread, &QThread::deleteLater);
+        oldThread->requestInterruption();
+    }
+
+    QThread *newThread = Okular::Recolor::recolorThread(image);
+    d->recolorThread = newThread;
+    d->recolorIsPartial = isPartial;
+
+    if (newThread == nullptr) { // if there is no recoloring to be done
+        d->setPixmap(observer, new QPixmap(QPixmap::fromImage(*image)), rect, isPartial);
+        delete image;
+    } else {
+        QObject::connect(
+            newThread,
+            &QThread::finished,
+            this,
+            [=] {
+                d->setPixmap(observer, new QPixmap(QPixmap::fromImage(*image)), rect, isPartial);
+                delete image;
+
+                newThread->deleteLater();
+                if (d->recolorThread == newThread)
+                    d->recolorThread = nullptr;
+            },
+            Qt::QueuedConnection);
+
+        newThread->start();
+    }
 }
 
 void PagePrivate::setPixmap(DocumentObserver *observer, QPixmap *pixmap, const NormalizedRect &rect, bool isPartialPixmap)
@@ -582,6 +620,8 @@ void PagePrivate::setPixmap(DocumentObserver *observer, QPixmap *pixmap, const N
 
         delete pixmap;
     }
+
+    observer->notifyPageChanged(m_number, DocumentObserver::Pixmap);
 }
 
 void Page::setTextPage(TextPage *textPage)

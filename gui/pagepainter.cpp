@@ -24,14 +24,11 @@
 #include "core/annotations.h"
 #include "core/observer.h"
 #include "core/page.h"
-#include "core/page_p.h"
 #include "core/tile.h"
 #include "core/utils.h"
-#include "debug_ui.h"
 #include "guiutils.h"
 #include "settings.h"
 #include "settings_core.h"
-#include "core/recolor.h"
 
 Q_GLOBAL_STATIC_WITH_ARGS(QPixmap, busyPixmap, (QIcon::fromTheme(QLatin1String("okular")).pixmap(48)))
 
@@ -231,8 +228,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
     }
 
     /** 3 - ENABLE BACKBUFFERING IF DIRECT IMAGE MANIPULATION IS NEEDED **/
-    bool bufferAccessibility = (flags & Accessibility) && Okular::SettingsCore::changeColors() && (Okular::SettingsCore::renderMode() != Okular::SettingsCore::EnumRenderMode::Paper);
-    bool useBackBuffer = bufferAccessibility || bufferedHighlights || bufferedAnnotations || viewPortPoint;
+    bool useBackBuffer = bufferedHighlights || bufferedAnnotations || viewPortPoint;
     QPixmap *backPixmap = nullptr;
     QPainter *mixedPainter = nullptr;
     QRect limitsInPixmap = limits.translated(scaledCrop.topLeft());
@@ -311,37 +307,6 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
         }
 
         p.end();
-
-        // 4B.2. modify pixmap following accessibility settings
-        if (bufferAccessibility) {
-            switch (Okular::SettingsCore::renderMode()) {
-            case Okular::SettingsCore::EnumRenderMode::Inverted:
-                // Invert image pixels using QImage internal function
-                backImage.invertPixels(QImage::InvertRgb);
-                break;
-            case Okular::SettingsCore::EnumRenderMode::Recolor:
-                Okular::Recolor::paperColor(&backImage, Okular::Settings::recolorForeground(), Okular::Settings::recolorBackground());
-                break;
-            case Okular::SettingsCore::EnumRenderMode::BlackWhite:
-                Okular::Recolor::blackWhite(&backImage, Okular::Settings::bWContrast(), Okular::Settings::bWThreshold());
-                break;
-            case Okular::SettingsCore::EnumRenderMode::InvertLightness:
-                Okular::Recolor::invertLightness(&backImage);
-                break;
-            case Okular::SettingsCore::EnumRenderMode::InvertLuma:
-                Okular::Recolor::invertLuma(&backImage, 0.2126, 0.7152, 0.0722); // sRGB / Rec. 709 luma coefficients
-                break;
-            case Okular::SettingsCore::EnumRenderMode::InvertLumaSymmetric:
-                Okular::Recolor::invertLuma(&backImage, 0.3333, 0.3334, 0.3333); // Symmetric coefficients, to keep colors saturated.
-                break;
-            case Okular::SettingsCore::EnumRenderMode::HueShiftPositive:
-                Okular::Recolor::hueShiftPositive(&backImage);
-                break;
-            case Okular::SettingsCore::EnumRenderMode::HueShiftNegative:
-                Okular::Recolor::hueShiftNegative(&backImage);
-                break;
-            }
-        }
 
         // 4B.3. highlight rects in page
         if (bufferedHighlights) {

@@ -166,6 +166,9 @@ public:
     bool m_isBoundingBoxKnown : 1;
     QDomDocument restoredLocalAnnotationList; // <annotationList>...</annotationList>
     QDomDocument restoredFormFieldList;       // <forms>...</forms>
+
+    QThread *recolorThread;
+    bool recolorIsPartial;
 };
 
 }

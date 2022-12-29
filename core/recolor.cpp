@@ -1,7 +1,62 @@
 #include "recolor.h"
 #include "core/debug_p.h"
+#include "qthread.h"
+#include "settings_core.h"
 
 using namespace Okular;
+
+class RecolorThread : public QThread
+{
+private:
+    QImage *image;
+
+public:
+    RecolorThread(QImage *image)
+        : image(image)
+    {
+    }
+
+protected:
+    void run() override
+    {
+        switch (Okular::SettingsCore::renderMode()) {
+        case Okular::SettingsCore::EnumRenderMode::Inverted:
+            // Invert image pixels using QImage internal function
+            image->invertPixels(QImage::InvertRgb);
+            break;
+        case Okular::SettingsCore::EnumRenderMode::Recolor:
+            Okular::Recolor::paperColor(image, Okular::SettingsCore::recolorForeground(), Okular::SettingsCore::recolorBackground());
+            break;
+        case Okular::SettingsCore::EnumRenderMode::BlackWhite:
+            Okular::Recolor::blackWhite(image, Okular::SettingsCore::bWContrast(), Okular::SettingsCore::bWThreshold());
+            break;
+        case Okular::SettingsCore::EnumRenderMode::InvertLightness:
+            Okular::Recolor::invertLightness(image);
+            break;
+        case Okular::SettingsCore::EnumRenderMode::InvertLuma:
+            Okular::Recolor::invertLuma(image, 0.2126, 0.7152, 0.0722); // sRGB / Rec. 709 luma coefficients
+            break;
+        case Okular::SettingsCore::EnumRenderMode::InvertLumaSymmetric:
+            Okular::Recolor::invertLuma(image, 0.3333, 0.3334, 0.3333); // Symmetric coefficients, to keep colors saturated.
+            break;
+        case Okular::SettingsCore::EnumRenderMode::HueShiftPositive:
+            Okular::Recolor::hueShiftPositive(image);
+            break;
+        case Okular::SettingsCore::EnumRenderMode::HueShiftNegative:
+            Okular::Recolor::hueShiftNegative(image);
+            break;
+        }
+    }
+};
+
+QThread *Recolor::recolorThread(QImage *image)
+{
+    if (Okular::SettingsCore::changeColors() && (Okular::SettingsCore::renderMode() != Okular::SettingsCore::EnumRenderMode::Paper)) {
+        return new RecolorThread(image);
+    } else {
+        return nullptr;
+    }
+}
 
 void Recolor::paperColor(QImage *image, const QColor &foreground, const QColor &background)
 {

@@ -110,7 +110,8 @@ void GeneratorPrivate::pixmapGenerationFinished()
     }
 
     if (!request->shouldAbortRender()) {
-        request->page()->setPixmap(request->observer(), new QPixmap(QPixmap::fromImage(img)), request->normalizedRect());
+        QImage *imgPtr = new QImage(img);
+        request->page()->setImage(request->observer(), imgPtr, request->normalizedRect());
         const int pageNumber = request->page()->number();
 
         if (mPixmapGenerationThread->calcBoundingBox()) {
@@ -301,16 +302,17 @@ void Generator::generatePixmap(PixmapRequest *request)
         return;
     }
 
-    const QImage &img = image(request);
-    request->page()->setPixmap(request->observer(), new QPixmap(QPixmap::fromImage(img)), request->normalizedRect());
+    QImage *img = new QImage(image(request));
+
     const int pageNumber = request->page()->number();
 
     d->mPixmapReady = true;
 
-    signalPixmapRequestDone(request);
     if (calcBoundingBox) {
-        updatePageBoundingBox(pageNumber, Utils::imageBoundingBox(&img));
+        updatePageBoundingBox(pageNumber, Utils::imageBoundingBox(img));
     }
+    request->page()->setImage(request->observer(), img, request->normalizedRect());
+    signalPixmapRequestDone(request);
 }
 
 bool Generator::canGenerateTextPage() const
@@ -452,12 +454,7 @@ void Generator::signalPartialPixmapRequest(PixmapRequest *request, const QImage 
     if (request->shouldAbortRender()) {
         return;
     }
-
-    PagePrivate *pagePrivate = PagePrivate::get(request->page());
-    pagePrivate->setPixmap(request->observer(), new QPixmap(QPixmap::fromImage(image)), request->normalizedRect(), true /* isPartialPixmap */);
-
-    const int pageNumber = request->page()->number();
-    request->observer()->notifyPageChanged(pageNumber, Okular::DocumentObserver::Pixmap);
+    request->page()->setImage(request->observer(), new QImage(image), request->normalizedRect(), true);
 }
 
 const Document *Generator::document() const
