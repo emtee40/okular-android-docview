@@ -1855,134 +1855,44 @@ void PageView::paintEvent(QPaintEvent *pe)
 #ifdef PAGEVIEW_DEBUG
         qCDebug(OkularUiDebug) << contentsRect;
 #endif
+        // 1) Layer 0: paint items and clear bg on unpainted rects
+        drawDocumentOnPainter(contentsRect, &screenPainter);
+        // 2a) Layer 1a: paint transparent selection (rectangle)
+        if (!selectionRect.isNull() && selectionRect.intersects(contentsRect) && !selectionRectInternal.contains(contentsRect)) {
+            QColor blCol = selBlendColor.darker(140);
+            blCol.setAlphaF(0.2);
+            screenPainter.fillRect(selectionRect, blCol);
 
-        // note: this check will take care of all things requiring alpha blending (not only selection)
-        bool wantCompositing = !selectionRect.isNull() && contentsRect.intersects(selectionRect);
-        // also alpha-blend when there is a table selection...
-        wantCompositing |= !d->tableSelectionParts.isEmpty();
+            screenPainter.setPen(selBlendColor);
+            screenPainter.drawRect(selectionRect.adjusted(0, 0, -1, -1));
+        }
+        // 2b) Layer 1b: paint transparent selection (table)
+        for (const TableSelectionPart &tsp : qAsConst(d->tableSelectionParts)) {
+            QRect selectionPartRect = tsp.rectInItem.geometry(tsp.item->uncroppedWidth(), tsp.item->uncroppedHeight());
+            selectionPartRect.translate(tsp.item->uncroppedGeometry().topLeft());
+            QRect selectionPartRectInternal = selectionPartRect;
+            selectionPartRectInternal.adjust(1, 1, -1, -1);
+            if (!selectionPartRect.isNull() && selectionPartRect.intersects(contentsRect) && !selectionPartRectInternal.contains(contentsRect)) {
+                QColor blCol = d->mouseSelectionColor.darker(140);
+                blCol.setAlphaF(0.2);
+                screenPainter.fillRect(selectionPartRect.adjusted(0, 0, -1, -1), blCol);
 
-        if (wantCompositing && Okular::Settings::enableCompositing()) {
-            // create pixmap and open a painter over it (contents{left,top} becomes pixmap {0,0})
-            QPixmap doubleBuffer(contentsRect.size() * devicePixelRatioF());
-            doubleBuffer.setDevicePixelRatio(devicePixelRatioF());
-            QPainter pixmapPainter(&doubleBuffer);
-
-            pixmapPainter.translate(-contentsRect.left(), -contentsRect.top());
-
-            // 1) Layer 0: paint items and clear bg on unpainted rects
-            drawDocumentOnPainter(contentsRect, &pixmapPainter);
-            // 2a) Layer 1a: paint (blend) transparent selection (rectangle)
-            if (!selectionRect.isNull() && selectionRect.intersects(contentsRect) && !selectionRectInternal.contains(contentsRect)) {
-                QRect blendRect = selectionRectInternal.intersected(contentsRect);
-                // skip rectangles covered by the selection's border
-                if (blendRect.isValid()) {
-                    // grab current pixmap into a new one to colorize contents
-                    QPixmap blendedPixmap(blendRect.width() * devicePixelRatioF(), blendRect.height() * devicePixelRatioF());
-                    blendedPixmap.setDevicePixelRatio(devicePixelRatioF());
-                    QPainter p(&blendedPixmap);
-
-                    p.drawPixmap(0,
-                                 0,
-                                 doubleBuffer,
-                                 (blendRect.left() - contentsRect.left()) * devicePixelRatioF(),
-                                 (blendRect.top() - contentsRect.top()) * devicePixelRatioF(),
-                                 blendRect.width() * devicePixelRatioF(),
-                                 blendRect.height() * devicePixelRatioF());
-
-                    QColor blCol = selBlendColor.darker(140);
-                    blCol.setAlphaF(0.2);
-                    p.fillRect(blendedPixmap.rect(), blCol);
-                    p.end();
-                    // copy the blended pixmap back to its place
-                    pixmapPainter.drawPixmap(blendRect.left(), blendRect.top(), blendedPixmap);
-                }
-                // draw border (red if the selection is too small)
-                pixmapPainter.setPen(selBlendColor);
-                pixmapPainter.drawRect(selectionRect.adjusted(0, 0, -1, -1));
+                screenPainter.setPen(d->mouseSelectionColor);
+                screenPainter.drawRect(selectionPartRect.adjusted(0, 0, -1, -1));
             }
-            // 2b) Layer 1b: paint (blend) transparent selection (table)
-            for (const TableSelectionPart &tsp : qAsConst(d->tableSelectionParts)) {
-                QRect selectionPartRect = tsp.rectInItem.geometry(tsp.item->uncroppedWidth(), tsp.item->uncroppedHeight());
-                selectionPartRect.translate(tsp.item->uncroppedGeometry().topLeft());
-                QRect selectionPartRectInternal = selectionPartRect;
-                selectionPartRectInternal.adjust(1, 1, -1, -1);
-                if (!selectionPartRect.isNull() && selectionPartRect.intersects(contentsRect) && !selectionPartRectInternal.contains(contentsRect)) {
-                    QRect blendRect = selectionPartRectInternal.intersected(contentsRect);
-                    // skip rectangles covered by the selection's border
-                    if (blendRect.isValid()) {
-                        // grab current pixmap into a new one to colorize contents
-                        QPixmap blendedPixmap(blendRect.width() * devicePixelRatioF(), blendRect.height() * devicePixelRatioF());
-                        blendedPixmap.setDevicePixelRatio(devicePixelRatioF());
-                        QPainter p(&blendedPixmap);
-                        p.drawPixmap(0,
-                                     0,
-                                     doubleBuffer,
-                                     (blendRect.left() - contentsRect.left()) * devicePixelRatioF(),
-                                     (blendRect.top() - contentsRect.top()) * devicePixelRatioF(),
-                                     blendRect.width() * devicePixelRatioF(),
-                                     blendRect.height() * devicePixelRatioF());
+        }
+        drawTableDividers(&screenPainter);
+        // 3a) Layer 1: give annotator painting control
+        if (d->annotator && d->annotator->routePaints(contentsRect)) {
+            d->annotator->routePaint(&screenPainter, contentsRect);
+        }
+        // 3b) Layer 1: give mouseAnnotation painting control
+        d->mouseAnnotation->routePaint(&screenPainter, contentsRect);
 
-                        QColor blCol = d->mouseSelectionColor.darker(140);
-                        blCol.setAlphaF(0.2);
-                        p.fillRect(blendedPixmap.rect(), blCol);
-                        p.end();
-                        // copy the blended pixmap back to its place
-                        pixmapPainter.drawPixmap(blendRect.left(), blendRect.top(), blendedPixmap);
-                    }
-                    // draw border (red if the selection is too small)
-                    pixmapPainter.setPen(d->mouseSelectionColor);
-                    pixmapPainter.drawRect(selectionPartRect.adjusted(0, 0, -1, -1));
-                }
-            }
-            drawTableDividers(&pixmapPainter);
-            // 3a) Layer 1: give annotator painting control
-            if (d->annotator && d->annotator->routePaints(contentsRect)) {
-                d->annotator->routePaint(&pixmapPainter, contentsRect);
-            }
-            // 3b) Layer 1: give mouseAnnotation painting control
-            d->mouseAnnotation->routePaint(&pixmapPainter, contentsRect);
-
-            // 4) Layer 2: overlays
-            if (Okular::Settings::debugDrawBoundaries()) {
-                pixmapPainter.setPen(Qt::blue);
-                pixmapPainter.drawRect(contentsRect);
-            }
-
-            // finish painting and draw contents
-            pixmapPainter.end();
-            screenPainter.drawPixmap(contentsRect.left(), contentsRect.top(), doubleBuffer);
-        } else {
-            // 1) Layer 0: paint items and clear bg on unpainted rects
-            drawDocumentOnPainter(contentsRect, &screenPainter);
-            // 2a) Layer 1a: paint opaque selection (rectangle)
-            if (!selectionRect.isNull() && selectionRect.intersects(contentsRect) && !selectionRectInternal.contains(contentsRect)) {
-                screenPainter.setPen(palette().color(QPalette::Active, QPalette::Highlight).darker(110));
-                screenPainter.drawRect(selectionRect);
-            }
-            // 2b) Layer 1b: paint opaque selection (table)
-            for (const TableSelectionPart &tsp : qAsConst(d->tableSelectionParts)) {
-                QRect selectionPartRect = tsp.rectInItem.geometry(tsp.item->uncroppedWidth(), tsp.item->uncroppedHeight());
-                selectionPartRect.translate(tsp.item->uncroppedGeometry().topLeft());
-                QRect selectionPartRectInternal = selectionPartRect;
-                selectionPartRectInternal.adjust(1, 1, -1, -1);
-                if (!selectionPartRect.isNull() && selectionPartRect.intersects(contentsRect) && !selectionPartRectInternal.contains(contentsRect)) {
-                    screenPainter.setPen(palette().color(QPalette::Active, QPalette::Highlight).darker(110));
-                    screenPainter.drawRect(selectionPartRect);
-                }
-            }
-            drawTableDividers(&screenPainter);
-            // 3a) Layer 1: give annotator painting control
-            if (d->annotator && d->annotator->routePaints(contentsRect)) {
-                d->annotator->routePaint(&screenPainter, contentsRect);
-            }
-            // 3b) Layer 1: give mouseAnnotation painting control
-            d->mouseAnnotation->routePaint(&screenPainter, contentsRect);
-
-            // 4) Layer 2: overlays
-            if (Okular::Settings::debugDrawBoundaries()) {
-                screenPainter.setPen(Qt::red);
-                screenPainter.drawRect(contentsRect);
-            }
+        // 4) Layer 2: overlays
+        if (Okular::Settings::debugDrawBoundaries()) {
+            screenPainter.setPen(Qt::red);
+            screenPainter.drawRect(contentsRect);
         }
     }
 }
