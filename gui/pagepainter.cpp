@@ -229,7 +229,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
     }
 
     /** 3 - ENABLE BACKBUFFERING IF DIRECT IMAGE MANIPULATION IS NEEDED **/
-    bool useBackBuffer = bufferedHighlights || bufferedAnnotations || viewPortPoint;
+    bool useBackBuffer = bufferedAnnotations || viewPortPoint;
     QPixmap *backPixmap = nullptr;
     QPainter *mixedPainter = nullptr;
     QRect limitsInPixmap = limits.translated(scaledCrop.topLeft());
@@ -308,27 +308,6 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
         }
 
         p.end();
-
-        // 4B.3. highlight rects in page
-        if (bufferedHighlights) {
-            // draw highlights that are inside the 'limits' paint region
-            for (const auto &highlight : qAsConst(*bufferedHighlights)) {
-                const Okular::NormalizedRect &r = highlight.second;
-                // find out the rect to highlight on pixmap
-                QRect highlightRect = r.geometry(scaledWidth, scaledHeight).translated(-scaledCrop.topLeft()).intersected(limits);
-                highlightRect.translate(-limits.left(), -limits.top());
-
-                const QColor highlightColor = highlight.first;
-                QPainter painter(&backImage);
-                painter.setCompositionMode(QPainter::CompositionMode_Multiply);
-                painter.fillRect(highlightRect, highlightColor);
-
-                auto frameColor = highlightColor.darker(150);
-                const QRect frameRect = r.geometry(scaledWidth, scaledHeight).translated(-scaledCrop.topLeft()).translated(-limits.left(), -limits.top());
-                painter.setPen(frameColor);
-                painter.drawRect(frameRect);
-            }
-        }
 
         // 4B.4. paint annotations [COMPOSITED ONES]
         if (bufferedAnnotations) {
@@ -648,6 +627,33 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                     mixedPainter->strokePath(rect->region(), QPen(normalColor, 0));
                 }
             }
+        }
+        mixedPainter->restore();
+    }
+
+    // 4B.3. highlight rects in page
+    if (bufferedHighlights) {
+        // draw highlights that are inside the 'limits' paint region
+        mixedPainter->save();
+        for (const auto &highlight : qAsConst(*bufferedHighlights)) {
+            const Okular::NormalizedRect &r = highlight.second;
+            // find out the rect to highlight on pixmap
+            QRect highlightRect = r.geometry(scaledWidth, scaledHeight).translated(-scaledCrop.topLeft()).intersected(limits);
+
+            QColor highlightColor = highlight.first;
+
+            if (backgroundColor == Qt::black) {
+                mixedPainter->setCompositionMode(QPainter::CompositionMode_SourceOver);
+                highlightColor.setAlpha(100);
+            }
+            else mixedPainter->setCompositionMode(QPainter::CompositionMode_Multiply);
+
+            mixedPainter->fillRect(highlightRect, highlightColor);
+
+            auto frameColor = highlightColor.darker(150);
+            const QRect frameRect = r.geometry(scaledWidth, scaledHeight).translated(-scaledCrop.topLeft());
+            mixedPainter->setPen(frameColor);
+            mixedPainter->drawRect(frameRect);
         }
         mixedPainter->restore();
     }
