@@ -11,9 +11,25 @@ class OKULARCORE_EXPORT Recolor
 {
 public:
     /**
-     * Creates a new QThread which will recolor the given image according to the settings in Okular::Settings.
+     * Returns true if the recoloring accessibility setting is enabled.
+     * If this is false, then recolorImageFromSettings and related functions are no-ops.
+     */
+    static bool settingEnabled();
+    /**
+     * Recolor the given image according to the settings in Okular::SettingsCore.
+     */
+    static void recolorImageFromSettings(QImage *image);
+    /**
+     * Creates a new QThread which will call recolorImageFromSettings.
+     * Returns null if settingEnabled is false.
      */
     static QThread *recolorThread(QImage *image);
+    /**
+     * Changes just a single color instead of the whole image.
+     */
+    static QColor changeColorFromSettings(QColor colorIn);
+
+private:
     /**
      * Collapse color space (from white to black) to a line from @p foreground to @p background.
      */

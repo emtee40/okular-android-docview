@@ -71,7 +71,7 @@ public:
 private:
     // my pretty dear raster function
     typedef QList<Okular::NormalizedPoint> NormalizedPath;
-    enum RasterOperation { Normal, Multiply };
+    enum RasterOperation { Normal, Multiply, Screen };
 
     /**
      * Draw @p normPath on @p image.

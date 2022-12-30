@@ -24,6 +24,7 @@
 #include "core/annotations.h"
 #include "core/observer.h"
 #include "core/page.h"
+#include "core/recolor.h"
 #include "core/tile.h"
 #include "core/utils.h"
 #include "guiutils.h"
@@ -351,7 +352,8 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                 if (!acolor.isValid()) {
                     acolor = Qt::yellow;
                 }
-                acolor.setAlphaF(a->style().opacity());
+                // honor accessibility recoloring settings
+                acolor = Okular::Recolor::changeColorFromSettings(acolor);
 
                 // draw LineAnnotation MISSING: caption, dash pattern, endings for multipoint lines
                 if (type == Okular::Annotation::ALine) {
@@ -363,6 +365,8 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                     // get the annotation
                     Okular::HighlightAnnotation *ha = (Okular::HighlightAnnotation *)a;
                     Okular::HighlightAnnotation::HighlightType type = ha->highlightType();
+
+                    RasterOperation multOp = (backgroundColor == Qt::black) ? Screen : Multiply;
 
                     // draw each quad of the annotation
                     int quads = ha->highlightQuads().size();
@@ -380,7 +384,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                         switch (type) {
                         // highlight the whole rect
                         case Okular::HighlightAnnotation::Highlight:
-                            drawShapeOnImage(backImage, path, true, Qt::NoPen, acolor, pageScale, Multiply);
+                            drawShapeOnImage(backImage, path, true, Qt::NoPen, acolor, pageScale, multOp);
                             break;
                         // highlight the bottom part of the rect
                         case Okular::HighlightAnnotation::Squiggly:
@@ -388,7 +392,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                             path[3].y = (path[0].y + path[3].y) / 2.0;
                             path[2].x = (path[1].x + path[2].x) / 2.0;
                             path[2].y = (path[1].y + path[2].y) / 2.0;
-                            drawShapeOnImage(backImage, path, true, Qt::NoPen, acolor, pageScale, Multiply);
+                            drawShapeOnImage(backImage, path, true, Qt::NoPen, acolor, pageScale, multOp);
                             break;
                         // make a line at 3/4 of the height
                         case Okular::HighlightAnnotation::Underline:
@@ -511,7 +515,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                     image.fill(acolor.rgba());
                     QPainter painter(&image);
                     painter.setFont(text->textFont());
-                    painter.setPen(text->textColor());
+                    painter.setPen(Okular::Recolor::changeColorFromSettings(text->textColor()));
                     Qt::AlignmentFlag halign = (text->inplaceAlignment() == 1 ? Qt::AlignHCenter : (text->inplaceAlignment() == 2 ? Qt::AlignRight : Qt::AlignLeft));
                     const double invXScale = (double)page->width() / scaledWidth;
                     const double invYScale = (double)page->height() / scaledHeight;
@@ -523,7 +527,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                     // Required as asking for a zero width pen results
                     // in a default width pen (1.0) being created
                     if (borderWidth != 0) {
-                        QPen pen(Qt::black, borderWidth);
+                        QPen pen(Okular::Recolor::changeColorFromSettings(Qt::black), borderWidth);
                         painter.setPen(pen);
                         painter.drawRect(0, 0, image.width() - 1, image.height() - 1);
                     }
@@ -542,7 +546,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                     // use it to colorize the icon, otherwise the icon will be
                     // "gray"
                     if (a->style().color().isValid()) {
-                        GuiUtils::colorizeImage(scaledCroppedImage, a->style().color(), opacity);
+                        GuiUtils::colorizeImage(scaledCroppedImage, acolor, opacity);
                     }
                     pixmap = QPixmap::fromImage(scaledCroppedImage);
 
@@ -556,9 +560,17 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                 Okular::StampAnnotation *stamp = (Okular::StampAnnotation *)a;
 
                 // get pixmap and alpha blend it if needed
+                // The performance of doing it like this (re-rendering the svg every frame) is terrible,
+                // but painted annotations happen rarely enough that it's fine
                 QPixmap pixmap = Okular::AnnotationUtils::loadStamp(stamp->stampIconName(), qMax(annotBoundary.width(), annotBoundary.height()) * dpr);
                 if (!pixmap.isNull()) // should never happen but can happen on huge sizes
                 {
+                    if (Okular::Recolor::settingEnabled()) {
+                        QImage annotImg = pixmap.toImage();
+                        Okular::Recolor::recolorImageFromSettings(&annotImg);
+                        pixmap = QPixmap::fromImage(annotImg);
+                    }
+
                     // Draw pixmap with opacity:
                     mixedPainter->save();
                     mixedPainter->setOpacity(mixedPainter->opacity() * opacity / 255.0);
@@ -580,7 +592,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                     r.translate(annotBoundary.topLeft());
                     if (geom->geometricalInnerColor().isValid()) {
                         r.adjust(width, width, -width, -width);
-                        const QColor color = geom->geometricalInnerColor();
+                        const QColor color = Okular::Recolor::changeColorFromSettings(geom->geometricalInnerColor());
                         mixedPainter->setPen(Qt::NoPen);
                         mixedPainter->setBrush(QColor(color.red(), color.green(), color.blue(), opacity));
                         if (geom->geometricalType() == Okular::GeomAnnotation::InscribedSquare) {
@@ -606,7 +618,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
 
             // draw extents rectangle
             if (Okular::Settings::debugDrawAnnotationRect()) {
-                mixedPainter->setPen(a->style().color());
+                mixedPainter->setPen(acolor);
                 mixedPainter->drawRect(annotBoundary);
             }
         }
@@ -675,8 +687,16 @@ void PagePainter::drawShapeOnImage(QImage &image, const NormalizedPath &normPath
     painter.setPen(pen2);
     painter.setBrush(brush);
 
-    if (op == Multiply) {
+    switch (op) {
+    case Normal:
+        painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+        break;
+    case Multiply:
         painter.setCompositionMode(QPainter::CompositionMode_Multiply);
+        break;
+    case Screen:
+        painter.setCompositionMode(QPainter::CompositionMode_Screen);
+        break;
     }
 
     if (brush.style() == Qt::NoBrush) {
@@ -742,7 +762,7 @@ LineAnnotPainter::LineAnnotPainter(const Okular::LineAnnotation *a, QSizeF pageS
     , pageScale {pageScale}
     , toNormalizedImage {toNormalizedImage}
     , aspectRatio {pageSize.height() / pageSize.width()}
-    , linePen {buildPen(a, a->style().width(), a->style().color())}
+    , linePen {buildPen(a, a->style().width(), Okular::Recolor::changeColorFromSettings(a->style().color()))}
 {
     if ((la->lineClosed() || la->transformedLinePoints().count() == 2) && la->lineInnerColor().isValid()) {
         fillBrush = QBrush(la->lineInnerColor());
