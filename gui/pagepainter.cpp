@@ -480,6 +480,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
 
             // Annotation boundary in destPainter coordinates:
             QRect annotBoundary = a->transformedBoundingRectangle().geometry(scaledWidth, scaledHeight).translated(-scaledCrop.topLeft());
+            QRect dAnnotBoundary = a->transformedBoundingRectangle().geometry(dScaledWidth, dScaledHeight).translated(-dScaledCrop.topLeft());
             QRect annotRect = annotBoundary.intersected(limits);
             // Visible portion of the annotation at annotBoundary size:
             QRect innerRect = annotRect.translated(-annotBoundary.topLeft());
@@ -491,7 +492,8 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
             if (type == Okular::Annotation::AText) {
                 Okular::TextAnnotation *text = (Okular::TextAnnotation *)a;
                 if (text->textType() == Okular::TextAnnotation::InPlace) {
-                    QImage image(annotBoundary.size(), QImage::Format_ARGB32);
+                    QImage image(dAnnotBoundary.size(), QImage::Format_ARGB32);
+                    image.setDevicePixelRatio(dpr);
                     image.fill(acolor.rgba());
                     QPainter painter(&image);
                     painter.setFont(text->textFont());
@@ -542,6 +544,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                 // get pixmap and alpha blend it if needed
                 // The performance of doing it like this (re-rendering the svg every frame) is terrible,
                 // but painted annotations happen rarely enough that it's fine
+                // Sometimes this needs to be qMin, other times it needs to be qMax. Really, loadStamp should take both a width and a height.
                 QPixmap pixmap = Okular::AnnotationUtils::loadStamp(stamp->stampIconName(), qMax(annotBoundary.width(), annotBoundary.height()) * dpr);
                 if (!pixmap.isNull()) // should never happen but can happen on huge sizes
                 {
@@ -555,7 +558,10 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                     mixedPainter->save();
                     mixedPainter->setOpacity(mixedPainter->opacity() * opacity / 255.0);
 
-                    mixedPainter->drawPixmap(annotRect.topLeft(), pixmap.scaled(annotBoundary.width() * dpr, annotBoundary.height() * dpr), dInnerRect.toAlignedRect());
+                    qreal xscale = pixmap.width() / (annotBoundary.width() * dpr);
+                    qreal yscale = pixmap.height() / (annotBoundary.height() * dpr);
+                    QRect dAreaInPixmap(dInnerRect.left() * xscale, dInnerRect.top() * yscale, dInnerRect.width() * xscale, dInnerRect.height() * yscale);
+                    mixedPainter->drawPixmap(annotRect, pixmap, dAreaInPixmap);
 
                     mixedPainter->restore();
                 }
