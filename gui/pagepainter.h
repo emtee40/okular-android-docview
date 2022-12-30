@@ -107,7 +107,7 @@ public:
     /**
      * Draw the annotation on @p image.
      */
-    void draw(QPainter& painter) const;
+    void draw(QPainter &painter) const;
 
 private:
     void drawMainLine(QPainter &painter) const;
