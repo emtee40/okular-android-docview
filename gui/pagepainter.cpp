@@ -421,6 +421,8 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                 // The performance of doing it like this (re-rendering the svg every frame) is terrible,
                 // but painted annotations happen rarely enough that it's fine
                 // Sometimes this needs to be qMin, other times it needs to be qMax. Really, loadStamp should take both a width and a height.
+                // The performance of doing it like this (re-rendering the svg every frame) is terrible,
+                // but painted annotations happen rarely enough that it's fine
                 QPixmap pixmap = Okular::AnnotationUtils::loadStamp(stamp->stampIconName(), qMax(annotBoundary.width(), annotBoundary.height()) * dpr);
                 if (!pixmap.isNull()) // should never happen but can happen on huge sizes
                 {
