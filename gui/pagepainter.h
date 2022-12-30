@@ -78,14 +78,14 @@ private:
      *
      * @note @p normPath needs to be normalized in respect to @p image, not to the actual page.
      */
-    static void drawShapeOnImage(QImage &image, const NormalizedPath &normPath, bool closeShape, const QPen &pen, const QBrush &brush = QBrush(), double penWidthMultiplier = 1.0, RasterOperation op = Normal);
+    static void drawShapeOnPainter(QPainter &painter, QSizeF imageSize, const NormalizedPath &normPath, bool closeShape, const QPen &pen, const QBrush &brush = QBrush(), double penWidthMultiplier = 1.0, RasterOperation op = Normal);
 
     /**
      * Draw an ellipse described by @p rect on @p image.
      *
      * @param rect Two NormalizedPoints describing the bounding rect. Need to be normalized in respect to @p image, not to the actual page.
      */
-    static void drawEllipseOnImage(QImage &image, const NormalizedPath &rect, const QPen &pen, const QBrush &brush, double penWidthMultiplier, RasterOperation op = Normal);
+    static void drawEllipseOnPainter(QPainter &painter, QSizeF imageSize, const NormalizedPath &rect, const QPen &pen, const QBrush &brush, double penWidthMultiplier, RasterOperation op = Normal);
 
     friend class LineAnnotPainter;
 };
@@ -107,19 +107,19 @@ public:
     /**
      * Draw the annotation on @p image.
      */
-    void draw(QImage &image) const;
+    void draw(QPainter& painter) const;
 
 private:
-    void drawMainLine(QImage &image) const;
-    void drawShortenedLine(double mainSegmentLength, double size, QImage &image, const QTransform &toNormalizedPage) const;
-    void drawLineEnds(double mainSegmentLength, double size, QImage &image, const QTransform &transform) const;
-    void drawLineEndArrow(double xEndPos, double size, double flipX, bool close, const QTransform &toNormalizedPage, QImage &image) const;
-    void drawLineEndButt(double xEndPos, double size, const QTransform &toNormalizedPage, QImage &image) const;
-    void drawLineEndCircle(double xEndPos, double size, const QTransform &toNormalizedPage, QImage &image) const;
-    void drawLineEndSquare(double xEndPos, double size, const QTransform &toNormalizedPage, QImage &image) const;
-    void drawLineEndDiamond(double xEndPos, double size, const QTransform &toNormalizedPage, QImage &image) const;
-    void drawLineEndSlash(double xEndPos, double size, const QTransform &toNormalizedPage, QImage &image) const;
-    void drawLeaderLine(double xEndPos, QImage &image, const QTransform &toNormalizedPage) const;
+    void drawMainLine(QPainter &painter) const;
+    void drawShortenedLine(double mainSegmentLength, double size, QPainter &painter, const QTransform &toNormalizedPage) const;
+    void drawLineEnds(double mainSegmentLength, double size, QPainter &painter, const QTransform &transform) const;
+    void drawLineEndArrow(double xEndPos, double size, double flipX, bool close, const QTransform &toNormalizedPage, QPainter &painter) const;
+    void drawLineEndButt(double xEndPos, double size, const QTransform &toNormalizedPage, QPainter &painter) const;
+    void drawLineEndCircle(double xEndPos, double size, const QTransform &toNormalizedPage, QPainter &painter) const;
+    void drawLineEndSquare(double xEndPos, double size, const QTransform &toNormalizedPage, QPainter &painter) const;
+    void drawLineEndDiamond(double xEndPos, double size, const QTransform &toNormalizedPage, QPainter &painter) const;
+    void drawLineEndSlash(double xEndPos, double size, const QTransform &toNormalizedPage, QPainter &painter) const;
+    void drawLeaderLine(double xEndPos, QPainter &painter, const QTransform &toNormalizedPage) const;
     template<typename T> QList<Okular::NormalizedPoint> transformPath(const T &path, const QTransform &transform) const
     {
         QList<Okular::NormalizedPoint> transformedPath;
