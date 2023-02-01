@@ -606,18 +606,17 @@ void PagePrivate::setPixmap(DocumentObserver *observer, QPixmap *pixmap, const N
         if (tm) {
             tm->setPixmap(pixmap, rect, isPartialPixmap);
             delete pixmap;
-            return;
-        }
-
-        QMap<DocumentObserver *, PagePrivate::PixmapObject>::iterator it = m_pixmaps.find(observer);
-        if (it != m_pixmaps.end()) {
-            delete it.value().m_pixmap;
         } else {
-            it = m_pixmaps.insert(observer, PagePrivate::PixmapObject());
+            QMap<DocumentObserver *, PagePrivate::PixmapObject>::iterator it = m_pixmaps.find(observer);
+            if (it != m_pixmaps.end()) {
+                delete it.value().m_pixmap;
+            } else {
+                it = m_pixmaps.insert(observer, PagePrivate::PixmapObject());
+            }
+            it.value().m_pixmap = pixmap;
+            it.value().m_rotation = m_rotation;
+            it.value().m_isPartialPixmap = isPartialPixmap;
         }
-        it.value().m_pixmap = pixmap;
-        it.value().m_rotation = m_rotation;
-        it.value().m_isPartialPixmap = isPartialPixmap;
     } else {
         // it can happen that we get a setPixmap while closing and thus the page controller is gone
         if (m_doc->m_pageController) {
