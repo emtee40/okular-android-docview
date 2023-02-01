@@ -353,7 +353,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                     acolor = Qt::yellow;
                 }
                 // honor accessibility recoloring settings
-                acolor = Okular::Recolor::changeColorFromSettings(acolor);
+                acolor = Okular::Recolor::applyCurrentRecolorModeToColor(acolor);
 
                 // draw LineAnnotation MISSING: caption, dash pattern, endings for multipoint lines
                 if (type == Okular::Annotation::ALine) {
@@ -442,6 +442,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                 }
             } // end current annotation drawing
         }
+        // 6.3. viewport point -- for "Show cursor position in Viewer" in Kile
         if (viewPortPoint) {
             QPainter painter(&backImage);
             painter.translate(-limits.left(), -limits.top());
@@ -515,7 +516,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                     image.fill(acolor.rgba());
                     QPainter painter(&image);
                     painter.setFont(text->textFont());
-                    painter.setPen(Okular::Recolor::changeColorFromSettings(text->textColor()));
+                    painter.setPen(Okular::Recolor::applyCurrentRecolorModeToColor(text->textColor()));
                     Qt::AlignmentFlag halign = (text->inplaceAlignment() == 1 ? Qt::AlignHCenter : (text->inplaceAlignment() == 2 ? Qt::AlignRight : Qt::AlignLeft));
                     const double invXScale = (double)page->width() / scaledWidth;
                     const double invYScale = (double)page->height() / scaledHeight;
@@ -527,7 +528,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                     // Required as asking for a zero width pen results
                     // in a default width pen (1.0) being created
                     if (borderWidth != 0) {
-                        QPen pen(Okular::Recolor::changeColorFromSettings(Qt::black), borderWidth);
+                        QPen pen(Okular::Recolor::applyCurrentRecolorModeToColor(Qt::black), borderWidth);
                         painter.setPen(pen);
                         painter.drawRect(0, 0, image.width() - 1, image.height() - 1);
                     }
@@ -567,7 +568,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                 {
                     if (Okular::Recolor::settingEnabled()) {
                         QImage annotImg = pixmap.toImage();
-                        Okular::Recolor::recolorImageFromSettings(&annotImg);
+                        Okular::Recolor::applyCurrentRecolorModeToImage(&annotImg);
                         pixmap = QPixmap::fromImage(annotImg);
                     }
 
@@ -592,7 +593,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                     r.translate(annotBoundary.topLeft());
                     if (geom->geometricalInnerColor().isValid()) {
                         r.adjust(width, width, -width, -width);
-                        const QColor color = Okular::Recolor::changeColorFromSettings(geom->geometricalInnerColor());
+                        const QColor color = Okular::Recolor::applyCurrentRecolorModeToColor(geom->geometricalInnerColor());
                         mixedPainter->setPen(Qt::NoPen);
                         mixedPainter->setBrush(QColor(color.red(), color.green(), color.blue(), opacity));
                         if (geom->geometricalType() == Okular::GeomAnnotation::InscribedSquare) {
@@ -651,7 +652,6 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
         mixedPainter->restore();
     }
 
-    /** 7 -- BUFFERED FLOW. Copy BACKPIXMAP on DESTINATION PAINTER **/
     if (useBackBuffer) {
         delete mixedPainter;
         destPainter->drawPixmap(limits.left(), limits.top(), *backPixmap);
@@ -762,7 +762,7 @@ LineAnnotPainter::LineAnnotPainter(const Okular::LineAnnotation *a, QSizeF pageS
     , pageScale {pageScale}
     , toNormalizedImage {toNormalizedImage}
     , aspectRatio {pageSize.height() / pageSize.width()}
-    , linePen {buildPen(a, a->style().width(), Okular::Recolor::changeColorFromSettings(a->style().color()))}
+    , linePen {buildPen(a, a->style().width(), Okular::Recolor::applyCurrentRecolorModeToColor(a->style().color()))}
 {
     if ((la->lineClosed() || la->transformedLinePoints().count() == 2) && la->lineInnerColor().isValid()) {
         fillBrush = QBrush(la->lineInnerColor());

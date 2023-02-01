@@ -26,7 +26,7 @@ public:
 protected:
     void run() override
     {
-        Recolor::recolorImageFromSettings(image);
+        Recolor::applyCurrentRecolorModeToImage(image);
     }
 };
 
@@ -39,20 +39,20 @@ QThread *Recolor::recolorThread(QImage *image)
     }
 }
 
-QColor Recolor::changeColorFromSettings(QColor colorIn)
+QColor Recolor::applyCurrentRecolorModeToColor(QColor colorIn)
 {
     if (settingEnabled()) {
         // This is a dirty way to do it, but ultimately the simplest
         QImage img(QSize(1, 1), QImage::Format_ARGB32_Premultiplied);
         img.fill(colorIn);
-        recolorImageFromSettings(&img);
+        applyCurrentRecolorModeToImage(&img);
         return img.pixel(0, 0);
     } else {
         return colorIn;
     }
 }
 
-void Recolor::recolorImageFromSettings(QImage *image)
+void Recolor::applyCurrentRecolorModeToImage(QImage *image)
 {
     if (!settingEnabled()) {
         return;

@@ -589,6 +589,16 @@ void Page::setImage(DocumentObserver *observer, QImage *image, const NormalizedR
     }
 }
 
+void Page::setPixmap(DocumentObserver *observer, QPixmap *pixmap, const NormalizedRect &rect)
+{
+    if (Okular::Recolor::settingEnabled()) {
+        setImage(observer, new QImage(pixmap->toImage()), rect);
+        delete pixmap;
+    } else {
+        d->setPixmap(observer, pixmap, rect, false /*isPartialPixmap*/);
+    }
+}
+
 void PagePrivate::setPixmap(DocumentObserver *observer, QPixmap *pixmap, const NormalizedRect &rect, bool isPartialPixmap)
 {
     if (m_rotation == Rotation0) {
