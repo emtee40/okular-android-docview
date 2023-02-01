@@ -544,7 +544,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
         destPainter->restore();
     }
 
-    // 6.3. viewport point -- for "showing source location", syncTeX maybe? I'm not sure
+    // 6.3. viewport point -- for "Show cursor position in Viewer" in Kile
     if (viewPortPoint) {
         destPainter->setPen(QApplication::palette().color(QPalette::Active, QPalette::Highlight));
         destPainter->drawLine(0, viewPortPoint->y * scaledHeight + 1, scaledWidth - 1, viewPortPoint->y * scaledHeight + 1);
