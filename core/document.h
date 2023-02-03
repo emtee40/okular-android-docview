@@ -1103,7 +1103,8 @@ public Q_SLOTS:
     void editFormButtons(int pageNumber, const QList<Okular::FormFieldButton *> &formButtons, const QList<bool> &newButtonStates);
 
     /**
-     * Reloads the pixmaps for whole document
+     * Invalidates pixmaps for the whole document, allowing for visible ones to be reloaded.
+     * (DocumentObserver instances must implement notifyContentsCleared()).
      *
      * @since 0.24
      */
