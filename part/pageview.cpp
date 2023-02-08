@@ -3805,7 +3805,7 @@ Okular::RegularAreaRect *PageView::textSelectionForItem(const PageViewItem *item
 
     Okular::RegularAreaRect *selectionArea = okularPage->textArea(&mouseTextSelectionInfo);
 #ifdef PAGEVIEW_DEBUG
-    qCDebug(OkularUiDebug).nospace() << "text areas (" << okularPage->number() << "): " << (selectionArea ? QString::number(selectionArea->count()) : "(none)");
+    qCDebug(OkularUiDebug).nospace() << "text areas (" << okularPage->number() << "): " << (selectionArea ? QString::number(selectionArea->count()) : QString::fromUtf8("(none)"));
 #endif
     return selectionArea;
 }
@@ -4625,8 +4625,9 @@ static void slotRequestPreloadPixmap(PageView *pageView, const PageViewItem *i, 
         preRenderRegion = Okular::NormalizedRect(intersectionRect.translated(-i->uncroppedGeometry().topLeft()), i->uncroppedWidth(), i->uncroppedHeight());
     }
 
+    qreal dpr = pageView->devicePixelRatioF();
     // request the pixmap if not already present
-    if (!i->page()->hasPixmap(pageView, i->uncroppedWidth(), i->uncroppedHeight(), preRenderRegion) && i->uncroppedWidth() > 0) {
+    if (!i->page()->hasPixmap(pageView, ceil(i->uncroppedWidth() * dpr), ceil(i->uncroppedHeight() * dpr), preRenderRegion) && i->uncroppedWidth() > 0) {
         Okular::PixmapRequest::PixmapRequestFeatures requestFeatures = Okular::PixmapRequest::Preload;
         requestFeatures |= Okular::PixmapRequest::Asynchronous;
         const bool pageHasTilesManager = i->page()->hasTilesManager(pageView);
@@ -4706,8 +4707,10 @@ void PageView::slotRequestVisiblePixmaps(int newValue)
 
         Okular::VisiblePageRect *vItem = new Okular::VisiblePageRect(i->pageNumber(), normRect);
         visibleRects.push_back(vItem);
+
+        qreal dpr = devicePixelRatioF();
 #ifdef PAGEVIEW_DEBUG
-        qWarning() << "checking for pixmap for page" << i->pageNumber() << "=" << i->page()->hasPixmap(this, i->uncroppedWidth(), i->uncroppedHeight());
+        qWarning() << "checking for pixmap for page" << i->pageNumber() << "=" << i->page()->hasPixmap(this, ceil(i->uncroppedWidth() * dpr), ceil(i->uncroppedHeight() * dpr));
         qWarning() << "checking for text for page" << i->pageNumber() << "=" << i->page()->hasTextPage();
 #endif
 
@@ -4721,11 +4724,11 @@ void PageView::slotRequestVisiblePixmaps(int newValue)
         }
 
         // if the item has not the right pixmap, add a request for it
-        if (!i->page()->hasPixmap(this, i->uncroppedWidth(), i->uncroppedHeight(), expandedVisibleRect)) {
+        if (!i->page()->hasPixmap(this, ceil(i->uncroppedWidth() * dpr), ceil(i->uncroppedHeight() * dpr), expandedVisibleRect)) {
 #ifdef PAGEVIEW_DEBUG
             qWarning() << "rerequesting visible pixmaps for page" << i->pageNumber() << "!";
 #endif
-            Okular::PixmapRequest *p = new Okular::PixmapRequest(this, i->pageNumber(), i->uncroppedWidth(), i->uncroppedHeight(), devicePixelRatioF(), PAGEVIEW_PRIO, Okular::PixmapRequest::Asynchronous);
+            Okular::PixmapRequest *p = new Okular::PixmapRequest(this, i->pageNumber(), i->uncroppedWidth(), i->uncroppedHeight(), dpr, PAGEVIEW_PRIO, Okular::PixmapRequest::Asynchronous);
             requestedPixmaps.push_back(p);
 
             if (i->page()->hasTilesManager(this)) {
