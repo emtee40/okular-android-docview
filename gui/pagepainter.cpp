@@ -267,6 +267,8 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
             }
             // honor accessibility recoloring settings
             acolor = Okular::Recolor::applyCurrentRecolorModeToColor(acolor);
+            // honor opacity settings on supported types
+            unsigned int opacity = (unsigned int)(a->style().color().alpha() * a->style().opacity());
             // skip the annotation drawing if all the annotation is fully
             // transparent, but not with text annotations
             if (opacity <= 0 && a->subType() != Okular::Annotation::AText) {
@@ -301,7 +303,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                     switch (type) {
                     // highlight the whole rect
                     case Okular::HighlightAnnotation::Highlight:
-                        drawShapeOnPainter(*mixedPainter, scaledSize, path, true, Qt::NoPen, acolor, pageScale, multOp);
+                        drawShapeOnPainter(*destPainter, scaledSize, path, true, Qt::NoPen, acolor, pageScale, multOp);
                         break;
                     // highlight the bottom part of the rect
                     case Okular::HighlightAnnotation::Squiggly:
@@ -309,7 +311,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                         path[3].y = (path[0].y + path[3].y) / 2.0;
                         path[2].x = (path[1].x + path[2].x) / 2.0;
                         path[2].y = (path[1].y + path[2].y) / 2.0;
-                        drawShapeOnPainter(*mixedPainter, scaledSize, path, true, Qt::NoPen, acolor, pageScale, multOp);
+                        drawShapeOnPainter(*destPainter, scaledSize, path, true, Qt::NoPen, acolor, pageScale, multOp);
                         break;
                     // make a line at 3/4 of the height
                     case Okular::HighlightAnnotation::Underline:
@@ -354,7 +356,6 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                     drawShapeOnPainter(*destPainter, scaledSize, path, false, inkPen, QBrush(), pageScale);
                 }
             }
-        // 6.3. viewport point -- for "Show cursor position in Viewer" in Kile
 
             // Annotation boundary in destPainter coordinates:
             QRect annotBoundary = a->transformedBoundingRectangle().geometry(scaledWidth, scaledHeight).translated(-scaledCrop.topLeft());
@@ -418,8 +419,6 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                 Okular::StampAnnotation *stamp = (Okular::StampAnnotation *)a;
 
                 // get pixmap and alpha blend it if needed
-                // The performance of doing it like this (re-rendering the svg every frame) is terrible,
-                // but painted annotations happen rarely enough that it's fine
                 // Sometimes this needs to be qMin, other times it needs to be qMax. Really, loadStamp should take both a width and a height.
                 // The performance of doing it like this (re-rendering the svg every frame) is terrible,
                 // but painted annotations happen rarely enough that it's fine
