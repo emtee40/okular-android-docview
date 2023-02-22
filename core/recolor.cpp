@@ -86,14 +86,18 @@ void Recolor::applyCurrentRecolorModeToImage(QImage *image)
     }
 }
 
+// Checks to make sure the image is in ARGB32 format, and convert if necessary
+static void checkImageFormat(QImage *image)
+{
+    if (image->format() != QImage::Format_ARGB32_Premultiplied && image->format() != QImage::Format_ARGB32) {
+        qCWarning(OkularCoreDebug) << "Wrong image format! Converting...";
+        *image = std::move(*image).convertToFormat(QImage::Format_ARGB32_Premultiplied);
+    }
+}
+
 void Recolor::paperColor(QImage *image, const QColor &foreground, const QColor &background)
 {
-    if (image->format() != QImage::Format_ARGB32_Premultiplied) {
-        qCWarning(OkularCoreDebug) << "Wrong image format! Converting...";
-        *image = image->convertToFormat(QImage::Format_ARGB32_Premultiplied);
-    }
-
-    Q_ASSERT(image->format() == QImage::Format_ARGB32_Premultiplied);
+    checkImageFormat(image);
 
     const float scaleRed = background.redF() - foreground.redF();
     const float scaleGreen = background.greenF() - foreground.greenF();
@@ -147,12 +151,7 @@ void Recolor::blackWhite(QImage *image, int contrast, int threshold)
 
 void Recolor::invertLightness(QImage *image)
 {
-    if (image->format() != QImage::Format_ARGB32_Premultiplied) {
-        qCWarning(OkularCoreDebug) << "Wrong image format! Converting...";
-        *image = image->convertToFormat(QImage::Format_ARGB32_Premultiplied);
-    }
-
-    Q_ASSERT(image->format() == QImage::Format_ARGB32_Premultiplied);
+    checkImageFormat(image);
 
     QRgb *data = reinterpret_cast<QRgb *>(image->bits());
     int pixels = image->width() * image->height();
@@ -193,12 +192,7 @@ void Recolor::invertLightness(QImage *image)
 
 void Recolor::invertLuma(QImage *image, float Y_R, float Y_G, float Y_B)
 {
-    if (image->format() != QImage::Format_ARGB32_Premultiplied) {
-        qCWarning(OkularCoreDebug) << "Wrong image format! Converting...";
-        *image = image->convertToFormat(QImage::Format_ARGB32_Premultiplied);
-    }
-
-    Q_ASSERT(image->format() == QImage::Format_ARGB32_Premultiplied);
+    checkImageFormat(image);
 
     QRgb *data = reinterpret_cast<QRgb *>(image->bits());
     int pixels = image->width() * image->height();
@@ -301,12 +295,7 @@ inline void Recolor::invertLumaPixel(uchar &R, uchar &G, uchar &B, float Y_R, fl
 
 void Recolor::hueShiftPositive(QImage *image)
 {
-    if (image->format() != QImage::Format_ARGB32_Premultiplied) {
-        qCWarning(OkularCoreDebug) << "Wrong image format! Converting...";
-        *image = image->convertToFormat(QImage::Format_ARGB32_Premultiplied);
-    }
-
-    Q_ASSERT(image->format() == QImage::Format_ARGB32_Premultiplied);
+    checkImageFormat(image);
 
     QRgb *data = reinterpret_cast<QRgb *>(image->bits());
     int pixels = image->width() * image->height();
@@ -323,12 +312,7 @@ void Recolor::hueShiftPositive(QImage *image)
 
 void Recolor::hueShiftNegative(QImage *image)
 {
-    if (image->format() != QImage::Format_ARGB32_Premultiplied) {
-        qCWarning(OkularCoreDebug) << "Wrong image format! Converting...";
-        *image = image->convertToFormat(QImage::Format_ARGB32_Premultiplied);
-    }
-
-    Q_ASSERT(image->format() == QImage::Format_ARGB32_Premultiplied);
+    checkImageFormat(image);
 
     QRgb *data = reinterpret_cast<QRgb *>(image->bits());
     int pixels = image->width() * image->height();
