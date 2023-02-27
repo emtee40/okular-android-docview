@@ -1165,15 +1165,6 @@ QImage PDFGenerator::image(Okular::PixmapRequest *request)
     // compute dpi used to get an image with desired width and height
     Okular::Page *page = request->page();
 
-    double pageWidth = page->width(), pageHeight = page->height();
-
-    if (page->rotation() % 2) {
-        qSwap(pageWidth, pageHeight);
-    }
-
-    qreal fakeDpiX = request->width() / pageWidth * dpi().width();
-    qreal fakeDpiY = request->height() / pageHeight * dpi().height();
-
     // generate links rects only the first time
     bool genObjectRects = !rectsGenerated.at(page->number());
 
@@ -1188,6 +1179,15 @@ QImage PDFGenerator::image(Okular::PixmapRequest *request)
     // 1. Set OutputDev parameters and Generate contents
     // note: thread safety is set on 'false' for the GUI (this) thread
     Poppler::Page *p = pdfdoc->page(page->number());
+
+    int pageWidth = p->pageSize().width(), pageHeight = p->pageSize().height();
+
+    if (page->rotation() % 2) {
+        qSwap(pageWidth, pageHeight);
+    }
+
+    qreal fakeDpiX = request->width() / (qreal)pageWidth * 72.0;
+    qreal fakeDpiY = request->height() / (qreal)pageHeight * 72.0;
 
     // 2. Take data from outputdev and attach it to the Page
     QImage img;
