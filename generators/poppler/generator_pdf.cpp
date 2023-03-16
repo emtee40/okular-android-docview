@@ -659,6 +659,7 @@ Okular::Document::OpenResult PDFGenerator::loadDocumentWithPassword(const QStrin
 #endif
     // create PDFDoc for the given file
     pdfdoc = Poppler::Document::load(filePath, nullptr, nullptr);
+    documentFilePath = filePath;
     return init(pagesVector, password);
 }
 
@@ -672,6 +673,7 @@ Okular::Document::OpenResult PDFGenerator::loadDocumentFromDataWithPassword(cons
 #endif
     // create PDFDoc for the given file
     pdfdoc = Poppler::Document::loadFromData(fileData, nullptr, nullptr);
+    documentFilePath = QString();
     return init(pagesVector, password);
 }
 
@@ -1438,6 +1440,15 @@ Okular::Document::PrintError PDFGenerator::print(QPrinter &printer)
         }
         painter.end();
         return Okular::Document::NoPrintError;
+    }
+
+    // TODO For printAnnots we still need the ps converter
+    // TODO If we opened from data or the file is gone we still need the ps converter (or maybe the pdf converter would work too)
+    if (!printAnnots && !documentFilePath.isEmpty()) {
+        const Okular::FilePrinter::ScaleMode filePrinterScaleMode = (scaleMode == PDFOptionsPage::None) ? Okular::FilePrinter::ScaleMode::NoScaling : Okular::FilePrinter::ScaleMode::FitToPrintArea;
+
+        return Okular::FilePrinter::printFile(
+            printer, documentFilePath, document()->orientation(), Okular::FilePrinter::ApplicationDeletesFiles, Okular::FilePrinter::SystemSelectsPages, document()->bookmarkedPageRange(), filePrinterScaleMode);
     }
 
 #ifdef DUMMY_QPRINTER_COPY
