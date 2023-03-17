@@ -218,6 +218,10 @@ public:
     // left click depress
     QTimer leftClickTimer;
 
+    // triple click
+    QTimer tripleClickTimer;
+    bool justDoubleClicked;
+
     // actions
     QAction *aRotateClockwise;
     QAction *aRotateCounterClockwise;
@@ -331,6 +335,7 @@ PageView::PageView(QWidget *parent, Okular::Document *document)
     d->aViewModeMenu = nullptr;
     d->zoomMode = PageView::ZoomFitWidth;
     d->zoomFactor = 1.0;
+    d->justDoubleClicked = false;
     d->mouseSelecting = false;
     d->mouseTextSelecting = false;
     d->mouseOnRect = false;
@@ -484,6 +489,9 @@ PageView::PageView(QWidget *parent, Okular::Document *document)
 
     d->leftClickTimer.setSingleShot(true);
     connect(&d->leftClickTimer, &QTimer::timeout, this, &PageView::slotShowSizeAllCursor);
+
+    d->tripleClickTimer.setSingleShot(true);
+    connect(&d->tripleClickTimer, &QTimer::timeout, this, &PageView::slotResetDoubleClickFlag);
 
     // set a corner button to resize the view to the page size
     //    QPushButton * resizeButton = new QPushButton( viewport() );
@@ -2564,6 +2572,15 @@ void PageView::mousePressEvent(QMouseEvent *e)
         if (!rightButton) {
             textSelectionClear();
         }
+
+        if (d->justDoubleClicked) { // just double clicked AND clicked once more => triple click
+            d->justDoubleClicked = false;
+            d->tripleClickTimer.stop();
+
+            // select horizontal line
+            QPoint begin(0, eventPos.y()), end(viewport()->width(), eventPos.y());
+            selectTextBetween(begin, end);
+        }
         break;
     }
 }
@@ -3227,6 +3244,10 @@ void PageView::mouseDoubleClickEvent(QMouseEvent *e)
             double nY = pageItem->absToPageY(eventPos.y());
 
             if (d->mouseMode == Okular::Settings::EnumMouseMode::TextSelect) {
+                // start an interval where it's possible to triple click
+                d->justDoubleClicked = true;
+                d->tripleClickTimer.start(QApplication::doubleClickInterval() + 10);
+
                 textSelectionClear();
 
                 Okular::RegularAreaRect *wordRect = pageItem->page()->wordAt(Okular::NormalizedPoint(nX, nY));
@@ -3767,25 +3788,30 @@ void PageView::updateSelection(const QPoint pos)
         updateRect.translate(-contentAreaPosition());
         viewport()->update(updateRect.adjusted(-1, -2, 2, 1));
     } else if (d->mouseTextSelecting) {
-        scrollPosIntoView(pos);
-        int first = -1;
-        const QList<Okular::RegularAreaRect *> selections = textSelections(pos, d->mouseSelectPos, first);
-        QSet<int> pagesWithSelectionSet;
-        for (int i = 0; i < selections.count(); ++i) {
-            pagesWithSelectionSet.insert(i + first);
-        }
-
-        const QSet<int> noMoreSelectedPages = d->pagesWithTextSelection - pagesWithSelectionSet;
-        // clear the selection from pages not selected anymore
-        for (int p : noMoreSelectedPages) {
-            d->document->setPageTextSelection(p, nullptr, QColor());
-        }
-        // set the new selection for the selected pages
-        for (int p : qAsConst(pagesWithSelectionSet)) {
-            d->document->setPageTextSelection(p, selections[p - first], palette().color(QPalette::Active, QPalette::Highlight));
-        }
-        d->pagesWithTextSelection = pagesWithSelectionSet;
+        selectTextBetween(pos, d->mouseSelectPos);
     }
+}
+
+void PageView::selectTextBetween(const QPoint begin, const QPoint end)
+{
+    scrollPosIntoView(begin);
+    int first = -1;
+    const QList<Okular::RegularAreaRect *> selections = textSelections(begin, end, first);
+    QSet<int> pagesWithSelectionSet;
+    for (int i = 0; i < selections.count(); ++i) {
+        pagesWithSelectionSet.insert(i + first);
+    }
+
+    const QSet<int> noMoreSelectedPages = d->pagesWithTextSelection - pagesWithSelectionSet;
+    // clear the selection from pages not selected anymore
+    for (int p : noMoreSelectedPages) {
+        d->document->setPageTextSelection(p, nullptr, QColor());
+    }
+    // set the new selection for the selected pages
+    for (int p : qAsConst(pagesWithSelectionSet)) {
+        d->document->setPageTextSelection(p, selections[p - first], palette().color(QPalette::Active, QPalette::Highlight));
+    }
+    d->pagesWithTextSelection = pagesWithSelectionSet;
 }
 
 static Okular::NormalizedPoint rotateInNormRect(const QPoint rotated, const QRect rect, Okular::Rotation rotation)
@@ -4977,6 +5003,11 @@ void PageView::slotShowWelcome()
 void PageView::slotShowSizeAllCursor()
 {
     setCursor(Qt::SizeAllCursor);
+}
+
+void PageView::slotResetDoubleClickFlag()
+{
+    d->justDoubleClicked = false;
 }
 
 void PageView::slotHandleWebShortcutAction()

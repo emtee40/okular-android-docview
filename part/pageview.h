@@ -185,6 +185,8 @@ private:
     void guessTableDividers();
     // update either text or rectangle selection
     void updateSelection(const QPoint pos);
+    // selects text between the two given positions
+    void selectTextBetween(const QPoint begin, const QPoint end);
     // compute the zoom factor value for FitWidth and FitPage mode
     double zoomFactorFitMode(ZoomMode mode);
     // update internal zoom values and end in a slotRelayoutPages();
@@ -263,6 +265,8 @@ private Q_SLOTS:
     void slotShowWelcome();
     // activated by left click timer
     void slotShowSizeAllCursor();
+    // activated by triple click timer
+    void slotResetDoubleClickFlag();
 
     void slotHandleWebShortcutAction();
     void slotConfigureWebShortcuts();
