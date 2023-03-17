@@ -265,8 +265,6 @@ private Q_SLOTS:
     void slotShowWelcome();
     // activated by left click timer
     void slotShowSizeAllCursor();
-    // activated by triple click timer
-    void slotResetDoubleClickFlag();
 
     void slotHandleWebShortcutAction();
     void slotConfigureWebShortcuts();

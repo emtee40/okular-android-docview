@@ -220,7 +220,6 @@ public:
 
     // triple click
     QTimer tripleClickTimer;
-    bool justDoubleClicked;
 
     // actions
     QAction *aRotateClockwise;
@@ -335,7 +334,6 @@ PageView::PageView(QWidget *parent, Okular::Document *document)
     d->aViewModeMenu = nullptr;
     d->zoomMode = PageView::ZoomFitWidth;
     d->zoomFactor = 1.0;
-    d->justDoubleClicked = false;
     d->mouseSelecting = false;
     d->mouseTextSelecting = false;
     d->mouseOnRect = false;
@@ -491,7 +489,6 @@ PageView::PageView(QWidget *parent, Okular::Document *document)
     connect(&d->leftClickTimer, &QTimer::timeout, this, &PageView::slotShowSizeAllCursor);
 
     d->tripleClickTimer.setSingleShot(true);
-    connect(&d->tripleClickTimer, &QTimer::timeout, this, &PageView::slotResetDoubleClickFlag);
 
     // set a corner button to resize the view to the page size
     //    QPushButton * resizeButton = new QPushButton( viewport() );
@@ -2573,8 +2570,7 @@ void PageView::mousePressEvent(QMouseEvent *e)
             textSelectionClear();
         }
 
-        if (d->justDoubleClicked) { // just double clicked AND clicked once more => triple click
-            d->justDoubleClicked = false;
+        if (d->tripleClickTimer.isActive()) { // just double clicked AND clicked once more => triple click
             d->tripleClickTimer.stop();
 
             // select horizontal line
@@ -3245,7 +3241,6 @@ void PageView::mouseDoubleClickEvent(QMouseEvent *e)
 
             if (d->mouseMode == Okular::Settings::EnumMouseMode::TextSelect) {
                 // start an interval where it's possible to triple click
-                d->justDoubleClicked = true;
                 d->tripleClickTimer.start(QApplication::doubleClickInterval() + 10);
 
                 textSelectionClear();
@@ -5003,11 +4998,6 @@ void PageView::slotShowWelcome()
 void PageView::slotShowSizeAllCursor()
 {
     setCursor(Qt::SizeAllCursor);
-}
-
-void PageView::slotResetDoubleClickFlag()
-{
-    d->justDoubleClicked = false;
 }
 
 void PageView::slotHandleWebShortcutAction()
