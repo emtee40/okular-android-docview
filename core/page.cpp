@@ -580,8 +580,9 @@ void Page::setImage(DocumentObserver *observer, QImage *image, const NormalizedR
                 delete image;
 
                 newThread->deleteLater();
-                if (d->recolorThread == newThread)
+                if (d->recolorThread == newThread) {
                     d->recolorThread = nullptr;
+                }
             },
             Qt::QueuedConnection);
 

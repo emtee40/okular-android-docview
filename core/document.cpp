@@ -4020,8 +4020,9 @@ void Document::reloadDocument() const
     const int numOfPages = pages();
     for (int i = 0; i < numOfPages; ++i) {
         Page *pg = d->m_pagesVector.at(i);
-        if (pg)
+        if (pg) {
             pg->deletePixmaps();
+        }
     }
 
     foreachObserver(notifyContentsCleared(DocumentObserver::Pixmap));

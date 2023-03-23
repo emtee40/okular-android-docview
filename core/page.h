@@ -69,7 +69,7 @@ public:
     /**
      * Destroys the page.
      */
-    ~Page();
+    ~Page() override;
 
     /**
      * Returns the number of the page in the document.
