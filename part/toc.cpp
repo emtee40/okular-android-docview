@@ -51,7 +51,7 @@ TOC::TOC(QWidget *parent, Okular::Document *document)
     m_treeView->setModel(m_model);
     m_treeView->setSortingEnabled(false);
     m_treeView->setRootIsDecorated(true);
-    m_treeView->setAlternatingRowColors(true);
+    m_treeView->setAlternatingRowColors(false);
     m_treeView->setItemDelegate(new PageItemDelegate(m_treeView));
     m_treeView->header()->hide();
     m_treeView->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -168,6 +168,8 @@ void TOC::slotExecuted(const QModelIndex &index)
     } else if (viewport.isValid()) {
         m_document->setViewport(viewport);
     }
+
+    m_model->addJumpingHistory(index);
 }
 
 void TOC::saveSearchOptions()

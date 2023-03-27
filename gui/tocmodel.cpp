@@ -184,6 +184,12 @@ TOCModel::TOCModel(Okular::Document *document, QObject *parent)
     d->document = document;
 
     qRegisterMetaType<QModelIndex>();
+
+    // initial empty history
+    jumpingHistory = QQueue<QModelIndex>();
+    for (int i = 0; i < maxHistoryNumber; ++i) {
+        jumpingHistory.enqueue(QModelIndex());
+    }
 }
 
 TOCModel::~TOCModel()
@@ -258,6 +264,14 @@ QVariant TOCModel::data(const QModelIndex &index, int role) const
             return d->document->page(item->viewport.pageNumber)->label();
         }
         break;
+    case Qt::BackgroundRole:
+        auto rank = jumpingHistory.indexOf(index);
+
+        auto transparentFactor = 255 / (maxHistoryNumber+2);
+        if (rank >= 0) {
+            // Note: rank is 0-based, the Color is inactive highlight
+            return QVariant(QColor(194, 224, 245, transparentFactor * rank));
+        }
     }
     return QVariant();
 }
@@ -491,4 +505,16 @@ bool TOCModel::checkequality(const TOCModel *model, const QModelIndex &parentA, 
     }
     return true;
 }
+
+void TOCModel::addJumpingHistory(const QModelIndex &index){
+    // remove existing index if already exist
+    jumpingHistory.removeOne(index);
+
+    if (jumpingHistory.size() > maxHistoryNumber) {
+        jumpingHistory.dequeue();
+    }
+
+    jumpingHistory.enqueue(index);
+};
+
 #include "moc_tocmodel.cpp"

@@ -8,6 +8,7 @@
 #define TOCMODEL_H
 
 #include <QAbstractItemModel>
+#include <QQueue>
 #include <QVector>
 
 namespace Okular
@@ -32,6 +33,8 @@ public:
 
     explicit TOCModel(Okular::Document *document, QObject *parent = nullptr);
     ~TOCModel() override;
+
+    void addJumpingHistory(const QModelIndex &index);
 
     // reimplementations from QAbstractItemModel
     QHash<int, QByteArray> roleNames() const override;
@@ -70,6 +73,12 @@ private:
     friend class TOCModelPrivate;
     TOCModelPrivate *const d;
     bool checkequality(const TOCModel *model, const QModelIndex &parentA = QModelIndex(), const QModelIndex &parentB = QModelIndex()) const;
+
+    // keep track which entries was clicked
+    QQueue<QModelIndex> jumpingHistory;
+    // How many history we want to track?
+    static constexpr int maxHistoryNumber = 4;
 };
+
 
 #endif
