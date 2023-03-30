@@ -11,16 +11,81 @@
 #include "core/page.h"
 #include "pageview.h"
 
+#include <QApplication>
+#include <QComboBox>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QInputDialog>
+#include <QLabel>
 #include <QMimeDatabase>
+#include <QPainter>
+#include <QStandardItemModel>
+#include <QStyledItemDelegate>
+#include <QVBoxLayout>
 
 #include <KLocalizedString>
 #include <KMessageBox>
 
 namespace SignaturePartUtils
 {
+
+class KeyDelegate : public QStyledItemDelegate
+{
+public:
+    using QStyledItemDelegate::QStyledItemDelegate;
+    void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const final
+    {
+        auto style = option.widget ? option.widget->style() : QApplication::style();
+
+        QStyledItemDelegate::paint(painter, option, QModelIndex()); // paint the background but without any text on it.
+
+        if (option.state & QStyle::State_Selected) {
+            painter->setPen(option.palette.color(QPalette::HighlightedText));
+        } else {
+            painter->setPen(option.palette.color(QPalette::Text));
+        }
+
+        auto textRect = style->subElementRect(QStyle::SE_ItemViewItemText, &option);
+        int textMargin = style->pixelMetric(QStyle::PM_FocusFrameHMargin, &option, option.widget) + 1;
+        textRect.adjust(textMargin, 0, -textMargin, 0);
+
+        QRect topHalf {textRect.x(), textRect.y(), textRect.width(), textRect.height() / 2};
+        QRect bottomHalf {textRect.x(), textRect.y() + textRect.height() / 2, textRect.width(), textRect.height() / 2};
+
+        style->drawItemText(painter, topHalf, (option.displayAlignment & Qt::AlignVertical_Mask) | Qt::AlignLeft, option.palette, true, index.data(Qt::DisplayRole).toString());
+        style->drawItemText(painter, bottomHalf, (option.displayAlignment & Qt::AlignVertical_Mask) | Qt::AlignRight, option.palette, true, index.data(Qt::UserRole + 1).toString());
+        style->drawItemText(painter, bottomHalf, (option.displayAlignment & Qt::AlignVertical_Mask) | Qt::AlignLeft, option.palette, true, index.data(Qt::UserRole).toString());
+    }
+    QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const final
+    {
+        auto baseSize = QStyledItemDelegate::sizeHint(option, index);
+        baseSize.setHeight(baseSize.height() * 2);
+        return baseSize;
+    }
+};
+
+class SelectCertificateDialog : public QDialog
+{
+public:
+    QComboBox *combo;
+
+    SelectCertificateDialog(QWidget *parent)
+        : QDialog(parent)
+    {
+        setWindowTitle(i18n("Select certificate to sign with"));
+        auto buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+        connect(buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
+        connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
+        combo = new QComboBox();
+        combo->setItemDelegate(new KeyDelegate);
+        auto layout = new QVBoxLayout();
+        layout->addWidget(new QLabel(i18n("Certificates:")));
+        layout->addWidget(combo);
+        layout->addWidget(buttonBox);
+        setLayout(layout);
+    }
+};
+
 std::optional<SigningInformation> getCertificateAndPasswordForSigning(PageView *pageView, Okular::Document *doc)
 {
     const Okular::CertificateStore *certStore = doc->certificateStore();
@@ -37,19 +102,33 @@ std::optional<SigningInformation> getCertificateAndPasswordForSigning(PageView *
     QString password;
     QString documentPassword;
 
-    QStringList items;
+    QStandardItemModel items;
     QHash<QString, Okular::CertificateInfo> nickToCert;
+    int minWidth = -1;
     for (const auto &cert : qAsConst(certs)) {
-        items.append(cert.nickName());
+        auto item = std::make_unique<QStandardItem>();
+        QString commonName = cert.subjectInfo(Okular::CertificateInfo::CommonName);
+        item->setData(commonName, Qt::UserRole);
+        QString emailAddress = cert.subjectInfo(Okular::CertificateInfo::EmailAddress);
+        item->setData(emailAddress, Qt::UserRole + 1);
+
+        minWidth = std::max(minWidth, emailAddress.size() + commonName.size());
+
+        item->setData(cert.nickName(), Qt::DisplayRole);
+        item->setData(cert.subjectInfo(Okular::CertificateInfo::DistinguishedName), Qt::ToolTipRole);
+        items.appendRow(item.release());
         nickToCert[cert.nickName()] = cert;
     }
 
-    bool resok = false;
-    const QString certNicknameToUse = QInputDialog::getItem(pageView, i18n("Select certificate to sign with"), i18n("Certificates:"), items, 0, false, &resok);
+    SelectCertificateDialog dialog(pageView);
+    dialog.combo->setMinimumContentsLength(minWidth + 5);
+    dialog.combo->setModel(&items);
+    auto result = dialog.exec();
 
-    if (!resok) {
+    if (result == QDialog::Rejected) {
         return std::nullopt;
     }
+    auto certNicknameToUse = dialog.combo->currentText();
 
     // I could not find any case in which i need to enter a password to use the certificate, seems that once you unlcok the firefox/NSS database
     // you don't need a password anymore, but still there's code to do that in NSS so we have code to ask for it if needed. What we do is
