@@ -20,7 +20,6 @@
 #include <QMimeDatabase>
 #include <QPainter>
 #include <QStandardItemModel>
-#include <QStyledItemDelegate>
 #include <QVBoxLayout>
 
 #include <KLocalizedString>
@@ -28,63 +27,6 @@
 
 namespace SignaturePartUtils
 {
-
-class KeyDelegate : public QStyledItemDelegate
-{
-public:
-    using QStyledItemDelegate::QStyledItemDelegate;
-    void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const final
-    {
-        auto style = option.widget ? option.widget->style() : QApplication::style();
-
-        QStyledItemDelegate::paint(painter, option, QModelIndex()); // paint the background but without any text on it.
-
-        if (option.state & QStyle::State_Selected) {
-            painter->setPen(option.palette.color(QPalette::HighlightedText));
-        } else {
-            painter->setPen(option.palette.color(QPalette::Text));
-        }
-
-        auto textRect = style->subElementRect(QStyle::SE_ItemViewItemText, &option);
-        int textMargin = style->pixelMetric(QStyle::PM_FocusFrameHMargin, &option, option.widget) + 1;
-        textRect.adjust(textMargin, 0, -textMargin, 0);
-
-        QRect topHalf {textRect.x(), textRect.y(), textRect.width(), textRect.height() / 2};
-        QRect bottomHalf {textRect.x(), textRect.y() + textRect.height() / 2, textRect.width(), textRect.height() / 2};
-
-        style->drawItemText(painter, topHalf, (option.displayAlignment & Qt::AlignVertical_Mask) | Qt::AlignLeft, option.palette, true, index.data(Qt::DisplayRole).toString());
-        style->drawItemText(painter, bottomHalf, (option.displayAlignment & Qt::AlignVertical_Mask) | Qt::AlignRight, option.palette, true, index.data(Qt::UserRole + 1).toString());
-        style->drawItemText(painter, bottomHalf, (option.displayAlignment & Qt::AlignVertical_Mask) | Qt::AlignLeft, option.palette, true, index.data(Qt::UserRole).toString());
-    }
-    QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const final
-    {
-        auto baseSize = QStyledItemDelegate::sizeHint(option, index);
-        baseSize.setHeight(baseSize.height() * 2);
-        return baseSize;
-    }
-};
-
-class SelectCertificateDialog : public QDialog
-{
-public:
-    QComboBox *combo;
-
-    SelectCertificateDialog(QWidget *parent)
-        : QDialog(parent)
-    {
-        setWindowTitle(i18n("Select certificate to sign with"));
-        auto buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
-        connect(buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
-        connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
-        combo = new QComboBox();
-        combo->setItemDelegate(new KeyDelegate);
-        auto layout = new QVBoxLayout();
-        layout->addWidget(new QLabel(i18n("Certificates:")));
-        layout->addWidget(combo);
-        layout->addWidget(buttonBox);
-        setLayout(layout);
-    }
-};
 
 std::optional<SigningInformation> getCertificateAndPasswordForSigning(PageView *pageView, Okular::Document *doc)
 {
@@ -208,4 +150,50 @@ void signUnsignedSignature(const Okular::FormFieldSignature *form, PageView *pag
     }
 }
 
+SelectCertificateDialog::SelectCertificateDialog(QWidget *parent)
+    : QDialog(parent)
+{
+    setWindowTitle(i18n("Select certificate to sign with"));
+    auto buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    connect(buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
+    connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
+    combo = new QComboBox();
+    combo->setItemDelegate(new KeyDelegate);
+    auto layout = new QVBoxLayout();
+    layout->addWidget(new QLabel(i18n("Certificates:")));
+    layout->addWidget(combo);
+    layout->addWidget(buttonBox);
+    setLayout(layout);
+}
+
+QSize KeyDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
+{
+    auto baseSize = QStyledItemDelegate::sizeHint(option, index);
+    baseSize.setHeight(baseSize.height() * 2);
+    return baseSize;
+}
+
+void KeyDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
+{
+    auto style = option.widget ? option.widget->style() : QApplication::style();
+
+    QStyledItemDelegate::paint(painter, option, QModelIndex()); // paint the background but without any text on it.
+
+    if (option.state & QStyle::State_Selected) {
+        painter->setPen(option.palette.color(QPalette::HighlightedText));
+    } else {
+        painter->setPen(option.palette.color(QPalette::Text));
+    }
+
+    auto textRect = style->subElementRect(QStyle::SE_ItemViewItemText, &option);
+    int textMargin = style->pixelMetric(QStyle::PM_FocusFrameHMargin, &option, option.widget) + 1;
+    textRect.adjust(textMargin, 0, -textMargin, 0);
+
+    QRect topHalf {textRect.x(), textRect.y(), textRect.width(), textRect.height() / 2};
+    QRect bottomHalf {textRect.x(), textRect.y() + textRect.height() / 2, textRect.width(), textRect.height() / 2};
+
+    style->drawItemText(painter, topHalf, (option.displayAlignment & Qt::AlignVertical_Mask) | Qt::AlignLeft, option.palette, true, index.data(Qt::DisplayRole).toString());
+    style->drawItemText(painter, bottomHalf, (option.displayAlignment & Qt::AlignVertical_Mask) | Qt::AlignRight, option.palette, true, index.data(Qt::UserRole + 1).toString());
+    style->drawItemText(painter, bottomHalf, (option.displayAlignment & Qt::AlignVertical_Mask) | Qt::AlignLeft, option.palette, true, index.data(Qt::UserRole).toString());
+}
 }
