@@ -58,7 +58,7 @@ clang_format:
     - master
   before_script:
     - find /etc/apt/
-    - cat /etc/apt/sources.list
+    - cat /etc/apt/sources.list.d/*
     - md5sum /etc/apt/trusted.gpg.d/
     - uname -a
     - ls -l /etc/apt/trusted.gpg.d/
