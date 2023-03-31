@@ -57,10 +57,12 @@ clang_format:
     - merge_requests
     - master
   before_script:
+    - uname -a
     - find /etc/apt/
     - cat /etc/apt/sources.list.d/*
-    - md5sum /etc/apt/trusted.gpg.d/
-    - uname -a
+    - md5sum /etc/apt/trusted.gpg.d/*
+    - ls -l /usr/share/keyrings/
+    - md5sum /usr/share/keyrings/*
     - ls -l /etc/apt/trusted.gpg.d/
     - apt-get update
     - apt-get install --yes --no-install-recommends git clang-format-13
