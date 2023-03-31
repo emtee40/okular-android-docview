@@ -640,6 +640,9 @@ PDFGenerator::PDFGenerator(QObject *parent, const QVariantList &args)
     if (!PDFSettings::useDefaultCertDB()) {
         Poppler::setNSSDir(QUrl(PDFSettings::dBCertificatePath()).toLocalFile());
     }
+#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 05, 0)
+    Poppler::setActiveBackend(PDFSettingsWidget::settingStringToPopplerEnum(PDFSettings::signatureBackend()));
+#endif
 }
 
 PDFGenerator::~PDFGenerator()
@@ -1997,7 +2000,11 @@ Okular::AnnotationProxy *PDFGenerator::annotationProxy() const
 
 bool PDFGenerator::canSign() const
 {
+#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 05, 0)
+    return !Poppler::availableBackends().empty();
+#else
     return Poppler::hasNSSSupport();
+#endif
 }
 
 bool PDFGenerator::sign(const Okular::NewSignatureData &oData, const QString &rFilename)
