@@ -58,7 +58,8 @@ clang_format:
     - master
   before_script:
     - find /etc/apt/
-    - find /etc/apt/ -exec file {} \; || true
+    - cat /etc/apt/sources.list
+    - md5sum /etc/apt/trusted.gpg.d/
     - ls -l /etc/apt/trusted.gpg.d/
     - apt-get update
     - apt-get install --yes --no-install-recommends git clang-format-13
