@@ -1,5 +1,7 @@
 /*
     SPDX-FileCopyrightText: 2018 Chinmoy Ranjan Pradhan <chinmoyrp65@gmail.com>
+    SPDX-FileCopyrightText: 2023 g10 Code GmbH
+    SPDX-FileContributor: Sune Stolborg Vuorela <sune@vuorela.dk>
 
     SPDX-License-Identifier: GPL-2.0-or-later
 */
