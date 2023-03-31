@@ -19,11 +19,98 @@
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
 
+#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 05, 0)
+QString PDFSettingsWidget::popplerEnumToSettingString(Poppler::SignatureBackend backend)
+{
+    switch (backend) {
+    case Poppler::SignatureBackend::NSS:
+        return QStringLiteral("NSS");
+    case Poppler::SignatureBackend::GPG:
+        return QStringLiteral("GPG");
+    case Poppler::SignatureBackend::None: // should not be user visible
+        return {};
+    }
+    return {};
+}
+
+static QString popplerEnumToUserString(Poppler::SignatureBackend backend)
+{
+    // I'm unsure if we want these translatable, but if so
+    // we sholud do something here rather than forward directly to the
+    // technical popplerEnumToSettingString
+    return PDFSettingsWidget::popplerEnumToSettingString(backend);
+}
+
+Poppler::SignatureBackend PDFSettingsWidget::settingStringToPopplerEnum(QStringView backend)
+{
+    if (backend == QStringLiteral("NSS"))
+        return Poppler::SignatureBackend::NSS;
+    if (backend == QStringLiteral("GPG"))
+        return Poppler::SignatureBackend::GPG;
+    return Poppler::SignatureBackend::None;
+}
+#endif
+
 PDFSettingsWidget::PDFSettingsWidget(QWidget *parent)
     : QWidget(parent)
 {
     m_pdfsw.setupUi(this);
+
+#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 05, 0)
+    auto backends = Poppler::availableBackends();
+    if (!backends.empty()) {
+        // Let's try get the currently stored backend:
+        auto currentBackend = settingStringToPopplerEnum(PDFSettings::self()->signatureBackend());
+        if (currentBackend == Poppler::SignatureBackend::None) {
+            currentBackend = Poppler::activeBackend();
+        } else if (currentBackend != Poppler::activeBackend()) {
+            if (!Poppler::setActiveBackend(currentBackend)) {
+                // erm. This must be a case of having either modified
+                // the config file manually to something not available
+                // in the poppler installed here or have reconfigured
+                // their poppler to not have the previously selected one
+                // available any longer.
+                // Probably the safest bet is to take whatever is active
+                currentBackend = Poppler::activeBackend();
+            }
+        }
+        int selected = -1;
+        for (auto backend : backends) {
+            if (backend == currentBackend) {
+                selected = m_pdfsw.kcfg_SignatureBackend->count();
+            }
+            m_pdfsw.kcfg_SignatureBackend->addItem(popplerEnumToUserString(backend), QVariant(popplerEnumToSettingString(backend)));
+        }
+        m_pdfsw.kcfg_SignatureBackend->setProperty("kcfg_property", QByteArray("currentData"));
+
+        m_pdfsw.kcfg_SignatureBackend->setCurrentIndex(selected);
+        connect(m_pdfsw.kcfg_SignatureBackend, &QComboBox::currentTextChanged, [this](const QString &text) {
+            auto backendEnum = settingStringToPopplerEnum(text);
+            if (backendEnum == Poppler::SignatureBackend::None) {
+                return;
+            }
+            Poppler::setActiveBackend(backendEnum);
+            m_pdfsw.certDBGroupBox->setVisible(backendEnum == Poppler::SignatureBackend::NSS);
+            m_certificatesAsked = false;
+            if (m_tree) {
+                m_tree->clear();
+            }
+            update();
+        });
+
+        m_pdfsw.certDBGroupBox->setVisible(currentBackend == Poppler::SignatureBackend::NSS);
+#else
     if (Poppler::hasNSSSupport()) {
+        // Better hide the signature backend selection; we have not really any
+        // need for that.
+        for (int i = 0; i < m_pdfsw.signatureBackendLayout->count(); i++) {
+            auto item = m_pdfsw.signatureBackendLayout->itemAt(i);
+            if (auto widget = item->widget()) {
+                widget->hide();
+            }
+        }
+#endif
+
         m_pdfsw.loadSignaturesButton->hide();
 
         KUrlRequester *pDlg = new KUrlRequester();
@@ -91,6 +178,11 @@ bool PDFSettingsWidget::event(QEvent *e)
 void PDFSettingsWidget::warnRestartNeeded()
 {
     if (!m_warnedAboutRestart) {
+#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 05, 0)
+        if (PDFSettings::self()->signatureBackend() != QStringLiteral("NSS")) {
+            return;
+        }
+#endif
         m_warnedAboutRestart = true;
         QMessageBox::information(this, i18n("Restart needed"), i18n("You need to restart Okular after changing the NSS directory settings"));
     }
