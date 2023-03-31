@@ -60,6 +60,7 @@ clang_format:
     - find /etc/apt/
     - cat /etc/apt/sources.list
     - md5sum /etc/apt/trusted.gpg.d/
+    - uname -a
     - ls -l /etc/apt/trusted.gpg.d/
     - apt-get update
     - apt-get install --yes --no-install-recommends git clang-format-13
