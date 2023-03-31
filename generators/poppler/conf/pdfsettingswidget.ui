@@ -68,6 +68,27 @@
     </widget>
    </item>
    <item>
+    <layout class="QHBoxLayout" name="signatureBackendLayout">
+     <item>
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>Signature backend:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="KComboBox" name="kcfg_SignatureBackend"/>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_2">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+      </spacer>
+     </item>
+    </layout>
+   </item>
+   <item>
     <widget class="QGroupBox" name="certDBGroupBox">
      <property name="title">
       <string>Certificate Database</string>
