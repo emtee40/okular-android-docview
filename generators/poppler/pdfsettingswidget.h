@@ -11,6 +11,10 @@
 #include <QWidget>
 
 #include "ui_pdfsettingswidget.h"
+#include <poppler-form.h>
+#include <poppler-version.h>
+
+#define POPPLER_VERSION_MACRO ((POPPLER_VERSION_MAJOR << 16) | (POPPLER_VERSION_MINOR << 8) | (POPPLER_VERSION_MICRO))
 
 class QTreeWidget;
 
@@ -21,6 +25,10 @@ class PDFSettingsWidget : public QWidget
 public:
     explicit PDFSettingsWidget(QWidget *parent = nullptr);
     bool event(QEvent *e) override;
+#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 05, 0)
+    static Poppler::SignatureBackend settingStringToPopplerEnum(QStringView string);
+    static QString popplerEnumToSettingString(Poppler::SignatureBackend backend);
+#endif
 
 private:
     void warnRestartNeeded();

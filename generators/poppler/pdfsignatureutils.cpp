@@ -130,6 +130,12 @@ QByteArray PopplerCertificateInfo::certificateData() const
 
 bool PopplerCertificateInfo::checkPassword(const QString &password) const
 {
+#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 05, 0)
+    if (Poppler::hasBackendFeature(Poppler::activeBackend(), Poppler::SignatureBackendFeature::BackendAsksPassphrase)) {
+        // we shouldn't ask anyone about passwords. The backend will do that themselves, so just assume everything is okay.
+        return true;
+    }
+#endif
     return m_info.checkPassword(password);
 }
 
