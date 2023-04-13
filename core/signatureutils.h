@@ -132,6 +132,11 @@ public:
     virtual QByteArray certificateData() const;
 
     /**
+     * If this certificate can be queried with kleopatra, KDE's certificate manager
+     */
+    virtual bool kleopatraCompatible() const;
+
+    /**
      * Checks if the given password is the correct one for this certificate
      *
      * @since 21.04

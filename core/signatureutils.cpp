@@ -98,6 +98,11 @@ QByteArray CertificateInfo::certificateData() const
     return QByteArray();
 }
 
+bool Okular::CertificateInfo::kleopatraCompatible() const
+{
+    return false;
+}
+
 bool CertificateInfo::checkPassword(const QString & /*password*/) const
 {
     return false;

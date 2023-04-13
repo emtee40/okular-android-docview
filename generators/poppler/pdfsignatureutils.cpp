@@ -64,6 +64,17 @@ QVector<QPair<QString, QString>> PopplerCertificateInfo::splitSubjectDN() const
 #endif
 }
 
+bool PopplerCertificateInfo::kleopatraCompatible() const
+{
+#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 05, 0)
+    return Poppler::activeBackend() == Poppler::SignatureBackend::GPG;
+#else
+    return false;
+#endif
+
+}
+
+
 QString PopplerCertificateInfo::nickName() const
 {
     return m_info.nickName();
