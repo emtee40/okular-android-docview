@@ -224,6 +224,18 @@ public:
     void setCertificateData(const QByteArray &certificateData);
 
     /**
+     * If this certificate can be queried with kleopatra, KDE's certificate manager
+     * @since 23.08
+     */
+    bool kleopatraCompatible() const;
+
+    /**
+     * Sets if this certificate can be queried with kleopatra, KDE's certificate manager
+     * @since 23.08
+     */
+    void setKleopatraCompatible(bool kleopatraCompatible);
+
+    /**
      * Checks if the given password is the correct one for this certificate
      *
      * @since 23.08
