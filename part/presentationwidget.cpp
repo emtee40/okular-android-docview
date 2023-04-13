@@ -17,7 +17,6 @@
 #include <KLineEdit>
 #include <KLocalizedString>
 #include <KMessageBox>
-#include <KRandom>
 #include <KSelectAction>
 #include <QAction>
 #include <QApplication>
@@ -37,6 +36,7 @@
 #include <QToolBar>
 #include <QToolTip>
 #include <QValidator>
+#include <QRandomGenerator>
 
 #ifdef Q_OS_LINUX
 #include <QDBusUnixFileDescriptor>
@@ -1853,7 +1853,7 @@ const Okular::PageTransition PresentationWidget::defaultTransition(int type) con
         break;
     }
     case Okular::Settings::EnumSlidesTransition::Random: {
-        return defaultTransition(KRandom::random() % 18);
+        return defaultTransition(QRandomGenerator::global()->bounded(18));
         break;
     }
     case Okular::Settings::EnumSlidesTransition::SplitHorizontalIn: {
