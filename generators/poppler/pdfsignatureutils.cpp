@@ -81,6 +81,10 @@ Okular::CertificateInfo fromPoppler(const Poppler::CertificateInfo &pInfo)
     oInfo.setCertificateData(pInfo.certificateData());
     oInfo.setSplitIssuerDN(pInfo.splitIssuerDN());
     oInfo.setSplitSubjectDN(pInfo.splitSubjectDN());
+#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 05, 0)
+    oInfo.setKleopatraCompatible(Poppler::activeCryptoSignBackend() == Poppler::CryptoSignBackend::GPG);
+#endif
+
     oInfo.setCheckPasswordFunction([pInfo](const QString &password) {
 #if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 05, 0)
         auto backend = Poppler::activeCryptoSignBackend();

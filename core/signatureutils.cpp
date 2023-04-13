@@ -48,6 +48,7 @@ public:
     int publicKeyStrength = -1;
     bool isSelfSigned = false;
     QByteArray certificateData;
+    bool kleopatraCompatible = false;
     QVector<QPair<QString, QString>> splitIssuerDN;
     QVector<QPair<QString, QString>> splitSubjectDN;
     std::function<bool(QString)> checkPasswordFunction;
@@ -269,6 +270,16 @@ void CertificateInfo::setSplitIssuerDN(const QVector<QPair<QString, QString>> &s
 QVector<QPair<QString, QString>> CertificateInfo::splitIssuerDN() const
 {
     return d->splitIssuerDN;
+}
+
+bool CertificateInfo::kleopatraCompatible() const
+{
+    return d->kleopatraCompatible;
+}
+
+void CertificateInfo::setKleopatraCompatible(bool kleopatraCompatible)
+{
+    d->kleopatraCompatible = kleopatraCompatible;
 }
 
 bool CertificateInfo::checkPassword(const QString &password) const
