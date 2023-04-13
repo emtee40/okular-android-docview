@@ -1370,6 +1370,7 @@ void PDFGenerator::okularToPoppler(const Okular::NewSignatureData &oData, Popple
     pData->setBorderColor(Qt::black);
     pData->setDocumentOwnerPassword(oData.documentPassword().toLatin1());
     pData->setDocumentUserPassword(oData.documentPassword().toLatin1());
+    pData->setImagePath(QLatin1String("/tmp/werner.jpg"));
 }
 
 #define DUMMY_QPRINTER_COPY
