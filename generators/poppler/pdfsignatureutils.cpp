@@ -79,6 +79,8 @@ Okular::CertificateInfo fromPoppler(const Poppler::CertificateInfo &pInfo)
     oInfo.setPublicKeyStrength(pInfo.publicKeyStrength());
     oInfo.setSelfSigned(pInfo.isSelfSigned());
     oInfo.setCertificateData(pInfo.certificateData());
+    oInfo.setSplitIssuerDN(pInfo.splitIssuerDN());
+    oInfo.setSplitSubjectDN(pInfo.splitSubjectDN());
     oInfo.setCheckPasswordFunction([pInfo](const QString &password) {
 #if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 05, 0)
         auto backend = Poppler::activeCryptoSignBackend();
