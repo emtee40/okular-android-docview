@@ -23,7 +23,9 @@ public:
     int version() const override;
     QByteArray serialNumber() const override;
     QString issuerInfo(EntityInfoKey) const override;
+    QVector<QPair<QString, QString>> splitIssuerDN() const override;
     QString subjectInfo(EntityInfoKey) const override;
+    QVector<QPair<QString, QString>> splitSubjectDN() const override;
     QString nickName() const override;
     QDateTime validityStart() const override;
     QDateTime validityEnd() const override;

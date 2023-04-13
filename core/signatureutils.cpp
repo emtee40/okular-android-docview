@@ -43,6 +43,16 @@ QString CertificateInfo::subjectInfo(EntityInfoKey) const
     return QString();
 }
 
+QVector<QPair<QString, QString>> CertificateInfo::splitIssuerDN() const
+{
+    return {};
+}
+
+QVector<QPair<QString, QString>> CertificateInfo::splitSubjectDN() const
+{
+    return {};
+}
+
 QString CertificateInfo::nickName() const
 {
     return QString();

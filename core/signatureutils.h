@@ -72,9 +72,19 @@ public:
     virtual QString issuerInfo(EntityInfoKey key) const;
 
     /**
+     * The issuer distinguished name, parsed and split up
+     */
+    virtual QVector<QPair<QString, QString>> splitIssuerDN() const;
+
+    /**
      * Information about the subject
      */
     virtual QString subjectInfo(EntityInfoKey key) const;
+
+    /**
+     * The subject distinguished name, parsed and split up
+     */
+    virtual QVector<QPair<QString, QString>> splitSubjectDN() const;
 
     /**
      * The certificate internal database nickname
