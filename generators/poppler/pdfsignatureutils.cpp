@@ -46,6 +46,24 @@ QString PopplerCertificateInfo::subjectInfo(PopplerCertificateInfo::EntityInfoKe
     return !str.isEmpty() ? str : i18n("Not Available");
 }
 
+QVector<QPair<QString, QString>> PopplerCertificateInfo::splitIssuerDN() const
+{
+#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 05, 0)
+    return m_info.splitIssuerDN();
+#else
+    return {};
+#endif
+}
+
+QVector<QPair<QString, QString>> PopplerCertificateInfo::splitSubjectDN() const
+{
+#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 05, 0)
+    return m_info.splitSubjectDN();
+#else
+    return {};
+#endif
+}
+
 QString PopplerCertificateInfo::nickName() const
 {
     return m_info.nickName();
