@@ -67,7 +67,7 @@ QVector<QPair<QString, QString>> PopplerCertificateInfo::splitSubjectDN() const
 bool PopplerCertificateInfo::kleopatraCompatible() const
 {
 #if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 05, 0)
-    return Poppler::activeBackend() == Poppler::SignatureBackend::GPG;
+    return Poppler::activeCryptoSignBackend() == Poppler::CryptoSignBackend::GPG;
 #else
     return false;
 #endif
@@ -160,7 +160,11 @@ QByteArray PopplerCertificateInfo::certificateData() const
 bool PopplerCertificateInfo::checkPassword(const QString &password) const
 {
 #if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 05, 0)
-    if (Poppler::hasBackendFeature(Poppler::activeBackend(), Poppler::SignatureBackendFeature::BackendAsksPassphrase)) {
+    auto backend = Poppler::activeCryptoSignBackend();
+    if (!backend) {
+        return false;
+    }
+    if (Poppler::hasCryptoSignBackendFeature(backend.value(), Poppler::CryptoSignBackendFeature::BackendAsksPassphrase)) {
         // we shouldn't ask anyone about passwords. The backend will do that themselves, so just assume everything is okay.
         return true;
     }

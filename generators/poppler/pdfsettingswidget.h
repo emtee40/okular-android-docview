@@ -26,8 +26,8 @@ public:
     explicit PDFSettingsWidget(QWidget *parent = nullptr);
     bool event(QEvent *e) override;
 #if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 05, 0)
-    static Poppler::SignatureBackend settingStringToPopplerEnum(QStringView string);
-    static QString popplerEnumToSettingString(Poppler::SignatureBackend backend);
+    static std::optional<Poppler::CryptoSignBackend> settingStringToPopplerEnum(QStringView string);
+    static QString popplerEnumToSettingString(Poppler::CryptoSignBackend backend);
 #endif
 
 private:

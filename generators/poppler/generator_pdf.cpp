@@ -641,7 +641,10 @@ PDFGenerator::PDFGenerator(QObject *parent, const QVariantList &args)
         Poppler::setNSSDir(QUrl(PDFSettings::dBCertificatePath()).toLocalFile());
     }
 #if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 05, 0)
-    Poppler::setActiveBackend(PDFSettingsWidget::settingStringToPopplerEnum(PDFSettings::signatureBackend()));
+    auto activeBackend = PDFSettingsWidget::settingStringToPopplerEnum(PDFSettings::signatureBackend());
+    if (activeBackend) {
+        Poppler::setActiveCryptoSignBackend(activeBackend.value());
+    }
 #endif
 }
 
@@ -2002,7 +2005,7 @@ Okular::AnnotationProxy *PDFGenerator::annotationProxy() const
 bool PDFGenerator::canSign() const
 {
 #if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 05, 0)
-    return !Poppler::availableBackends().empty();
+    return !Poppler::availableCryptoSignBackends().empty();
 #else
     return Poppler::hasNSSSupport();
 #endif

@@ -20,20 +20,18 @@
 #include <QTreeWidgetItem>
 
 #if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 05, 0)
-QString PDFSettingsWidget::popplerEnumToSettingString(Poppler::SignatureBackend backend)
+QString PDFSettingsWidget::popplerEnumToSettingString(Poppler::CryptoSignBackend backend)
 {
     switch (backend) {
-    case Poppler::SignatureBackend::NSS:
+    case Poppler::CryptoSignBackend::NSS:
         return QStringLiteral("NSS");
-    case Poppler::SignatureBackend::GPG:
+    case Poppler::CryptoSignBackend::GPG:
         return QStringLiteral("GPG");
-    case Poppler::SignatureBackend::None: // should not be user visible
-        return {};
     }
     return {};
 }
 
-static QString popplerEnumToUserString(Poppler::SignatureBackend backend)
+static QString popplerEnumToUserString(Poppler::CryptoSignBackend backend)
 {
     // I'm unsure if we want these translatable, but if so
     // we sholud do something here rather than forward directly to the
@@ -41,13 +39,13 @@ static QString popplerEnumToUserString(Poppler::SignatureBackend backend)
     return PDFSettingsWidget::popplerEnumToSettingString(backend);
 }
 
-Poppler::SignatureBackend PDFSettingsWidget::settingStringToPopplerEnum(QStringView backend)
+std::optional<Poppler::CryptoSignBackend> PDFSettingsWidget::settingStringToPopplerEnum(QStringView backend)
 {
     if (backend == QStringLiteral("NSS"))
-        return Poppler::SignatureBackend::NSS;
+        return Poppler::CryptoSignBackend::NSS;
     if (backend == QStringLiteral("GPG"))
-        return Poppler::SignatureBackend::GPG;
-    return Poppler::SignatureBackend::None;
+        return Poppler::CryptoSignBackend::GPG;
+    return std::nullopt;
 }
 #endif
 
@@ -57,21 +55,22 @@ PDFSettingsWidget::PDFSettingsWidget(QWidget *parent)
     m_pdfsw.setupUi(this);
 
 #if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 05, 0)
-    auto backends = Poppler::availableBackends();
+    auto backends = Poppler::availableCryptoSignBackends();
     if (!backends.empty()) {
         // Let's try get the currently stored backend:
         auto currentBackend = settingStringToPopplerEnum(PDFSettings::self()->signatureBackend());
-        if (currentBackend == Poppler::SignatureBackend::None) {
-            currentBackend = Poppler::activeBackend();
-        } else if (currentBackend != Poppler::activeBackend()) {
-            if (!Poppler::setActiveBackend(currentBackend)) {
+        if (!currentBackend) {
+            currentBackend = Poppler::activeCryptoSignBackend();
+        }
+        if (currentBackend != Poppler::activeCryptoSignBackend() && currentBackend) {
+            if (!Poppler::setActiveCryptoSignBackend(currentBackend.value())) {
                 // erm. This must be a case of having either modified
                 // the config file manually to something not available
                 // in the poppler installed here or have reconfigured
                 // their poppler to not have the previously selected one
                 // available any longer.
                 // Probably the safest bet is to take whatever is active
-                currentBackend = Poppler::activeBackend();
+                currentBackend = Poppler::activeCryptoSignBackend();
             }
         }
         int selected = -1;
@@ -86,11 +85,11 @@ PDFSettingsWidget::PDFSettingsWidget(QWidget *parent)
         m_pdfsw.kcfg_SignatureBackend->setCurrentIndex(selected);
         connect(m_pdfsw.kcfg_SignatureBackend, &QComboBox::currentTextChanged, [this](const QString &text) {
             auto backendEnum = settingStringToPopplerEnum(text);
-            if (backendEnum == Poppler::SignatureBackend::None) {
+            if (!backendEnum) {
                 return;
             }
-            Poppler::setActiveBackend(backendEnum);
-            m_pdfsw.certDBGroupBox->setVisible(backendEnum == Poppler::SignatureBackend::NSS);
+            Poppler::setActiveCryptoSignBackend(backendEnum.value());
+            m_pdfsw.certDBGroupBox->setVisible(backendEnum == Poppler::CryptoSignBackend::NSS);
             m_certificatesAsked = false;
             if (m_tree) {
                 m_tree->clear();
@@ -98,7 +97,7 @@ PDFSettingsWidget::PDFSettingsWidget(QWidget *parent)
             update();
         });
 
-        m_pdfsw.certDBGroupBox->setVisible(currentBackend == Poppler::SignatureBackend::NSS);
+        m_pdfsw.certDBGroupBox->setVisible(currentBackend == Poppler::CryptoSignBackend::NSS);
 #else
     if (Poppler::hasNSSSupport()) {
         // Better hide the signature backend selection; we have not really any
