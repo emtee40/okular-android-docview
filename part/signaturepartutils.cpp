@@ -14,11 +14,11 @@
 #include "pageview.h"
 
 #include <QApplication>
-#include <QComboBox>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QInputDialog>
 #include <QLabel>
+#include <QListView>
 #include <QMimeDatabase>
 #include <QPainter>
 #include <QStandardItemModel>
@@ -56,24 +56,29 @@ std::optional<SigningInformation> getCertificateAndPasswordForSigning(PageView *
         QString emailAddress = cert->subjectInfo(Okular::CertificateInfo::EmailAddress);
         item->setData(emailAddress, Qt::UserRole + 1);
 
-        minWidth = std::max(minWidth, emailAddress.size() + commonName.size());
+        minWidth = std::max(minWidth, std::max(cert->nickName().size(), emailAddress.size() + commonName.size()));
 
         item->setData(cert->nickName(), Qt::DisplayRole);
         item->setData(cert->subjectInfo(Okular::CertificateInfo::DistinguishedName), Qt::ToolTipRole);
+        item->setEditable(false);
         items.appendRow(item.release());
         nickToCert[cert->nickName()] = cert;
     }
 
     SelectCertificateDialog dialog(pageView);
-    dialog.combo->setMinimumContentsLength(minWidth + 5);
-    dialog.combo->setModel(&items);
+    QFontMetrics fm = dialog.fontMetrics();
+    dialog.list->setMinimumWidth(fm.averageCharWidth() * (minWidth + 5));
+    dialog.list->setModel(&items);
+    dialog.list->setAlternatingRowColors(true);
+    dialog.list->setSelectionMode(QAbstractItemView::SingleSelection);
+    dialog.list->selectionModel()->select(items.index(0, 0), QItemSelectionModel::Rows | QItemSelectionModel::ClearAndSelect);
     auto result = dialog.exec();
 
     if (result == QDialog::Rejected) {
         qDeleteAll(certs);
         return std::nullopt;
     }
-    auto certNicknameToUse = dialog.combo->currentText();
+    auto certNicknameToUse = dialog.list->selectionModel()->currentIndex().data(Qt::DisplayRole).toString();
 
     // I could not find any case in which i need to enter a password to use the certificate, seems that once you unlcok the firefox/NSS database
     // you don't need a password anymore, but still there's code to do that in NSS so we have code to ask for it if needed. What we do is
@@ -159,11 +164,11 @@ SelectCertificateDialog::SelectCertificateDialog(QWidget *parent)
     auto buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
     connect(buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
     connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
-    combo = new QComboBox();
-    combo->setItemDelegate(new KeyDelegate);
+    list = new QListView();
+    list->setItemDelegate(new KeyDelegate);
     auto layout = new QVBoxLayout();
     layout->addWidget(new QLabel(i18n("Certificates:")));
-    layout->addWidget(combo);
+    layout->addWidget(list);
     layout->addWidget(buttonBox);
     setLayout(layout);
 }
@@ -181,13 +186,20 @@ void KeyDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, c
 
     QStyledItemDelegate::paint(painter, option, QModelIndex()); // paint the background but without any text on it.
 
-    if (option.state & QStyle::State_Selected) {
-        painter->setPen(option.palette.color(QPalette::HighlightedText));
+    QPalette::ColorGroup cg;
+    if (option.state & QStyle::State_Active) {
+        cg = QPalette::Normal;
     } else {
-        painter->setPen(option.palette.color(QPalette::Text));
+        cg = QPalette::Inactive;
     }
 
-    auto textRect = style->subElementRect(QStyle::SE_ItemViewItemText, &option);
+    if (option.state & QStyle::State_Selected) {
+        painter->setPen(QPen {option.palette.brush(cg, QPalette::HighlightedText), 0});
+    } else {
+        painter->setPen(QPen {option.palette.brush(cg, QPalette::Text), 0});
+    }
+
+    auto textRect = option.rect;
     int textMargin = style->pixelMetric(QStyle::PM_FocusFrameHMargin, &option, option.widget) + 1;
     textRect.adjust(textMargin, 0, -textMargin, 0);
 
