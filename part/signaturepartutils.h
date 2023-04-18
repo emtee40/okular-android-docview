@@ -16,7 +16,7 @@
 #include "gui/signatureguiutils.h"
 
 class PageView;
-class QComboBox;
+class QListView;
 
 namespace SignaturePartUtils
 {
@@ -37,7 +37,7 @@ class SelectCertificateDialog : public QDialog
 {
     Q_OBJECT
 public:
-    QComboBox *combo;
+    QListView *list;
 
     explicit SelectCertificateDialog(QWidget *parent);
 };
