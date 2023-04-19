@@ -160,14 +160,14 @@ void signUnsignedSignature(const Okular::FormFieldSignature *form, PageView *pag
 SelectCertificateDialog::SelectCertificateDialog(QWidget *parent)
     : QDialog(parent)
 {
-    setWindowTitle(i18n("Select certificate to sign with"));
+    setWindowTitle(i18n("Certificates"));
     auto buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
     connect(buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
     connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
     list = new QListView();
     list->setItemDelegate(new KeyDelegate);
     auto layout = new QVBoxLayout();
-    layout->addWidget(new QLabel(i18n("Certificates:")));
+    layout->addWidget(new QLabel(i18n("Select certificate to sign with")));
     layout->addWidget(list);
     layout->addWidget(buttonBox);
     setLayout(layout);
