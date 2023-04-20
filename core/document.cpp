@@ -5937,6 +5937,7 @@ struct Okular::NewSignatureDataPrivate {
     QString documentPassword;
     QString location;
     QString reason;
+    QString backgroundImagePath;
     int page;
     NormalizedRect boundingRectangle;
 };
@@ -6029,6 +6030,16 @@ QString NewSignatureData::reason() const
 void NewSignatureData::setReason(const QString &reason)
 {
     d->reason = reason;
+}
+
+QString Okular::NewSignatureData::backgroundImagePath() const
+{
+    return d->backgroundImagePath;
+}
+
+void Okular::NewSignatureData::setBackgroundImagePath(const QString &path)
+{
+    d->backgroundImagePath = path;
 }
 
 #undef foreachObserver
