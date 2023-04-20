@@ -13,9 +13,11 @@
 #include "core/page.h"
 #include "pageview.h"
 
+#include <QAction>
 #include <QApplication>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QImageReader>
 #include <QInputDialog>
 #include <QLabel>
 #include <QListView>
@@ -32,7 +34,7 @@
 namespace SignaturePartUtils
 {
 
-std::optional<SigningInformation> getCertificateAndPasswordForSigning(PageView *pageView, Okular::Document *doc)
+std::optional<SigningInformation> getCertificateAndPasswordForSigning(PageView *pageView, Okular::Document *doc, SigningInformationOptions opts)
 {
     const Okular::CertificateStore *certStore = doc->certificateStore();
     bool userCancelled, nonDateValidCerts;
@@ -78,6 +80,29 @@ std::optional<SigningInformation> getCertificateAndPasswordForSigning(PageView *
         // from being usable
         dialog->ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(dialog->ui->list->selectionModel()->hasSelection());
     });
+
+    if (!(opts & SigningInformationOption::BackgroundImage)) {
+        dialog.ui->backgroundInput->hide();
+        dialog.ui->backgroundLabel->hide();
+    } else {
+        QAction *openBackgroundImageAction = new QAction(i18n("Background image"), &dialog);
+        openBackgroundImageAction->setIcon(QIcon::fromTheme(QStringLiteral("folder-image")));
+        dialog.ui->backgroundInput->addAction(openBackgroundImageAction, QLineEdit::TrailingPosition);
+        QObject::connect(openBackgroundImageAction, &QAction::triggered, [lineEdit = dialog.ui->backgroundInput]() {
+            auto supportedFormats = QImageReader::supportedImageFormats();
+            QString formats;
+            for (auto &format : std::as_const(supportedFormats)) {
+                if (!formats.isEmpty()) {
+                    formats += QStringLiteral(" ");
+                }
+                formats += QStringLiteral("*.") + QString::fromUtf8(format);
+            }
+            QString imageFormats = i18nc("file types in a file open dialog", "Images (%1)", formats);
+            QString filename = QFileDialog::getOpenFileName(lineEdit, i18n("Select background image"), QDir::homePath(), imageFormats);
+
+            lineEdit->setText(filename);
+        });
+    }
     auto result = dialog.exec();
 
     if (result == QDialog::Rejected) {
@@ -134,7 +159,7 @@ QString getFileNameForNewSignedFile(PageView *pageView, Okular::Document *doc)
 void signUnsignedSignature(const Okular::FormFieldSignature *form, PageView *pageView, Okular::Document *doc)
 {
     Q_ASSERT(form && form->signatureType() == Okular::FormFieldSignature::UnsignedSignature);
-    const std::optional<SigningInformation> signingInfo = getCertificateAndPasswordForSigning(pageView, doc);
+    const std::optional<SigningInformation> signingInfo = getCertificateAndPasswordForSigning(pageView, doc, SigningInformationOption::None);
     if (!signingInfo) {
         return;
     }
