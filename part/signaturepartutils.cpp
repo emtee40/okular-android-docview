@@ -25,7 +25,7 @@ std::unique_ptr<Okular::CertificateInfo> getCertificateAndPasswordForSigning(Pag
 {
     const Okular::CertificateStore *certStore = doc->certificateStore();
     bool userCancelled, nonDateValidCerts;
-    QList<Okular::CertificateInfo *> certs = certStore->signingCertificatesForNow(&userCancelled, &nonDateValidCerts);
+    QList<Okular::CertificateInfo> certs = certStore->signingCertificatesForNow(&userCancelled, &nonDateValidCerts);
     if (userCancelled) {
         return nullptr;
     }
@@ -36,31 +36,30 @@ std::unique_ptr<Okular::CertificateInfo> getCertificateAndPasswordForSigning(Pag
     }
 
     QStringList items;
-    QHash<QString, Okular::CertificateInfo *> nickToCert;
-    for (auto cert : qAsConst(certs)) {
-        items.append(cert->nickName());
-        nickToCert[cert->nickName()] = cert;
+    QHash<QString, Okular::CertificateInfo> nickToCert;
+    for (const auto& cert : qAsConst(certs)) {
+        items.append(cert.nickName());
+        nickToCert[cert.nickName()] = cert;
     }
 
     bool resok = false;
     const QString certNicknameToUse = QInputDialog::getItem(pageView, i18n("Select certificate to sign with"), i18n("Certificates:"), items, 0, false, &resok);
 
     if (!resok) {
-        qDeleteAll(certs);
         return nullptr;
     }
 
     // I could not find any case in which i need to enter a password to use the certificate, seems that once you unlcok the firefox/NSS database
     // you don't need a password anymore, but still there's code to do that in NSS so we have code to ask for it if needed. What we do is
     // ask if the empty password is fine, if it is we don't ask the user anything, if it's not, we ask for a password
-    Okular::CertificateInfo *cert = nickToCert.value(certNicknameToUse);
-    bool passok = cert->checkPassword(*password);
+    Okular::CertificateInfo cert = nickToCert.value(certNicknameToUse);
+    bool passok = cert.checkPassword(*password);
     while (!passok) {
         const QString title = i18n("Enter password (if any) to unlock certificate: %1", certNicknameToUse);
         bool ok;
         *password = QInputDialog::getText(pageView, i18n("Enter certificate password"), title, QLineEdit::Password, QString(), &ok);
         if (ok) {
-            passok = cert->checkPassword(*password);
+            passok = cert.checkPassword(*password);
         } else {
             passok = false;
             break;
@@ -71,12 +70,7 @@ std::unique_ptr<Okular::CertificateInfo> getCertificateAndPasswordForSigning(Pag
         *documentPassword = QInputDialog::getText(pageView, i18n("Enter document password"), i18n("Enter document password"), QLineEdit::Password, QString(), &passok);
     }
 
-    if (passok) {
-        certs.removeOne(cert);
-    }
-    qDeleteAll(certs);
-
-    return passok ? std::unique_ptr<Okular::CertificateInfo>(cert) : std::unique_ptr<Okular::CertificateInfo>();
+    return passok ? std::make_unique<Okular::CertificateInfo>(std::move(cert)) : std::unique_ptr<Okular::CertificateInfo>();
 }
 
 QString getFileNameForNewSignedFile(PageView *pageView, Okular::Document *doc)
