@@ -84,7 +84,7 @@ SignaturePropertiesDialog::SignaturePropertiesDialog(Okular::Document *doc, cons
     // button box
     auto btnBox = new QDialogButtonBox(QDialogButtonBox::Close, this);
     auto certPropBtn = new QPushButton(i18n("View Certificate..."));
-    certPropBtn->setEnabled(!signatureInfo.certificateInfo().isNull());
+    certPropBtn->setEnabled(!signatureInfo.certificateInfo().nickName().isEmpty());
     btnBox->addButton(certPropBtn, QDialogButtonBox::ActionRole);
     connect(btnBox, &QDialogButtonBox::rejected, this, &SignaturePropertiesDialog::reject);
     connect(certPropBtn, &QPushButton::clicked, this, &SignaturePropertiesDialog::viewCertificateProperties);
