@@ -167,7 +167,7 @@ SelectCertificateDialog::SelectCertificateDialog(QWidget *parent)
     list = new QListView();
     list->setItemDelegate(new KeyDelegate);
     auto layout = new QVBoxLayout();
-    layout->addWidget(new QLabel(i18n("Select certificate to sign with")));
+    layout->addWidget(new QLabel(i18n("Select certificate to sign with:")));
     layout->addWidget(list);
     layout->addWidget(buttonBox);
     setLayout(layout);
