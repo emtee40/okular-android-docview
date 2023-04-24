@@ -19,6 +19,14 @@
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
 
+static QString notAvailableIfEmpty(const QString &string)
+{
+    if (string.isEmpty()) {
+        return i18n("Not Available");
+    }
+    return string;
+}
+
 PDFSettingsWidget::PDFSettingsWidget(QWidget *parent)
     : QWidget(parent)
 {
@@ -76,7 +84,9 @@ bool PDFSettingsWidget::event(QEvent *e)
 
         for (auto cert : certs) {
             new QTreeWidgetItem(m_tree,
-                                {cert->subjectInfo(Okular::CertificateInfo::EntityInfoKey::CommonName), cert->subjectInfo(Okular::CertificateInfo::EntityInfoKey::EmailAddress), cert->validityEnd().toString(QStringLiteral("yyyy-MM-dd"))});
+                                {notAvailableIfEmpty(cert->subjectInfo(Okular::CertificateInfo::EntityInfoKey::CommonName)),
+                                 notAvailableIfEmpty(cert->subjectInfo(Okular::CertificateInfo::EntityInfoKey::EmailAddress)),
+                                 cert->validityEnd().toString(QStringLiteral("yyyy-MM-dd"))});
         }
         qDeleteAll(certs);
 
