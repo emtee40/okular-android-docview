@@ -28,11 +28,150 @@
 #include <QVBoxLayout>
 
 #include "ui_selectcertificatedialog.h"
+#include <KConfigGroup>
 #include <KLocalizedString>
 #include <KMessageBox>
+#include <KSharedConfig>
 
 namespace SignaturePartUtils
 {
+static QImage scaleAndFitCanvas(const QImage &input, const QSize &expectedSize)
+{
+    if (input.size() == expectedSize) {
+        return input;
+    }
+    auto scaled = input.scaled(expectedSize, Qt::KeepAspectRatio);
+    if (scaled.size() == expectedSize) {
+        return scaled;
+    }
+    QImage canvas(expectedSize, QImage::Format_ARGB32);
+    canvas.fill(Qt::transparent);
+    auto scaledSize = scaled.size();
+    QPoint topLeft((expectedSize.width() - scaledSize.width()) / 2, (expectedSize.height() - scaledSize.height()) / 2);
+    QPainter painter(&canvas);
+    painter.drawImage(topLeft, scaled);
+    return canvas;
+}
+
+class ImageItemDelegate : public QStyledItemDelegate
+{
+public:
+    void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override
+    {
+        QStyledItemDelegate::paint(painter, option, QModelIndex()); // paint the background but without any text on it.
+        auto path = index.data(Qt::DisplayRole).value<QString>();
+
+        QImageReader reader(path);
+        QSize imageSize = reader.size();
+        if (!reader.size().isNull()) {
+            reader.setScaledSize(imageSize.scaled(option.rect.size(), Qt::KeepAspectRatio));
+        }
+        auto input = reader.read();
+        if (!input.isNull()) {
+            auto scaled = scaleAndFitCanvas(input, option.rect.size());
+            painter->drawImage(option.rect.topLeft(), scaled);
+        }
+    }
+    QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override
+    {
+        Q_UNUSED(index);
+        auto defaultSize = QSize(10, 10); // let's start with a square
+        if (auto view = qobject_cast<QListView *>(option.styleObject)) {
+            auto frameRect = view->frameRect().size();
+            frameRect.setWidth((frameRect.width() - view->style()->pixelMetric(QStyle::PM_ScrollBarExtent)) / 2 - 2 * view->frameWidth() - view->spacing());
+            return defaultSize.scaled(frameRect, Qt::KeepAspectRatio);
+        }
+        return defaultSize;
+    }
+};
+
+class RecentImagesModel : public QAbstractListModel
+{
+public:
+    static constexpr char ConfigGroup[] = "Signature";
+    static constexpr char ConfigKey[] = "RecentBackgrounds";
+    RecentImagesModel()
+    {
+        for (auto &element : KSharedConfig::openConfig()->group(QString::fromUtf8(ConfigGroup)).readEntry<QStringList>(QString::fromUtf8(ConfigKey), QStringList())) {
+            if (QFile::exists(element)) { // maybe the image has been removed from disk since last invocation
+                m_storedElements.push_back(element);
+            }
+        }
+    }
+    QVariant roleFromString(const QString &data, int role) const
+    {
+        switch (role) {
+        case Qt::DisplayRole:
+        case Qt::ToolTipRole:
+            return data;
+        default:
+            return QVariant();
+        }
+    }
+    QVariant data(const QModelIndex &index, int role) const override
+    {
+        int row = index.row();
+        if (m_selectedFromFileSystem.has_value()) {
+            if (row == 0) {
+                return roleFromString(*m_selectedFromFileSystem, role);
+            } else {
+                row--;
+            }
+        }
+        if (row < m_storedElements.size()) {
+            return roleFromString(m_storedElements.at(row), role);
+        }
+        return QVariant();
+    }
+    int rowCount(const QModelIndex &parent) const override
+    {
+        if (parent.isValid()) {
+            return 0;
+        }
+        return m_storedElements.size() + (m_selectedFromFileSystem.has_value() ? 1 : 0);
+    }
+    void setFileSystemselection(const QString &selection)
+    {
+        if (m_storedElements.contains(selection)) {
+            return;
+        }
+        if (selection.isEmpty()) {
+            if (!m_selectedFromFileSystem) {
+                return;
+            }
+            beginRemoveRows(QModelIndex(), 0, 0);
+            m_selectedFromFileSystem.reset();
+            endRemoveRows();
+            return;
+        }
+        if (!QFile::exists(selection)) {
+            return;
+        }
+        if (m_selectedFromFileSystem) {
+            m_selectedFromFileSystem = selection;
+            dataChanged(index(0, 0), index(0, 0));
+        } else {
+            beginInsertRows(QModelIndex(), 0, 0);
+            m_selectedFromFileSystem = selection;
+            endInsertRows();
+        }
+    }
+    void saveBack()
+    {
+        QStringList elementsToStore = m_storedElements;
+        if (m_selectedFromFileSystem) {
+            elementsToStore.push_front(*m_selectedFromFileSystem);
+        }
+        while (elementsToStore.size() > 3) {
+            elementsToStore.pop_back();
+        }
+        KSharedConfig::openConfig()->group(QString::fromUtf8(ConfigGroup)).writeEntry(ConfigKey, elementsToStore);
+    }
+
+private:
+    std::optional<QString> m_selectedFromFileSystem;
+    QStringList m_storedElements;
+};
 
 std::optional<SigningInformation> getCertificateAndPasswordForSigning(PageView *pageView, Okular::Document *doc, SigningInformationOptions opts)
 {
@@ -81,14 +220,39 @@ std::optional<SigningInformation> getCertificateAndPasswordForSigning(PageView *
         dialog->ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(dialog->ui->list->selectionModel()->hasSelection());
     });
 
+    RecentImagesModel imagesModel;
     if (!(opts & SigningInformationOption::BackgroundImage)) {
         dialog.ui->backgroundInput->hide();
         dialog.ui->backgroundLabel->hide();
+        dialog.ui->recentBackgrounds->hide();
+        dialog.ui->recentLabel->hide();
     } else {
-        QAction *openBackgroundImageAction = new QAction(i18n("Background image"), &dialog);
-        openBackgroundImageAction->setIcon(QIcon::fromTheme(QStringLiteral("folder-image")));
-        dialog.ui->backgroundInput->addAction(openBackgroundImageAction, QLineEdit::TrailingPosition);
-        QObject::connect(openBackgroundImageAction, &QAction::triggered, [lineEdit = dialog.ui->backgroundInput]() {
+        dialog.ui->recentBackgrounds->setModel(&imagesModel);
+        dialog.ui->recentBackgrounds->setSelectionMode(QAbstractItemView::SingleSelection);
+        dialog.ui->recentBackgrounds->setItemDelegate(new ImageItemDelegate);
+        dialog.ui->recentBackgrounds->setViewMode(QListView::IconMode);
+        dialog.ui->recentBackgrounds->setDragEnabled(false);
+        dialog.ui->recentBackgrounds->setSpacing(3);
+        QObject::connect(dialog.ui->recentBackgrounds, &QListView::activated, [&lineEdit = dialog.ui->backgroundInput](const QModelIndex &idx) { lineEdit->setText(idx.data(Qt::DisplayRole).toString()); });
+        bool haveRecent = imagesModel.rowCount(QModelIndex()) != 0;
+        if (!haveRecent) {
+            dialog.ui->recentBackgrounds->hide();
+            dialog.ui->recentLabel->hide();
+        }
+
+        QObject::connect(dialog.ui->backgroundInput, &QLineEdit::textChanged, [recentModel = &imagesModel, selectionModel = dialog.ui->recentBackgrounds->selectionModel()](const QString &newText) {
+            recentModel->setFileSystemselection(newText);
+            /*Update selection*/
+            for (int row = 0; row < recentModel->rowCount(QModelIndex()); row++) {
+                auto index = recentModel->index(row, 0);
+                if (index.data().toString() == newText) {
+                    selectionModel->select(index, QItemSelectionModel::ClearAndSelect);
+                    break;
+                }
+            }
+        });
+
+        QObject::connect(dialog.ui->backgroundButton, &QPushButton::clicked, [lineEdit = dialog.ui->backgroundInput, recentModel = &imagesModel]() {
             auto supportedFormats = QImageReader::supportedImageFormats();
             QString formats;
             for (auto &format : std::as_const(supportedFormats)) {
@@ -99,7 +263,6 @@ std::optional<SigningInformation> getCertificateAndPasswordForSigning(PageView *
             }
             QString imageFormats = i18nc("file types in a file open dialog", "Images (%1)", formats);
             QString filename = QFileDialog::getOpenFileName(lineEdit, i18n("Select background image"), QDir::homePath(), imageFormats);
-
             lineEdit->setText(filename);
         });
     }
@@ -107,6 +270,16 @@ std::optional<SigningInformation> getCertificateAndPasswordForSigning(PageView *
 
     if (result == QDialog::Rejected) {
         return std::nullopt;
+    }
+    auto backGroundImage = dialog.ui->backgroundInput->text();
+    if (!backGroundImage.isEmpty()) {
+        if (QFile::exists(backGroundImage)) {
+            imagesModel.setFileSystemselection(backGroundImage);
+            imagesModel.saveBack();
+        } else {
+            // no need to send a nonworking image anywhere
+            backGroundImage.clear();
+        }
     }
     auto certNicknameToUse = dialog.ui->list->selectionModel()->currentIndex().data(Qt::DisplayRole).toString();
 
