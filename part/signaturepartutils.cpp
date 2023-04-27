@@ -51,15 +51,15 @@ std::optional<SigningInformation> getCertificateAndPasswordForSigning(PageView *
     int minWidth = -1;
     for (auto cert : qAsConst(certs)) {
         auto item = std::make_unique<QStandardItem>();
-        QString commonName = cert->subjectInfo(Okular::CertificateInfo::CommonName);
+        QString commonName = cert->subjectInfo(Okular::CertificateInfo::CommonName, Okular::CertificateInfo::EmptyString::Empty);
         item->setData(commonName, Qt::UserRole);
-        QString emailAddress = cert->subjectInfo(Okular::CertificateInfo::EmailAddress);
+        QString emailAddress = cert->subjectInfo(Okular::CertificateInfo::EmailAddress, Okular::CertificateInfo::EmptyString::Empty);
         item->setData(emailAddress, Qt::UserRole + 1);
 
         minWidth = std::max(minWidth, std::max(cert->nickName().size(), emailAddress.size() + commonName.size()));
 
         item->setData(cert->nickName(), Qt::DisplayRole);
-        item->setData(cert->subjectInfo(Okular::CertificateInfo::DistinguishedName), Qt::ToolTipRole);
+        item->setData(cert->subjectInfo(Okular::CertificateInfo::DistinguishedName, Okular::CertificateInfo::EmptyString::Empty), Qt::ToolTipRole);
         item->setEditable(false);
         items.appendRow(item.release());
         nickToCert[cert->nickName()] = cert;
@@ -141,7 +141,7 @@ void signUnsignedSignature(const Okular::FormFieldSignature *form, PageView *pag
 
     Okular::NewSignatureData data;
     data.setCertNickname(signingInfo->certificate->nickName());
-    data.setCertSubjectCommonName(signingInfo->certificate->subjectInfo(Okular::CertificateInfo::CommonName));
+    data.setCertSubjectCommonName(signingInfo->certificate->subjectInfo(Okular::CertificateInfo::CommonName, Okular::CertificateInfo::EmptyString::TranslatedNotAvailable));
     data.setPassword(signingInfo->certificatePassword);
     data.setDocumentPassword(signingInfo->documentPassword);
 

@@ -33,12 +33,12 @@ QByteArray CertificateInfo::serialNumber() const
     return QByteArray();
 }
 
-QString CertificateInfo::issuerInfo(EntityInfoKey) const
+QString CertificateInfo::issuerInfo(EntityInfoKey, EmptyString) const
 {
     return QString();
 }
 
-QString CertificateInfo::subjectInfo(EntityInfoKey) const
+QString CertificateInfo::subjectInfo(EntityInfoKey, EmptyString) const
 {
     return QString();
 }

@@ -10,6 +10,14 @@
 #include <QDebug>
 #include <QInputDialog>
 
+static QString notAvailableIfEmpty(const QString &string)
+{
+    if (string.isEmpty()) {
+        return i18n("Not Available");
+    }
+    return string;
+}
+
 PopplerCertificateInfo::PopplerCertificateInfo(const Poppler::CertificateInfo &info)
     : m_info(info)
 {
@@ -34,14 +42,26 @@ QByteArray PopplerCertificateInfo::serialNumber() const
     return m_info.serialNumber();
 }
 
-QString PopplerCertificateInfo::issuerInfo(PopplerCertificateInfo::EntityInfoKey key) const
+QString PopplerCertificateInfo::issuerInfo(PopplerCertificateInfo::EntityInfoKey key, CertificateInfo::EmptyString empty) const
 {
-    return m_info.issuerInfo(static_cast<Poppler::CertificateInfo::EntityInfoKey>(key));
+    switch (empty) {
+    case Okular::CertificateInfo::EmptyString::Empty:
+        return m_info.issuerInfo(static_cast<Poppler::CertificateInfo::EntityInfoKey>(key));
+    case Okular::CertificateInfo::EmptyString::TranslatedNotAvailable:
+        return notAvailableIfEmpty(m_info.issuerInfo(static_cast<Poppler::CertificateInfo::EntityInfoKey>(key)));
+    }
+    return {};
 }
 
-QString PopplerCertificateInfo::subjectInfo(PopplerCertificateInfo::EntityInfoKey key) const
+QString PopplerCertificateInfo::subjectInfo(PopplerCertificateInfo::EntityInfoKey key, CertificateInfo::EmptyString empty) const
 {
-    return m_info.subjectInfo(static_cast<Poppler::CertificateInfo::EntityInfoKey>(key));
+    switch (empty) {
+    case Okular::CertificateInfo::EmptyString::Empty:
+        return m_info.subjectInfo(static_cast<Poppler::CertificateInfo::EntityInfoKey>(key));
+    case Okular::CertificateInfo::EmptyString::TranslatedNotAvailable:
+        return notAvailableIfEmpty(m_info.subjectInfo(static_cast<Poppler::CertificateInfo::EntityInfoKey>(key)));
+    }
+    return {};
 }
 
 QString PopplerCertificateInfo::nickName() const

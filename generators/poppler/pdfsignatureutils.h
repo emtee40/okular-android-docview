@@ -22,8 +22,8 @@ public:
     bool isNull() const override;
     int version() const override;
     QByteArray serialNumber() const override;
-    QString issuerInfo(EntityInfoKey) const override;
-    QString subjectInfo(EntityInfoKey) const override;
+    QString issuerInfo(EntityInfoKey, EmptyString empty) const override;
+    QString subjectInfo(EntityInfoKey, EmptyString empty) const override;
     QString nickName() const override;
     QDateTime validityStart() const override;
     QDateTime validityEnd() const override;

@@ -45,6 +45,10 @@ public:
         EmailAddress,
         Organization,
     };
+    /**
+     * How should certain empty strings be treated
+     */
+    enum class EmptyString { Empty, TranslatedNotAvailable };
 
     /**
      * Destructor
@@ -69,12 +73,12 @@ public:
     /**
      * Information about the issuer.
      */
-    virtual QString issuerInfo(EntityInfoKey key) const;
+    virtual QString issuerInfo(EntityInfoKey key, EmptyString empty) const;
 
     /**
      * Information about the subject
      */
-    virtual QString subjectInfo(EntityInfoKey key) const;
+    virtual QString subjectInfo(EntityInfoKey key, EmptyString empty) const;
 
     /**
      * The certificate internal database nickname
