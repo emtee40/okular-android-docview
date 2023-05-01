@@ -8,8 +8,8 @@
 #include "audioplayer_p.h"
 
 // qt/kde includes
-#include <KRandom>
 #include <QBuffer>
+#include <QRandomGenerator>
 #include <QDebug>
 #include <QDir>
 #include <phonon/abstractmediastream.h>
@@ -21,6 +21,7 @@
 #include "action.h"
 #include "debug_p.h"
 #include "sound.h"
+#include <stdlib.h>
 
 using namespace Okular;
 
@@ -98,11 +99,12 @@ AudioPlayerPrivate::~AudioPlayerPrivate()
 
 int AudioPlayerPrivate::newId() const
 {
+    auto random = QRandomGenerator::global();
     int newid = 0;
     QHash<int, PlayData *>::const_iterator it;
     QHash<int, PlayData *>::const_iterator itEnd = m_playing.constEnd();
     do {
-        newid = KRandom::random();
+        newid = random->bounded(RAND_MAX);
         it = m_playing.constFind(newid);
     } while (it != itEnd);
     return newid;
