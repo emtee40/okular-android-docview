@@ -22,15 +22,19 @@
 #include <KLocalizedString>
 #include <QIcon>
 
+#ifdef HAVE_PHONON
 #include <phonon/mediaobject.h>
 #include <phonon/seekslider.h>
 #include <phonon/videoplayer.h>
+#endif
 
 #include "core/annotations.h"
 #include "core/area.h"
 #include "core/document.h"
 #include "core/movie.h"
 #include "snapshottaker.h"
+
+#ifdef HAVE_PHONON
 
 static QAction *createToolBarButtonWithWidgetPopup(QToolBar *toolBar, QWidget *widget, const QIcon &icon)
 {
@@ -420,5 +424,70 @@ void VideoWidget::resizeEvent(QResizeEvent *event)
         d->seekSliderMenuAction->setVisible(false);
     }
 }
+#else
 
+bool VideoWidget::event(QEvent* event)
+{
+    return QWidget::event(event);
+}
+
+bool VideoWidget::eventFilter(QObject* object, QEvent* event)
+{
+    return QWidget::eventFilter(object,event);
+}
+
+bool VideoWidget::isPlaying() const
+{
+    return false;
+}
+
+Okular::NormalizedRect VideoWidget::normGeometry() const
+{
+    return {};
+}
+
+void VideoWidget::pageEntered()
+{
+}
+
+void VideoWidget::pageInitialized()
+{
+}
+
+void VideoWidget::pageLeft()
+{
+}
+void VideoWidget::pause()
+{
+}
+void VideoWidget::play()
+{
+}
+
+void VideoWidget::resizeEvent(QResizeEvent* event)
+{
+    QWidget::resizeEvent(event);
+}
+
+void VideoWidget::setNormGeometry(const Okular::NormalizedRect& rect)
+{
+    Q_UNUSED(rect);
+}
+
+void VideoWidget::stop()
+{
+}
+
+VideoWidget::VideoWidget(const Okular::Annotation* annot, Okular::Movie* movie, Okular::Document* document, QWidget* parent) : QWidget(parent), d(nullptr)
+{
+    Q_UNUSED(annot);
+    Q_UNUSED(movie);
+    Q_UNUSED(document);
+}
+
+VideoWidget::~VideoWidget() noexcept
+{
+}
+
+#endif
 #include "moc_videowidget.cpp"

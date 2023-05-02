@@ -12,10 +12,12 @@
 #include <QBuffer>
 #include <QDebug>
 #include <QDir>
+#ifdef HAVE_PHONON
 #include <phonon/abstractmediastream.h>
 #include <phonon/audiooutput.h>
 #include <phonon/mediaobject.h>
 #include <phonon/path.h>
+#endif
 
 // local includes
 #include "action.h"
@@ -23,6 +25,8 @@
 #include "sound.h"
 
 using namespace Okular;
+
+#ifdef HAVE_PHONON
 
 // helper class used to store info about a sound to be played
 class SoundInfo
@@ -244,5 +248,38 @@ AudioPlayer::State AudioPlayer::state() const
 {
     return d->m_state;
 }
+
+#else
+
+AudioPlayer::AudioPlayer() : d(nullptr)
+{
+}
+
+AudioPlayer *AudioPlayer::instance()
+{
+    static AudioPlayer ap;
+    return &ap;
+}
+
+void AudioPlayer::playSound(const Sound* sound, const SoundAction* linksound)
+{
+    Q_UNUSED(sound);
+    Q_UNUSED(linksound);
+}
+
+AudioPlayer::State Okular::AudioPlayer::state() const
+{
+    return State::StoppedState;
+}
+
+void AudioPlayer::stopPlaybacks()
+{
+}
+
+AudioPlayer::~AudioPlayer() noexcept
+{
+}
+
+#endif
 
 #include "moc_audioplayer.cpp"

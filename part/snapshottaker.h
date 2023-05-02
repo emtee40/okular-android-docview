@@ -6,6 +6,7 @@
 
 #ifndef SNAPSHOTTAKER_H
 #define SNAPSHOTTAKER_H
+#ifdef HAVE_PHONON
 
 #include <phonon/videoplayer.h>
 
@@ -31,4 +32,5 @@ private:
     Phonon::VideoPlayer *m_player;
 };
 
+#endif
 #endif
