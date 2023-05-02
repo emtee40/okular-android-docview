@@ -191,7 +191,12 @@ if(NOT WIN32 AND NOT ANDROID AND NOT APPLE)
 else()
     set(HAVE_X11 FALSE)
 endif()
-find_package(Phonon4Qt5 CONFIG REQUIRED)
+find_package(Phonon4Qt5 CONFIG)
+set_okular_optional_package_properties(Phonon4Qt5 PROPERTIES
+    PURPOSE "Required for documents with audio or video elements")
+if (Phonon4Qt5_Found)
+    add_definitions(-DWITH_PHONON=1)
+endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/modules)
 
@@ -435,7 +440,6 @@ PRIVATE
     KF5::I18n
     KF5::ThreadWeaver
     KF5::Bookmarks
-    Phonon::phonon4qt5
     Qt5::Svg
     ${MATH_LIB}
     ZLIB::ZLIB
@@ -447,6 +451,9 @@ PUBLIC  # these are included from the installed headers
     Qt5::Widgets
     Qt5::CorePrivate
 )
+if (Phonon4Qt5_FOUND)
+    target_link_libraries(okularcore PRIVATE Phonon::phonon4qt5)
+endif()
 
 
 if (KF5Wallet_FOUND)
@@ -565,7 +572,6 @@ generate_export_header(okularpart BASE_NAME okularpart)
 target_link_libraries(okularpart okularcore
     ${MATH_LIB}
     Qt5::Svg
-    Phonon::phonon4qt5
     KF5::Archive
     KF5::Bookmarks
     KF5::I18n
@@ -579,6 +585,9 @@ target_link_libraries(okularpart okularcore
     KF5::WindowSystem
     KF5::TextWidgets
 )
+if (Phonon4Qt5_FOUND)
+   target_link_libraries(okularpart Phonon::phonon4qt5)
+endif()
 
 if(KF5Wallet_FOUND)
     target_link_libraries(okularpart KF5::Wallet)

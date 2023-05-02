@@ -3,6 +3,7 @@
 
     SPDX-License-Identifier: GPL-2.0-or-later
 */
+#ifdef HAVE_PHONON
 
 #include "snapshottaker.h"
 
@@ -41,3 +42,4 @@ void SnapshotTaker::stateChanged(Phonon::State newState, Phonon::State)
         deleteLater();
     }
 }
+#endif
