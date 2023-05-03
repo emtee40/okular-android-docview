@@ -47,8 +47,9 @@ public:
     };
     /**
      * How should certain empty strings be treated
+     * @since 23.08
      */
-    enum class EmptyString { Empty, TranslatedNotAvailable };
+    enum class EmptyString { /** Empty strings should just be empty*/ Empty, TranslatedNotAvailable /** Empty strings should be a localized version of "Not available" */ };
 
     /**
      * Destructor
