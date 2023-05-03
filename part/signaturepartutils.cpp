@@ -21,6 +21,7 @@
 #include <QListView>
 #include <QMimeDatabase>
 #include <QPainter>
+#include <QPushButton>
 #include <QStandardItemModel>
 #include <QVBoxLayout>
 
@@ -71,6 +72,12 @@ std::optional<SigningInformation> getCertificateAndPasswordForSigning(PageView *
     dialog.list->setModel(&items);
     dialog.list->setAlternatingRowColors(true);
     dialog.list->setSelectionMode(QAbstractItemView::SingleSelection);
+    QObject::connect(dialog.list->selectionModel(), &QItemSelectionModel::selectionChanged, &dialog, [dialog = &dialog](auto &&, auto &&) {
+        // One can ctrl-click on the selected item to deselect it, that would
+        // leave the selection empty, so better prevent the OK button
+        // from being usable
+        dialog->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(dialog->list->selectionModel()->hasSelection());
+    });
     dialog.list->selectionModel()->select(items.index(0, 0), QItemSelectionModel::Rows | QItemSelectionModel::ClearAndSelect);
     auto result = dialog.exec();
 
@@ -155,7 +162,7 @@ SelectCertificateDialog::SelectCertificateDialog(QWidget *parent)
     : QDialog(parent)
 {
     setWindowTitle(i18n("Certificates"));
-    auto buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
     connect(buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
     connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
     list = new QListView();

@@ -18,6 +18,7 @@
 
 class PageView;
 class QListView;
+class QDialogButtonBox;
 
 namespace SignaturePartUtils
 {
@@ -49,6 +50,7 @@ class SelectCertificateDialog : public QDialog
     Q_OBJECT
 public:
     QListView *list;
+    QDialogButtonBox *buttonBox;
 
     explicit SelectCertificateDialog(QWidget *parent);
 };
