@@ -426,6 +426,12 @@ void VideoWidget::resizeEvent(QResizeEvent *event)
 }
 #else
 
+class VideoWidget::Private
+{
+public:
+    Okular::NormalizedRect geom;
+};
+
 bool VideoWidget::event(QEvent *event)
 {
     return QWidget::event(event);
@@ -443,11 +449,12 @@ bool VideoWidget::isPlaying() const
 
 Okular::NormalizedRect VideoWidget::normGeometry() const
 {
-    return {};
+    return d->geom;
 }
 
 void VideoWidget::pageEntered()
 {
+    show();
 }
 
 void VideoWidget::pageInitialized()
@@ -471,20 +478,35 @@ void VideoWidget::resizeEvent(QResizeEvent *event)
 
 void VideoWidget::setNormGeometry(const Okular::NormalizedRect &rect)
 {
-    Q_UNUSED(rect);
+    d->geom = rect;
 }
 
 void VideoWidget::stop()
 {
 }
 
-VideoWidget::VideoWidget(const Okular::Annotation *annot, Okular::Movie *movie, Okular::Document *document, QWidget *parent)
+VideoWidget::VideoWidget(const Okular::Annotation *annotation, Okular::Movie *movie, Okular::Document *document, QWidget *parent)
     : QWidget(parent)
-    , d(nullptr)
+    , d(new VideoWidget::Private)
 {
-    Q_UNUSED(annot);
-    Q_UNUSED(movie);
-    Q_UNUSED(document);
+    auto layout = new QVBoxLayout();
+    d->geom = annotation->transformedBoundingRectangle();
+    auto poster = new QLabel;
+    if (movie->showPosterImage()) {
+        auto posterImage = movie->posterImage();
+        if (!posterImage.isNull()) {
+            poster->setPixmap(QPixmap::fromImage(posterImage));
+        }
+    }
+    document->warning(i18n("Videos not supported in this okular"), 5000);
+    poster->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
+    layout->addWidget(poster, 2);
+
+    auto label = new QLabel(i18n("Videos not supported in this Okular"));
+    label->setAutoFillBackground(true);
+    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+    layout->addWidget(label, 1, Qt::AlignCenter);
+    setLayout(layout);
 }
 
 VideoWidget::~VideoWidget() noexcept

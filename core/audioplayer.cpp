@@ -5,9 +5,9 @@
 */
 
 #include "audioplayer.h"
-#include "audioplayer_p.h"
 
 // qt/kde includes
+#include <KLocalizedString>
 #include <KRandom>
 #include <QBuffer>
 #include <QDebug>
@@ -22,11 +22,35 @@
 // local includes
 #include "action.h"
 #include "debug_p.h"
+#include "document.h"
 #include "sound.h"
 
 using namespace Okular;
 
 #ifdef HAVE_PHONON
+
+namespace Okular
+{
+class AudioPlayerPrivate
+{
+public:
+    explicit AudioPlayerPrivate(AudioPlayer *qq);
+
+    ~AudioPlayerPrivate();
+
+    int newId() const;
+    bool play(const SoundInfo &si);
+    void stopPlayings();
+
+    void finished(int);
+
+    AudioPlayer *q;
+
+    QHash<int, PlayData *> m_playing;
+    QUrl m_currentDocument;
+    AudioPlayer::State m_state;
+};
+}
 
 // helper class used to store info about a sound to be played
 class SoundInfo
@@ -249,10 +273,30 @@ AudioPlayer::State AudioPlayer::state() const
     return d->m_state;
 }
 
+void AudioPlayer::resetDocument()
+{
+    d->currentDocument = {};
+}
+
+void AudioPlayer::setDocument(const QUrl &url, Okular::Document *document)
+{
+    Q_UNUSED(document);
+    d->currentDocument = url;
+}
+
 #else
 
+namespace Okular
+{
+class AudioPlayerPrivate
+{
+public:
+    Document *document;
+};
+}
+
 AudioPlayer::AudioPlayer()
-    : d(nullptr)
+    : d(new AudioPlayerPrivate())
 {
 }
 
@@ -266,6 +310,7 @@ void AudioPlayer::playSound(const Sound *sound, const SoundAction *linksound)
 {
     Q_UNUSED(sound);
     Q_UNUSED(linksound);
+    d->document->warning(i18n("This Okular is bulit without audio support"), 2000);
 }
 
 AudioPlayer::State Okular::AudioPlayer::state() const
@@ -279,6 +324,17 @@ void AudioPlayer::stopPlaybacks()
 
 AudioPlayer::~AudioPlayer() noexcept
 {
+}
+
+void AudioPlayer::resetDocument()
+{
+    d->document = nullptr;
+}
+
+void AudioPlayer::setDocument(const QUrl &url, Okular::Document *document)
+{
+    Q_UNUSED(url);
+    d->document = document;
 }
 
 #endif
