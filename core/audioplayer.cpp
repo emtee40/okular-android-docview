@@ -12,7 +12,10 @@
 #include <QBuffer>
 #include <QDebug>
 #include <QDir>
-#ifdef HAVE_PHONON
+
+#include "config-okular.h"
+
+#if HAVE_PHONON
 #include <phonon/abstractmediastream.h>
 #include <phonon/audiooutput.h>
 #include <phonon/mediaobject.h>
@@ -27,7 +30,7 @@
 
 using namespace Okular;
 
-#ifdef HAVE_PHONON
+#if HAVE_PHONON
 
 namespace Okular
 {

@@ -195,7 +195,9 @@ find_package(Phonon4Qt5 CONFIG)
 set_okular_optional_package_properties(Phonon4Qt5 PROPERTIES
     PURPOSE "Required for documents with audio or video elements")
 if (Phonon4Qt5_Found)
-    add_definitions(-DWITH_PHONON=1)
+    set(HAVE_PHONON 1)
+else()
+    set(HAVE_PHONON 0)
 endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/modules)

@@ -6,7 +6,9 @@
 
 #ifndef SNAPSHOTTAKER_H
 #define SNAPSHOTTAKER_H
-#ifdef HAVE_PHONON
+#include "config-okular.h"
+
+#if HAVE_PHONON
 
 #include <phonon/videoplayer.h>
 

@@ -22,7 +22,9 @@
 #include <KLocalizedString>
 #include <QIcon>
 
-#ifdef HAVE_PHONON
+#include "config-okular.h"
+
+#if HAVE_PHONON
 #include <phonon/mediaobject.h>
 #include <phonon/seekslider.h>
 #include <phonon/videoplayer.h>
@@ -34,7 +36,7 @@
 #include "core/movie.h"
 #include "snapshottaker.h"
 
-#ifdef HAVE_PHONON
+#if HAVE_PHONON
 
 static QAction *createToolBarButtonWithWidgetPopup(QToolBar *toolBar, QWidget *widget, const QIcon &icon)
 {

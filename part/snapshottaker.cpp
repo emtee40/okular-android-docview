@@ -3,9 +3,9 @@
 
     SPDX-License-Identifier: GPL-2.0-or-later
 */
-#ifdef HAVE_PHONON
-
 #include "snapshottaker.h"
+
+#if HAVE_PHONON
 
 #include <phonon/mediaobject.h>
 #include <phonon/videowidget.h>
