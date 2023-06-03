@@ -2573,9 +2573,65 @@ void PageView::mousePressEvent(QMouseEvent *e)
         if (d->tripleClickTimer.isActive()) { // just double clicked AND clicked once more => triple click
             d->tripleClickTimer.stop();
 
-            // select horizontal line
-            QPoint begin(0, eventPos.y()), end(viewport()->width(), eventPos.y());
-            selectTextBetween(begin, end);
+            PageViewItem *pageItem = pickItemOnPoint(eventPos.x(), eventPos.y());
+            if (pageItem) {
+                // find out normalized mouse coords inside current item
+                double nX = pageItem->absToPageX(eventPos.x());
+                double nY = pageItem->absToPageY(eventPos.y());
+
+                // get all words in page and find which one was clicked
+                Okular::TextEntity::List allWords = pageItem->page()->words(nullptr, Okular::TextPage::AnyPixelTextAreaInclusionBehaviour);
+                Okular::TextEntity *te;
+                int i;
+                for (i = 0; i < allWords.size(); i++) {
+                    te = allWords.at(i);
+                    if (te->area()->contains(nX, nY)) {
+                        break;
+                    }
+                }
+                if (i < allWords.size()) {
+                    // a word was clicked, so "expand" the selection
+                    // both forwards and backwards until finding a newline.
+                    // TODO: what to do with hyphenated words?
+
+                    Okular::RegularAreaRect *area = new Okular::RegularAreaRect;
+                    int wordPos = i;
+
+                    // forwards
+                    for (i = wordPos; i < allWords.size(); i++) {
+                        te = allWords.at(i);
+                        area->appendShape(*te->area());
+                        if (te->text().contains(QLatin1String("\n"))) {
+                            break;
+                        }
+                    }
+
+                    // backwards
+                    for (i = wordPos; i >= 0; i--) {
+                        te = allWords.at(i);
+                        if (te->text().contains(QLatin1String("\n"))) {
+                            break;
+                        }
+                        area->appendShape(*te->area());
+                    }
+
+                    d->document->setPageTextSelection(pageItem->pageNumber(), area, palette().color(QPalette::Active, QPalette::Highlight));
+                    d->pagesWithTextSelection << pageItem->pageNumber();
+                    if (d->document->isAllowed(Okular::AllowCopy)) {
+                        const QString text = d->selectedText();
+                        if (!text.isEmpty()) {
+                            QClipboard *cb = QApplication::clipboard();
+                            if (cb->supportsSelection()) {
+                                cb->setText(text, QClipboard::Selection);
+                            }
+                        }
+                    }
+                }
+
+                for (const Okular::TextEntity *te : allWords) {
+                    delete te;
+                }
+            }
         }
         break;
     }
@@ -3783,30 +3839,25 @@ void PageView::updateSelection(const QPoint pos)
         updateRect.translate(-contentAreaPosition());
         viewport()->update(updateRect.adjusted(-1, -2, 2, 1));
     } else if (d->mouseTextSelecting) {
-        selectTextBetween(pos, d->mouseSelectPos);
-    }
-}
+        scrollPosIntoView(pos);
+        int first = -1;
+        const QList<Okular::RegularAreaRect *> selections = textSelections(pos, d->mouseSelectPos, first);
+        QSet<int> pagesWithSelectionSet;
+        for (int i = 0; i < selections.count(); ++i) {
+            pagesWithSelectionSet.insert(i + first);
+        }
 
-void PageView::selectTextBetween(const QPoint begin, const QPoint end)
-{
-    scrollPosIntoView(begin);
-    int first = -1;
-    const QList<Okular::RegularAreaRect *> selections = textSelections(begin, end, first);
-    QSet<int> pagesWithSelectionSet;
-    for (int i = 0; i < selections.count(); ++i) {
-        pagesWithSelectionSet.insert(i + first);
+        const QSet<int> noMoreSelectedPages = d->pagesWithTextSelection - pagesWithSelectionSet;
+        // clear the selection from pages not selected anymore
+        for (int p : noMoreSelectedPages) {
+            d->document->setPageTextSelection(p, nullptr, QColor());
+        }
+        // set the new selection for the selected pages
+        for (int p : qAsConst(pagesWithSelectionSet)) {
+            d->document->setPageTextSelection(p, selections[p - first], palette().color(QPalette::Active, QPalette::Highlight));
+        }
+        d->pagesWithTextSelection = pagesWithSelectionSet;
     }
-
-    const QSet<int> noMoreSelectedPages = d->pagesWithTextSelection - pagesWithSelectionSet;
-    // clear the selection from pages not selected anymore
-    for (int p : noMoreSelectedPages) {
-        d->document->setPageTextSelection(p, nullptr, QColor());
-    }
-    // set the new selection for the selected pages
-    for (int p : qAsConst(pagesWithSelectionSet)) {
-        d->document->setPageTextSelection(p, selections[p - first], palette().color(QPalette::Active, QPalette::Highlight));
-    }
-    d->pagesWithTextSelection = pagesWithSelectionSet;
 }
 
 static Okular::NormalizedPoint rotateInNormRect(const QPoint rotated, const QRect rect, Okular::Rotation rotation)
