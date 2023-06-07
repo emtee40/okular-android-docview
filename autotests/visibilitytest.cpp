@@ -4,7 +4,8 @@
     SPDX-License-Identifier: GPL-2.0-or-later
 */
 
-#include <QtTest>
+#include <QTest>
+#include <QTemporaryFile>
 
 #include "../settings_core.h"
 #include "core/document.h"
