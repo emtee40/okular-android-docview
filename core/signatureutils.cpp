@@ -48,7 +48,7 @@ public:
     int publicKeyStrength = -1;
     bool isSelfSigned = false;
     QByteArray certificateData;
-    bool kleopatraCompatible = false;
+    CertificateInfo::Backend backend = CertificateInfo::Backend::Unknown;
     std::function<bool(QString)> checkPasswordFunction;
 };
 
@@ -250,14 +250,14 @@ void CertificateInfo::setCertificateData(const QByteArray &certificateData)
     d->certificateData = certificateData;
 }
 
-bool CertificateInfo::kleopatraCompatible() const
+CertificateInfo::Backend CertificateInfo::backend() const
 {
-    return d->kleopatraCompatible;
+    return d->backend;
 }
 
-void CertificateInfo::setKleopatraCompatible(bool kleopatraCompatible)
+void CertificateInfo::setBackend(Backend backend)
 {
-    d->kleopatraCompatible = kleopatraCompatible;
+    d->backend = backend;
 }
 
 bool CertificateInfo::checkPassword(const QString &password) const

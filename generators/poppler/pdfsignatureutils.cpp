@@ -93,7 +93,9 @@ Okular::CertificateInfo fromPoppler(const Poppler::CertificateInfo &pInfo)
         return pInfo.checkPassword(password);
     });
 #if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 06, 0)
-    oInfo.setKleopatraCompatible(Poppler::activeCryptoSignBackend() == Poppler::CryptoSignBackend::GPG);
+    if (Poppler::activeCryptoSignBackend() == Poppler::CryptoSignBackend::GPG) {
+        oInfo.setBackend(Okular::CertificateInfo::Backend::Gpg);
+    }
 #endif
     return oInfo;
 }
