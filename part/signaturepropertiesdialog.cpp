@@ -90,7 +90,11 @@ SignaturePropertiesDialog::SignaturePropertiesDialog(Okular::Document *doc, cons
     auto certPropBtn = new QPushButton(i18n("View Certificate..."));
     certPropBtn->setEnabled(!signatureInfo.certificateInfo().isNull());
     auto certManagerBtn = new QPushButton(i18n("View in Certificate Manager"));
-    certManagerBtn->setEnabled(!m_kleopatraPath.isEmpty() && signatureInfo.certificateInfo().backend() == Okular::CertificateInfo::Backend::Gpg);
+    certManagerBtn->setVisible(signatureInfo.certificateInfo().backend() == Okular::CertificateInfo::Backend::Gpg);
+    certManagerBtn->setEnabled(!m_kleopatraPath.isEmpty());
+    if (m_kleopatraPath.isEmpty()) {
+        certManagerBtn->setToolTip(i18n("KDE Certificate Manager (kleopatra) not found"));
+    }
     btnBox->addButton(certPropBtn, QDialogButtonBox::ActionRole);
     btnBox->addButton(certManagerBtn, QDialogButtonBox::ActionRole);
     connect(btnBox, &QDialogButtonBox::rejected, this, &SignaturePropertiesDialog::reject);
