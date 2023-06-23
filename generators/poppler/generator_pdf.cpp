@@ -1636,10 +1636,18 @@ bool PDFGenerator::setDocumentRenderHints()
 #undef SET_HINT
     // load thin line mode
     const int thinLineMode = PDFSettings::enhanceThinLines();
+    const bool enableOverprintPreview = PDFSettings::overprintPreviewEnabled();
     const bool enableThinLineSolid = thinLineMode == PDFSettings::EnumEnhanceThinLines::Solid;
     const bool enableShapeLineSolid = thinLineMode == PDFSettings::EnumEnhanceThinLines::Shape;
+    const bool overprintPreviewWasEnabled = (oldhints & Poppler::Document::OverprintPreview) == Poppler::Document::OverprintPreview;
     const bool thinLineSolidWasEnabled = (oldhints & Poppler::Document::ThinLineSolid) == Poppler::Document::ThinLineSolid;
     const bool thinLineShapeWasEnabled = (oldhints & Poppler::Document::ThinLineShape) == Poppler::Document::ThinLineShape;
+#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 07, 0)
+    if (enableOverprintPreview != overprintPreviewWasEnabled) {
+        pdfdoc->setRenderHint(Poppler::Document::OverprintPreview, enableOverprintPreview);
+        changed = true;
+    }
+#endif
     if (enableThinLineSolid != thinLineSolidWasEnabled) {
         pdfdoc->setRenderHint(Poppler::Document::ThinLineSolid, enableThinLineSolid);
         changed = true;
