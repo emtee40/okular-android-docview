@@ -265,6 +265,8 @@ public:
     QScroller *scroller;
 
     bool pinchZoomActive;
+    // The remaining scroll from the previous zoom event
+    QPointF remainingScroll;
 };
 
 PageViewPrivate::PageViewPrivate(PageView *qq)
@@ -386,6 +388,7 @@ PageView::PageView(QWidget *parent, Okular::Document *document)
     d->aFitWindowToPage = nullptr;
     d->trimBoundingBox = Okular::NormalizedRect(); // Null box
     d->pinchZoomActive = false;
+    d->remainingScroll = QPointF(0.0, 0.0);
 
     switch (Okular::Settings::zoomMode()) {
     case 0: {
@@ -1769,18 +1772,14 @@ bool PageView::gestureEvent(QGestureEvent *event)
             vanillaZoom = d->zoomFactor;
             d->pinchZoomActive = true;
             d->scroller->handleInput(QScroller::InputRelease, QPointF());
+            d->scroller->stop();
         }
 
         const QPinchGesture::ChangeFlags changeFlags = pinch->changeFlags();
 
         // Zoom
         if (pinch->changeFlags() & QPinchGesture::ScaleFactorChanged) {
-            d->zoomFactor = vanillaZoom * pinch->totalScaleFactor();
-
-            d->blockPixmapsRequest = true;
-            updateZoom(ZoomRefreshCurrent);
-            d->blockPixmapsRequest = false;
-            viewport()->update();
+            zoomWithFixedCenter(ZoomRefreshCurrent, mapFromGlobal(pinch->centerPoint().toPoint()), vanillaZoom * pinch->totalScaleFactor());
         }
 
         // Count the number of 90-degree rotations we did since the start of the pinch gesture.
@@ -1801,9 +1800,10 @@ bool PageView::gestureEvent(QGestureEvent *event)
             }
         }
 
-        if (pinch->state() == Qt::GestureFinished) {
+        if (pinch->state() == Qt::GestureFinished || pinch->state() == Qt::GestureCanceled) {
             rotations = 0;
             d->pinchZoomActive = false;
+            d->remainingScroll = QPointF(0.0, 0.0);
         }
 
         return true;
@@ -2057,8 +2057,14 @@ void PageView::resizeEvent(QResizeEvent *e)
         return;
     }
 
-    // start a timer that will refresh the pixmap after 0.2s
-    d->delayResizeEventTimer->start(200);
+    if (d->pinchZoomActive) {
+        // if we make a continuous zooming with pinch gesture or mouse, we call delayedResizeEvent() directly.
+        delayedResizeEvent();
+    } else {
+        // start a timer that will refresh the pixmap after 0.2s
+        d->delayResizeEventTimer->start(200);
+    }
+
     d->verticalScrollBarVisible = verticalScrollBar()->isVisible();
     d->horizontalScrollBarVisible = horizontalScrollBar()->isVisible();
 }
@@ -4460,6 +4466,85 @@ bool PageView::getContinuousMode() const
     return d->aViewContinuous ? d->aViewContinuous->isChecked() : Okular::Settings::viewContinuous();
 }
 
+void PageView::zoomWithFixedCenter(PageView::ZoomMode newZoomMode, QPointF zoomCenter, float newZoom)
+{
+    const Okular::DocumentViewport &vp = d->document->viewport();
+    Q_ASSERT(vp.pageNumber >= 0);
+
+    // determine the page below zoom center
+    const QPoint contentPos = contentAreaPoint(zoomCenter.toPoint());
+    const PageViewItem *page = pickItemOnPoint(contentPos.x(), contentPos.y());
+    const int hScrollBarMaximum = horizontalScrollBar()->maximum();
+    const int vScrollBarMaximum = verticalScrollBar()->maximum();
+
+    // if the zoom center is not over a page, use viewport page number
+    if (!page) {
+        page = d->items[vp.pageNumber];
+    }
+
+    const QRect beginGeometry = page->croppedGeometry();
+
+    QPoint offset {beginGeometry.left(), beginGeometry.top()};
+
+    const QPointF oldScroll = contentAreaPosition() - offset;
+
+    d->blockPixmapsRequest = true;
+    if (newZoom) {
+        d->zoomFactor = newZoom;
+    }
+
+    updateZoom(newZoomMode);
+    d->blockPixmapsRequest = false;
+
+    const QRect afterGeometry = page->croppedGeometry();
+    QTransform zoomFactor = QTransform::fromScale((double)afterGeometry.width() / beginGeometry.width(), (double)afterGeometry.height() / beginGeometry.height());
+
+    // The calculation for newScroll is taken from Gwenview class Abstractimageview::setZoom
+    QPointF newScroll = zoomFactor.map(oldScroll + zoomCenter) - zoomCenter;
+
+    // The remaining scrolling distance from the previous zoom event;
+    // in content area coordinates at the zoom factor of that event
+    newScroll = zoomFactor.map(newScroll + d->remainingScroll);
+
+    // adjust newScroll to the new margins after zooming
+    offset = QPoint {afterGeometry.left(), afterGeometry.top()};
+    newScroll += offset;
+
+    // adjust newScroll for appearance and disappearance of the scrollbars
+    if (Okular::Settings::showScrollBars()) {
+        if (hScrollBarMaximum == 0 && horizontalScrollBar()->maximum() > 0) {
+            newScroll.ry() -= horizontalScrollBar()->height() / 2.0;
+        }
+
+        if (hScrollBarMaximum > 0 && horizontalScrollBar()->maximum() == 0) {
+            newScroll.ry() += horizontalScrollBar()->height() / 2.0;
+        }
+
+        if (vScrollBarMaximum == 0 && verticalScrollBar()->maximum() > 0) {
+            newScroll.rx() -= verticalScrollBar()->width() / 2.0;
+        }
+
+        if (vScrollBarMaximum > 0 && verticalScrollBar()->maximum() == 0) {
+            newScroll.rx() += verticalScrollBar()->width() / 2.0;
+        }
+    }
+
+    d->scroller->scrollTo(newScroll.toPoint(), 0);
+
+    viewport()->setUpdatesEnabled(true);
+    viewport()->update();
+
+    // test if target scroll position was reached, if not save
+    // the difference in d->remainingScroll for later use
+    const QPointF diffF = newScroll - contentAreaPosition();
+    if (abs(diffF.x()) < 0.5 && abs(diffF.y()) < 0.5) {
+        // scroll target reached set d->remainingScroll to 0.0
+        d->remainingScroll = QPointF(0.0, 0.0);
+    } else {
+        d->remainingScroll = diffF;
+    }
+}
+
 // BEGIN private SLOTS
 void PageView::slotRelayoutPages()
 // called by: notifySetup, viewportResizeEvent, slotViewMode, slotContinuousToggled, updateZoom
@@ -4614,7 +4699,7 @@ void PageView::slotRelayoutPages()
         }
         resizeContentArea(QSize(fullWidth, fullHeight));
         // restore previous viewport if defined and updates enabled
-        if (wasUpdatesEnabled) {
+        if (wasUpdatesEnabled && !d->pinchZoomActive) {
             if (vp.pageNumber >= 0) {
                 int prevX = horizontalScrollBar()->value(), prevY = verticalScrollBar()->value();
 
@@ -4638,7 +4723,7 @@ void PageView::slotRelayoutPages()
     }
 
     // 5) update the whole viewport if updated enabled
-    if (wasUpdatesEnabled) {
+    if (wasUpdatesEnabled && !d->pinchZoomActive) {
         viewport()->update();
     }
 }
