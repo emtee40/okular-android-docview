@@ -10,6 +10,7 @@
 
 #include "core/form.h"
 #include <poppler-form.h>
+#include <unordered_map>
 
 class PopplerFormFieldButton : public Okular::FormFieldButton
 {
@@ -140,11 +141,18 @@ public:
     Okular::SignatureInfo signatureInfo() const override;
     bool sign(const Okular::NewSignatureData &oData, const QString &newPath) const override;
 
+    SubscriptionHandle subscribeUpdates(const std::function<void()> &callback) const final;
+    bool unsubscribeUpdates(const SubscriptionHandle &handle) const final;
+
 private:
     std::unique_ptr<Poppler::FormFieldSignature> m_field;
     Okular::SignatureInfo m_info;
     Okular::NormalizedRect m_rect;
     int m_id;
+#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 07, 0)
+    std::shared_ptr<Poppler::AsyncObject> m_asyncObject;
+#endif
+    mutable std::unordered_map<SubscriptionHandle, std::function<void()>> m_updateSubscriptions;
 };
 
 #endif
