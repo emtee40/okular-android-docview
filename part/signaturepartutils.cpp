@@ -229,6 +229,21 @@ std::optional<SigningInformation> getCertificateAndPasswordForSigning(PageView *
 
         minWidth = std::max(minWidth, std::max(cert.nickName().size(), emailAddress.size() + commonName.size()));
 
+        switch (cert.keyLocation()) {
+        case Okular::CertificateInfo::KeyLocation::Computer:
+            item->setData(QIcon::fromTheme(QStringLiteral("drive-harddisk")), Qt::DecorationRole);
+            break;
+        case Okular::CertificateInfo::KeyLocation::HardwareToken:
+            /* Better icon requested in https://bugs.kde.org/show_bug.cgi?id=428278*/
+            item->setData(QIcon::fromTheme(QStringLiteral("drive-removable-media-usb")), Qt::DecorationRole);
+            break;
+        case Okular::CertificateInfo::KeyLocation::Unknown:; //
+            break;
+        case Okular::CertificateInfo::KeyLocation::Other:
+            item->setData(QIcon::fromTheme(QStringLiteral("folder-cloud")), Qt::DecorationRole);
+            break;
+        }
+
         item->setData(cert.nickName(), Qt::DisplayRole);
         item->setData(cert.subjectInfo(Okular::CertificateInfo::DistinguishedName, Okular::CertificateInfo::EmptyString::Empty), Qt::ToolTipRole);
         item->setEditable(false);
@@ -454,7 +469,9 @@ void KeyDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, c
 
     auto textRect = option.rect;
     int textMargin = style->pixelMetric(QStyle::PM_FocusFrameHMargin, &option, option.widget) + 1;
-    textRect.adjust(textMargin, 0, -textMargin, 0);
+    textRect.adjust(textRect.height(), 0, 0, 0); // make space for icon
+    textRect.adjust(textMargin * 2, 0, -textMargin, 0);
+    // make space for image
 
     QRect topHalf {textRect.x(), textRect.y(), textRect.width(), textRect.height() / 2};
     QRect bottomHalf {textRect.x(), textRect.y() + textRect.height() / 2, textRect.width(), textRect.height() / 2};
@@ -462,6 +479,9 @@ void KeyDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, c
     style->drawItemText(painter, topHalf, (option.displayAlignment & Qt::AlignVertical_Mask) | Qt::AlignLeft, option.palette, true, index.data(Qt::DisplayRole).toString());
     style->drawItemText(painter, bottomHalf, (option.displayAlignment & Qt::AlignVertical_Mask) | Qt::AlignRight, option.palette, true, index.data(Qt::UserRole + 1).toString());
     style->drawItemText(painter, bottomHalf, (option.displayAlignment & Qt::AlignVertical_Mask) | Qt::AlignLeft, option.palette, true, index.data(Qt::UserRole).toString());
+    if (auto icon = index.data(Qt::DecorationRole).value<QIcon>(); !icon.isNull()) {
+        icon.paint(painter, QRect(option.rect.topLeft(), QSize(textRect.height(), textRect.height())));
+    }
 }
 }
 
