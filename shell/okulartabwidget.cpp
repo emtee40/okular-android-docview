@@ -9,11 +9,13 @@
 
 QSize OkularTabBar::tabSizeHint(int index) const
 {
-    const int dimensions = QTabBar::tabSizeHint(index);
+    const QSize dimensions = QTabBar::tabSizeHint(index);
+
     int width = dimensions.width();
+    const int availableWidth = size().width();
+
     if (width * count() > availableWidth) {
         // tabbar full, shrink tabs
-        const int availableWidth = size().width();
         const int defaultWidth = 40 * fontMetrics().averageCharWidth();
         const int shrinkWidth = availableWidth / count();
         width = std::max(shrinkWidth, defaultWidth / 2);
