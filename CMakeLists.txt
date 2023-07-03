@@ -151,7 +151,14 @@ else()
 endif()
 
 if (BUILD_DESKTOP)
-    find_package(Qt5 ${QT_REQUIRED_VERSION} CONFIG REQUIRED COMPONENTS DBus)
+    find_package(Qt5DBus)
+    set_okular_optional_package_properties(Qt5DBus PROPERTIES
+        PURPOSE "Required for interprocess communication, external open in same instance and various presentation related bits.")
+    if(TARGET Qt5::DBus)
+        set(HAVE_DBUS 1)
+    else()
+        set(HAVE_DBUS 0)
+    endif()
     find_package(KF5 ${KF5_REQUIRED_VERSION} REQUIRED COMPONENTS Parts Crash IconThemes TextWidgets)
 
     find_package(KF5Purpose)
