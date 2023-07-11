@@ -192,11 +192,13 @@ QPixmap AnnotationUtils::loadStamp(const QString &nameOrPath, int size, bool kee
     }
 
     // _name is a path (do this before loading as icon name to avoid some rare weirdness )
-    QPixmap pixmap;
-    pixmap.load(nameOrPath);
-    if (!pixmap.isNull()) {
-        pixmap = pixmap.scaled(size, size, keepAspectRatio ? Qt::KeepAspectRatioByExpanding : Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-        return pixmap;
+    if (nameOrPath.contains(QLatin1Char('.'))) {
+        QPixmap pixmap;
+        pixmap.load(nameOrPath);
+        if (!pixmap.isNull()) {
+            pixmap = pixmap.scaled(size, size, keepAspectRatio ? Qt::KeepAspectRatioByExpanding : Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+            return pixmap;
+        }
     }
 
     // _name is an icon name
