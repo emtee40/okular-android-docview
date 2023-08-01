@@ -9,6 +9,8 @@
 
 #include "global.h"
 
+#include <QPoint>
+
 class QString;
 
 namespace Okular
@@ -29,7 +31,7 @@ public:
     Scripter(const Scripter &) = delete;
     Scripter &operator=(const Scripter &) = delete;
 
-    void execute(ScriptType type, const QString &script);
+    void execute(ScriptType type, const QString &script, const QPoint &globalPos = {});
 
     void setEvent(Event *event);
     Event *event() const;

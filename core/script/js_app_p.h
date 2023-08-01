@@ -10,6 +10,7 @@
 
 #include <QJSValue>
 #include <QObject>
+#include <QPoint>
 
 class QTimer;
 
@@ -36,6 +37,8 @@ public:
     ~JSApp() override;
     static void clearCachedFields();
 
+    void setGlobalPos(const QPoint &globalPos);
+
     int formsVersion() const;
     QString language() const;
     int numPlugIns() const;
@@ -57,12 +60,14 @@ public:
     Q_INVOKABLE void clearInterval(const QJSValue &oInterval);
     Q_INVOKABLE QJSValue setTimeOut(const QString &cExpr, int nMilliseconds);
     Q_INVOKABLE void clearTimeOut(const QJSValue &oTime);
+    Q_INVOKABLE QJSValue okular_popUpMenuEx(const QJSValue &arguments);
 
 private:
     QJSValue wrapTimer(QTimer *timer) const;
 
     DocumentPrivate *m_doc = nullptr;
     QTimer *m_watchdogTimer = nullptr;
+    QPoint m_globalPos;
 };
 
 }

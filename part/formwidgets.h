@@ -94,6 +94,8 @@ Q_SIGNALS:
 
     void action(Okular::Action *action);
 
+    void mouseUpAction(Okular::Action *action, Okular::FormField *form, const QPoint &globalPos);
+
     void refreshFormWidget(Okular::FormField *form);
 
 private Q_SLOTS:

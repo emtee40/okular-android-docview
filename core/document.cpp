@@ -2224,13 +2224,13 @@ int DocumentPrivate::findFieldPageNumber(Okular::FormField *field)
     return foundPage;
 }
 
-void DocumentPrivate::executeScriptEvent(const std::shared_ptr<Event> &event, const Okular::ScriptAction *linkscript)
+void DocumentPrivate::executeScriptEvent(const std::shared_ptr<Event> &event, const Okular::ScriptAction *linkscript, const QPoint &globalPos)
 {
     if (!m_scripter) {
         m_scripter = new Scripter(this);
     }
     m_scripter->setEvent(event.get());
-    m_scripter->execute(linkscript->scriptType(), linkscript->script());
+    m_scripter->execute(linkscript->scriptType(), linkscript->script(), globalPos);
 
     // Clear out the event after execution
     m_scripter->setEvent(nullptr);
@@ -4507,6 +4507,27 @@ void Document::processValidateAction(const Action *action, Okular::FormFieldText
 
     d->executeScriptEvent(event, linkscript);
     returnCode = event->returnCode();
+}
+
+void Document::processFormMouseUpScripAction(const Action *action, Okular::FormField *ff, const QPoint &globalPos)
+{
+    if (!action || action->actionType() != Action::Script) {
+        return;
+    }
+
+    // Lookup the page of the FormFieldText
+    int foundPage = d->findFieldPageNumber(ff);
+
+    if (foundPage == -1) {
+        qCDebug(OkularCoreDebug) << "Could not find page for formfield!";
+        return;
+    }
+
+    std::shared_ptr<Event> event = Event::createFieldMouseUpEvent(ff, d->m_pagesVector[foundPage]);
+
+    const ScriptAction *linkscript = static_cast<const ScriptAction *>(action);
+
+    d->executeScriptEvent(event, linkscript, globalPos);
 }
 
 void Document::processSourceReference(const SourceReference *ref)

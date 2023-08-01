@@ -15,6 +15,7 @@
 #include <KLocalizedString>
 #include <QCheckBox>
 #include <QJSEngine>
+#include <QMenu>
 #include <QMessageBox>
 
 #include "../document_p.h"
@@ -328,6 +329,33 @@ void JSApp::clearTimeOut(const QJSValue &oTime)
     }
 }
 
+// app.popUpMenuEx()
+QJSValue JSApp::okular_popUpMenuEx(const QJSValue &arguments)
+{
+    static const char *kResultProperty = "result";
+
+    const int nArgs = arguments.property(QStringLiteral("length")).toInt();
+
+    if (nArgs == 0) {
+        return {};
+    }
+
+    QMenu m;
+    for (int i = 0; i < nArgs; ++i) {
+        const QJSValue item = arguments.property(i);
+        const QString cName = item.property(QStringLiteral("cName")).toString();
+        const QJSValue cResultProperty = item.property(QStringLiteral("cResult"));
+        QAction *a = m.addAction(cName);
+        if (cResultProperty.isUndefined()) {
+            a->setProperty(kResultProperty, cName);
+        } else {
+            a->setProperty(kResultProperty, cResultProperty.toString());
+        }
+    }
+    QAction *result = m.exec(m_globalPos);
+    return result ? result->property(kResultProperty).toString() : QString();
+}
+
 JSApp::JSApp(DocumentPrivate *doc, QTimer *watchdogTimer, QObject *parent)
     : QObject(parent)
     , m_doc(doc)
@@ -353,4 +381,9 @@ void JSApp::clearCachedFields()
         qDeleteAll(g_timerCache->begin(), g_timerCache->end());
         g_timerCache->clear();
     }
+}
+
+void JSApp::setGlobalPos(const QPoint &globalPos)
+{
+    m_globalPos = globalPos;
 }

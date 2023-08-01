@@ -45,7 +45,7 @@ Scripter::~Scripter()
     delete d;
 }
 
-void Scripter::execute(ScriptType type, const QString &script)
+void Scripter::execute(ScriptType type, const QString &script, const QPoint &globalPos)
 {
     qCDebug(OkularCoreDebug) << "executing the script:" << script;
 #if HAVE_JS
@@ -65,7 +65,7 @@ void Scripter::execute(ScriptType type, const QString &script)
         if (!d->m_js) {
             d->m_js.reset(new ExecutorJS(d->m_doc));
         }
-        d->m_js->execute(builtInScript + script, d->m_event);
+        d->m_js->execute(builtInScript + script, d->m_event, globalPos);
     }
 #endif
 }

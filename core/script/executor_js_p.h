@@ -7,6 +7,8 @@
 #ifndef OKULAR_SCRIPT_EXECUTOR_JS_P_H
 #define OKULAR_SCRIPT_EXECUTOR_JS_P_H
 
+#include <QPoint>
+
 class QString;
 
 namespace Okular
@@ -24,7 +26,7 @@ public:
     ExecutorJS(const ExecutorJS &) = delete;
     ExecutorJS &operator=(const ExecutorJS &) = delete;
 
-    void execute(const QString &script, Event *event);
+    void execute(const QString &script, Event *event, const QPoint &globalPos = {});
 
 private:
     friend class ExecutorJSPrivate;

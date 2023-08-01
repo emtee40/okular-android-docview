@@ -236,7 +236,7 @@ public:
     /*
      * Executes a ScriptAction with the event passed as parameter.
      */
-    void executeScriptEvent(const std::shared_ptr<Event> &event, const Okular::ScriptAction *linkscript);
+    void executeScriptEvent(const std::shared_ptr<Event> &event, const Okular::ScriptAction *linkscript, const QPoint &globalPos = {});
 
     /*
      * Find the corresponding page number for the form field passed as parameter.
