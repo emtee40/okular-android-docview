@@ -50,6 +50,7 @@ public:
 
     DocumentPrivate *m_doc;
     QJSEngine m_interpreter;
+    JSApp *m_jsApp;
 
     QThread m_watchdogThread;
     QTimer *m_watchdogTimer = nullptr;
@@ -65,7 +66,8 @@ void ExecutorJSPrivate::initTypes()
     QObject::connect(
         m_watchdogTimer, &QTimer::timeout, &m_interpreter, [this]() { m_interpreter.setInterrupted(true); }, Qt::DirectConnection);
 
-    m_interpreter.globalObject().setProperty(QStringLiteral("app"), m_interpreter.newQObject(new JSApp(m_doc, m_watchdogTimer)));
+    m_jsApp = new JSApp(m_doc, m_watchdogTimer);
+    m_interpreter.globalObject().setProperty(QStringLiteral("app"), m_interpreter.newQObject(m_jsApp));
     m_interpreter.globalObject().setProperty(QStringLiteral("console"), m_interpreter.newQObject(new JSConsole));
     m_interpreter.globalObject().setProperty(QStringLiteral("Doc"), m_interpreter.newQObject(new JSDocument(m_doc)));
     m_interpreter.globalObject().setProperty(QStringLiteral("display"), m_interpreter.newQObject(new JSDisplay));
