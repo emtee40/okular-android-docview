@@ -9,7 +9,6 @@ Dependencies:
     'frameworks/ki18n': '@stable'
     'frameworks/kio': '@stable'
     'frameworks/karchive': '@stable'
-    'frameworks/breeze-icons': '@stable'
     'libraries/phonon': '@stable'
     'graphics/kdegraphics-mobipocket': '@same'
 
@@ -17,6 +16,7 @@ Dependencies:
   'require':
     'frameworks/khtml': '@stable'
     'frameworks/purpose': '@stable'
+    'frameworks/breeze-icons': '@stable'
     'graphics/libkexiv2': '@same'
 
 - 'on': ['Linux', 'FreeBSD']
