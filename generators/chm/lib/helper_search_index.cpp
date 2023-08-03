@@ -337,8 +337,7 @@ QList<QUrl> Index::query(const QStringList &terms, const QStringList &termSeq, c
 {
     QList<Term> termList;
 
-    QStringList::ConstIterator it = terms.begin();
-    for (it = terms.begin(); it != terms.end(); ++it) {
+    for (QStringList::ConstIterator it = terms.begin(); it != terms.end(); ++it) {
         Entry *e = nullptr;
 
         if (dict[*it]) {
