@@ -7,6 +7,7 @@
 #ifndef _OKULAR_AUDIOPLAYER_H_
 #define _OKULAR_AUDIOPLAYER_H_
 
+#include "kio/job_base.h"
 #include "okularcore_export.h"
 
 #include <QObject>
@@ -67,6 +68,9 @@ public:
      * @since 0.19 (KDE 4.13)
      */
     State state() const;
+
+private Q_SLOTS:
+    void downloadFinished(KJob *job);
 
 private:
     AudioPlayer();
