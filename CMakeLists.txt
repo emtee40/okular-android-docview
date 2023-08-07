@@ -102,7 +102,7 @@ ecm_setup_version(${PROJECT_VERSION}
                   VERSION_HEADER "${CMAKE_CURRENT_BINARY_DIR}/core/version.h"
                   PACKAGE_VERSION_FILE "${CMAKE_CURRENT_BINARY_DIR}/Okular5ConfigVersion.cmake")
 
-find_package(Qt5 ${QT_REQUIRED_VERSION} CONFIG REQUIRED COMPONENTS Core Test Widgets PrintSupport Svg)
+find_package(Qt5 ${QT_REQUIRED_VERSION} CONFIG REQUIRED COMPONENTS Core Test Widgets PrintSupport Svg Multimedia)
 
 if(ANDROID)
     find_package(Qt5 ${QT_REQUIRED_VERSION} CONFIG REQUIRED COMPONENTS AndroidExtras)
@@ -210,14 +210,6 @@ if(NOT WIN32 AND NOT ANDROID AND NOT APPLE)
     set(HAVE_X11 TRUE)
 else()
     set(HAVE_X11 FALSE)
-endif()
-find_package(Phonon4Qt5 CONFIG)
-set_okular_optional_package_properties(Phonon4Qt5 PROPERTIES
-    PURPOSE "Required for documents with audio or video elements")
-if (Phonon4Qt5_FOUND)
-    set(HAVE_PHONON 1)
-else()
-    set(HAVE_PHONON 0)
 endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/modules)
@@ -462,6 +454,7 @@ PRIVATE
     KF5::I18n
     KF5::ThreadWeaver
     KF5::Bookmarks
+    Qt5::Multimedia
     Qt5::Svg
     ${MATH_LIB}
     ZLIB::ZLIB
@@ -472,10 +465,6 @@ PUBLIC  # these are included from the installed headers
     Qt5::PrintSupport
     Qt5::Widgets
 )
-if (Phonon4Qt5_FOUND)
-    target_link_libraries(okularcore PRIVATE Phonon::phonon4qt5)
-endif()
-
 
 if (KF5Wallet_FOUND)
     target_link_libraries(okularcore PRIVATE KF5::Wallet)
@@ -607,9 +596,6 @@ target_link_libraries(okularpart okularcore
 )
 if (TARGET Qt5::DBus)
     target_link_libraries(okularpart Qt5::DBus)
-endif()
-if (Phonon4Qt5_FOUND)
-   target_link_libraries(okularpart Phonon::phonon4qt5)
 endif()
 
 if(KF5Wallet_FOUND)
