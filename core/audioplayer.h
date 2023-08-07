@@ -7,6 +7,7 @@
 #ifndef _OKULAR_AUDIOPLAYER_H_
 #define _OKULAR_AUDIOPLAYER_H_
 
+#include "kio/job_base.h"
 #include "okularcore_export.h"
 
 #include <QObject>

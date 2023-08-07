@@ -11,16 +11,10 @@
 #include <QBuffer>
 #include <QDebug>
 #include <QDir>
+#include <QMediaPlayer>
 #include <QRandomGenerator>
 
 #include "config-okular.h"
-
-#if HAVE_PHONON
-#include <phonon/abstractmediastream.h>
-#include <phonon/audiooutput.h>
-#include <phonon/mediaobject.h>
-#include <phonon/path.h>
-#endif
 
 // local includes
 #include "action.h"
@@ -31,7 +25,8 @@
 
 using namespace Okular;
 
-#if HAVE_PHONON
+class SoundInfo;
+class PlayData;
 
 class PlayData;
 class SoundInfo;
@@ -49,7 +44,7 @@ public:
     bool play(const SoundInfo &si);
     void stopPlayings();
 
-    void finished(int);
+    void stateChanged(int, QMediaPlayer::State);
 
     AudioPlayer *q;
 
@@ -89,34 +84,27 @@ class PlayData
 {
 public:
     PlayData()
-        : m_mediaobject(nullptr)
-        , m_output(nullptr)
-        , m_buffer(nullptr)
+        : m_player(nullptr)
     {
     }
 
     void play()
     {
-        if (m_buffer) {
-            m_buffer->open(QIODevice::ReadOnly);
-        }
-        m_mediaobject->play();
+        m_player->play();
     }
 
     ~PlayData()
     {
-        m_mediaobject->stop();
-        delete m_mediaobject;
-        delete m_output;
-        delete m_buffer;
+        // Block signals so stateChanged wont get called from stop()
+        m_player->blockSignals(true);
+        m_player->stop();
+        m_player->deleteLater();
     }
 
     PlayData(const PlayData &) = delete;
     PlayData &operator=(const PlayData &) = delete;
 
-    Phonon::MediaObject *m_mediaobject;
-    Phonon::AudioOutput *m_output;
-    QBuffer *m_buffer;
+    QMediaPlayer *m_player;
     SoundInfo m_info;
 };
 
@@ -146,24 +134,22 @@ int AudioPlayerPrivate::newId() const
 
 bool AudioPlayerPrivate::play(const SoundInfo &si)
 {
-    qCDebug(OkularCoreDebug);
+    qCDebug(OkularCoreDebug) << "play called";
     PlayData *data = new PlayData();
-    data->m_output = new Phonon::AudioOutput(Phonon::NotificationCategory);
-    data->m_output->setVolume(si.volume);
-    data->m_mediaobject = new Phonon::MediaObject();
-    Phonon::createPath(data->m_mediaobject, data->m_output);
     data->m_info = si;
+    data->m_player = new QMediaPlayer();
+    data->m_player->setVolume(data->m_info.volume * 100); // Convert from double 0 - 1 to int 0 - 100 range.
     bool valid = false;
 
-    switch (si.sound->soundType()) {
+    switch (data->m_info.sound->soundType()) {
     case Sound::External: {
         QString url = si.sound->url();
         qCDebug(OkularCoreDebug) << "External," << url;
         if (!url.isEmpty()) {
             int newid = newId();
-            QObject::connect(data->m_mediaobject, &Phonon::MediaObject::finished, q, [this, newid]() { finished(newid); });
             const QUrl newurl = QUrl::fromUserInput(url, m_currentDocument.adjusted(QUrl::RemoveFilename).toLocalFile());
-            data->m_mediaobject->setCurrentSource(newurl);
+            data->m_player->setMedia(newurl);
+            QObject::connect(data->m_player, &QMediaPlayer::stateChanged, q, [this, newid](QMediaPlayer::State state) { stateChanged(newid, state); });
             m_playing.insert(newid, data);
             valid = true;
         }
@@ -173,12 +159,12 @@ bool AudioPlayerPrivate::play(const SoundInfo &si)
         QByteArray filedata = si.sound->data();
         qCDebug(OkularCoreDebug) << "Embedded," << filedata.length();
         if (!filedata.isEmpty()) {
-            qCDebug(OkularCoreDebug) << "Mediaobject:" << data->m_mediaobject;
             int newid = newId();
-            QObject::connect(data->m_mediaobject, &Phonon::MediaObject::finished, q, [this, newid]() { finished(newid); });
-            data->m_buffer = new QBuffer();
-            data->m_buffer->setData(filedata);
-            data->m_mediaobject->setCurrentSource(Phonon::MediaSource(data->m_buffer));
+            QObject::connect(data->m_player, &QMediaPlayer::stateChanged, q, [this, newid](QMediaPlayer::State state) { stateChanged(newid, state); });
+            QBuffer *buffer = new QBuffer(q);
+            buffer->setData(filedata);
+            buffer->open(QBuffer::ReadOnly);
+            data->m_player->setMedia(QMediaContent(), buffer);
             m_playing.insert(newid, data);
             valid = true;
         }
@@ -204,24 +190,26 @@ void AudioPlayerPrivate::stopPlayings()
     m_state = AudioPlayer::StoppedState;
 }
 
-void AudioPlayerPrivate::finished(int id)
+void AudioPlayerPrivate::stateChanged(int id, QMediaPlayer::State state)
 {
     QHash<int, PlayData *>::iterator it = m_playing.find(id);
     if (it == m_playing.end()) {
         return;
     }
 
-    SoundInfo si = it.value()->m_info;
-    // if the sound must be repeated indefinitely, then start the playback
-    // again, otherwise destroy the PlayData as it's no more useful
-    if (si.repeat) {
-        it.value()->play();
-    } else {
-        delete it.value();
-        m_playing.erase(it);
-        m_state = AudioPlayer::StoppedState;
+    if (state == QMediaPlayer::StoppedState) {
+        SoundInfo si = it.value()->m_info;
+        // if the sound must be repeated indefinitely, then start the playback
+        // again, otherwise destroy the PlayData as it's no more useful
+        if (si.repeat) {
+            it.value()->play();
+        } else {
+            delete it.value();
+            m_playing.erase(it);
+            m_state = AudioPlayer::StoppedState;
+        }
+        qCDebug(OkularCoreDebug) << "finished," << m_playing.count();
     }
-    qCDebug(OkularCoreDebug) << "finished," << m_playing.count();
 }
 
 AudioPlayer::AudioPlayer()
@@ -250,10 +238,11 @@ void AudioPlayer::playSound(const Sound *sound, const SoundAction *linksound)
 
     // we don't play external sounds for remote documents
     if (sound->soundType() == Sound::External && !d->m_currentDocument.isLocalFile()) {
+        qCDebug(OkularCoreDebug) << "Tried to play external sound for remote document, bailing out.";
         return;
     }
 
-    qCDebug(OkularCoreDebug);
+    qCDebug(OkularCoreDebug) << "Playing sound";
     SoundInfo si(sound, linksound);
 
     // if the mix flag of the new sound is false, then the currently playing
@@ -285,60 +274,5 @@ void AudioPlayer::setDocument(const QUrl &url, Okular::Document *document)
     Q_UNUSED(document);
     d->m_currentDocument = url;
 }
-
-#else
-
-namespace Okular
-{
-class AudioPlayerPrivate
-{
-public:
-    Document *document;
-};
-}
-
-AudioPlayer::AudioPlayer()
-    : d(new AudioPlayerPrivate())
-{
-}
-
-AudioPlayer *AudioPlayer::instance()
-{
-    static AudioPlayer ap;
-    return &ap;
-}
-
-void AudioPlayer::playSound(const Sound *sound, const SoundAction *linksound)
-{
-    Q_UNUSED(sound);
-    Q_UNUSED(linksound);
-    Q_EMIT d->document->warning(i18n("This Okular is built without audio support"), 2000);
-}
-
-AudioPlayer::State Okular::AudioPlayer::state() const
-{
-    return State::StoppedState;
-}
-
-void AudioPlayer::stopPlaybacks()
-{
-}
-
-AudioPlayer::~AudioPlayer() noexcept
-{
-}
-
-void AudioPlayer::resetDocument()
-{
-    d->document = nullptr;
-}
-
-void AudioPlayer::setDocument(const QUrl &url, Okular::Document *document)
-{
-    Q_UNUSED(url);
-    d->document = document;
-}
-
-#endif
 
 #include "moc_audioplayer.cpp"
