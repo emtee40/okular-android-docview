@@ -19,26 +19,28 @@ private Q_SLOTS:
 void SuggestedFileNameTest::testSuggestedSignedDocumentName()
 {
     QFETCH(QString, input);
+    QFETCH(QString, preferredSuffix);
     QFETCH(QString, expected);
 
-    auto output = SignaturePartUtils::getSuggestedFileNameForSignedFile(input, QStringLiteral("pdf"));
+    auto output = SignaturePartUtils::getSuggestedFileNameForSignedFile(input, preferredSuffix);
     QCOMPARE(output, expected);
 }
 
 void SuggestedFileNameTest::testSuggestedSignedDocumentName_data()
 {
     QTest::addColumn<QString>("input");
+    QTest::addColumn<QString>("preferredSuffix"); // normally derived from mimetype of document
     QTest::addColumn<QString>("expected");
 
     // note that we expect english for the tests. The _signed parts might be translated
-    QTest::newRow("simple") << QStringLiteral("foo.pdf") << QStringLiteral("foo_signed.pdf");
-    QTest::newRow("double extensions") << QStringLiteral("foo.pdf.gz") << QStringLiteral("foo_signed.pdf"); // while we might read compressed files, we don't write  them out
-    QTest::newRow("versioning") << QStringLiteral("foo-1.2.3.pdf") << QStringLiteral("foo-1.2.3_signed.pdf");
-    QTest::newRow("versioned and double extensions") << QStringLiteral("foo-1.2.3.pdf.gz") << QStringLiteral("foo-1.2.3_signed.pdf");
-    QTest::newRow("gif") << QStringLiteral("foo.gif") << QStringLiteral("foo_signed.pdf");
-    QTest::newRow("version gif") << QStringLiteral("foo-1.2.3.gif") << QStringLiteral("foo-1.2.3_signed.pdf");
-    QTest::newRow("no extension") << QStringLiteral("foo") << QStringLiteral("foo_signed.pdf");
-    QTest::newRow("no extension with versions") << QStringLiteral("foo-1.2.3") << QStringLiteral("foo-1.2_signed.pdf"); // This is not as such expected behavior but more a documentation of implementation.
+    QTest::newRow("simple") << QStringLiteral("foo.pdf") << QStringLiteral("pdf") << QStringLiteral("foo_signed.pdf");
+    QTest::newRow("double extensions") << QStringLiteral("foo.pdf.gz") << QStringLiteral("pdf") << QStringLiteral("foo_signed.pdf"); // while we might read compressed files, we don't write  them out
+    QTest::newRow("versioning") << QStringLiteral("foo-1.2.3.pdf") << QStringLiteral("pdf") << QStringLiteral("foo-1.2.3_signed.pdf");
+    QTest::newRow("versioned and double extensions") << QStringLiteral("foo-1.2.3.pdf.gz") << QStringLiteral("pdf") << QStringLiteral("foo-1.2.3_signed.pdf");
+    QTest::newRow("gif") << QStringLiteral("foo.gif") << QStringLiteral("pdf") << QStringLiteral("foo_signed.pdf");
+    QTest::newRow("version gif") << QStringLiteral("foo-1.2.3.gif") << QStringLiteral("pdf") << QStringLiteral("foo-1.2.3_signed.pdf");
+    QTest::newRow("no extension") << QStringLiteral("foo") << QStringLiteral("pdf") << QStringLiteral("foo_signed.pdf");
+    QTest::newRow("no extension with versions") << QStringLiteral("foo-1.2.3") << QStringLiteral("pdf") << QStringLiteral("foo-1.2_signed.pdf"); // This is not as such expected behavior but more a documentation of implementation.
 }
 
 QTEST_GUILESS_MAIN(SuggestedFileNameTest)
