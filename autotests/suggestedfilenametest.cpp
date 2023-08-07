@@ -12,9 +12,15 @@ class SuggestedFileNameTest : public QObject
 {
     Q_OBJECT
 private Q_SLOTS:
+    void initTestCase();
     void testSuggestedSignedDocumentName();
     void testSuggestedSignedDocumentName_data();
 };
+
+void SuggestedFileNameTest::initTestCase()
+{
+    qputenv("LC_ALL", "en_US.UTF-8");
+}
 
 void SuggestedFileNameTest::testSuggestedSignedDocumentName()
 {
@@ -32,7 +38,6 @@ void SuggestedFileNameTest::testSuggestedSignedDocumentName_data()
     QTest::addColumn<QString>("preferredSuffix"); // normally derived from mimetype of document
     QTest::addColumn<QString>("expected");
 
-    // note that we expect english for the tests. The _signed parts might be translated
     QTest::newRow("simple") << QStringLiteral("foo.pdf") << QStringLiteral("pdf") << QStringLiteral("foo_signed.pdf");
     QTest::newRow("double extensions") << QStringLiteral("foo.pdf.gz") << QStringLiteral("pdf") << QStringLiteral("foo_signed.pdf"); // while we might read compressed files, we don't write  them out
     QTest::newRow("versioning") << QStringLiteral("foo-1.2.3.pdf") << QStringLiteral("pdf") << QStringLiteral("foo-1.2.3_signed.pdf");
