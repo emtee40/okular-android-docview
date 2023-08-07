@@ -95,8 +95,8 @@ public:
     static constexpr char ConfigKey[] = "RecentBackgrounds";
     RecentImagesModel()
     {
-        auto recentList = KSharedConfig::openConfig()->group(QLatin1String(ConfigGroup)).readEntry<QStringList>(QLatin1String(ConfigKey), QStringList());
-        for (const auto &element : std::as_const(recentList)) {
+        const auto recentList = KSharedConfig::openConfig()->group(QLatin1String(ConfigGroup)).readEntry<QStringList>(QLatin1String(ConfigKey), QStringList());
+        for (const auto &element : recentList) {
             if (QFile::exists(element)) { // maybe the image has been removed from disk since last invocation
                 m_storedElements.push_back(element);
             }

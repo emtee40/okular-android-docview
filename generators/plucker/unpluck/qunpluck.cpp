@@ -602,9 +602,9 @@ static std::vector<ParagraphInfo> ParseParagraphInfo(unsigned char *bytes)
     int n = (bytes[2] << 8) + bytes[3];
     paragraph_info.reserve(n);
     for (int j = 0; j < n; j++) {
-        int size = (bytes[8 + (j * 4) + 0] << 8) + bytes[8 + (j * 4) + 1];
-        int attributes = (bytes[8 + (j * 4) + 2] << 8) + bytes[8 + (j * 4) + 3];
-        paragraph_info.emplace_back(ParagraphInfo {size, attributes});
+        const int size = (bytes[8 + (j * 4) + 0] << 8) + bytes[8 + (j * 4) + 1];
+        const int attributes = (bytes[8 + (j * 4) + 2] << 8) + bytes[8 + (j * 4) + 3];
+        paragraph_info.emplace_back(size, attributes);
     }
     return paragraph_info;
 }

@@ -29,20 +29,20 @@ void RecentItemsModel::loadEntries(const KConfigGroup &cg)
 
     // read file list
     for (int i = 1; i <= maxItems(); i++) {
-        QString key = QStringLiteral("File%1").arg(i);
-        QString value = cg.readPathEntry(key, QString());
+        const QString key = QStringLiteral("File%1").arg(i);
+        const QString value = cg.readPathEntry(key, QString());
         if (value.isEmpty()) {
             continue;
         }
-        QUrl url = QUrl::fromUserInput(value);
+        const QUrl url = QUrl::fromUserInput(value);
 
         // Don't restore if file doesn't exist anymore
         if (url.isLocalFile() && !QFile::exists(url.toLocalFile())) {
             continue;
         }
 
-        QString nameKey = QStringLiteral("Name%1").arg(i);
-        QString nameValue = cg.readPathEntry(nameKey, url.fileName());
+        const QString nameKey = QStringLiteral("Name%1").arg(i);
+        const QString nameValue = cg.readPathEntry(nameKey, url.fileName());
         m_recentItems.append(RecentItem {nameValue, url});
     }
 
