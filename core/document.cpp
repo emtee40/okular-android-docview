@@ -4399,11 +4399,11 @@ QString DocumentPrivate::diff(const QString &oldVal, const QString &newVal)
 
     for (int i = 0; i < std::min(oldUcs4.size(), newUcs4.size()); i++) {
         if (oldUcs4.at(i) != newUcs4.at(i)) {
-            return QString::fromUcs4(newUcs4.mid(i).data(), newUcs4.size() - i);
+            return QString::fromUcs4(newUcs4.mid(i).constData(), newUcs4.size() - i);
         }
     }
     if (oldUcs4.size() < newUcs4.size()) {
-        return QString::fromUcs4(newUcs4.mid(oldUcs4.size()).data(), newUcs4.size() - oldUcs4.size());
+        return QString::fromUcs4(newUcs4.mid(oldUcs4.size()).constData(), newUcs4.size() - oldUcs4.size());
     }
     return {};
 }
