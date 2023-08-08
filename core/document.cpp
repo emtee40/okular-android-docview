@@ -47,7 +47,6 @@
 #include <QUndoCommand>
 #include <QWindow>
 #include <QtAlgorithms>
-#include <private/qstringiterator_p.h>
 
 #include <KApplicationTrader>
 #include <KAuthorized>
@@ -4390,23 +4389,15 @@ QString DocumentPrivate::diff(const QString &oldVal, const QString &newVal)
 {
     QString diff;
 
-    QStringIterator oldIt(oldVal);
-    QStringIterator newIt(newVal);
-
-    while (oldIt.hasNext() && newIt.hasNext()) {
-        QChar oldToken = oldIt.next();
-        QChar newToken = newIt.next();
-
-        if (oldToken != newToken) {
-            diff += newToken;
-            break;
+    for (int i = 0; i < std::min(oldVal.size(), newVal.size()); i++) {
+        if (oldVal.at(i) != newVal.at(i)) {
+            return newVal.right(newVal.size() - i);
         }
     }
-
-    while (newIt.hasNext()) {
-        diff += newIt.next();
+    if (oldVal.size() < newVal.size()) {
+        return newVal.right(newVal.size() - oldVal.size());
     }
-    return diff;
+    return {};
 }
 
 void Document::processKeystrokeAction(const Action *action, Okular::FormFieldText *fft, const QVariant &newValue)
