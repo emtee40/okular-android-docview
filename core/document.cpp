@@ -4387,13 +4387,23 @@ void Document::processFormatAction(const Action *action, Okular::FormFieldText *
 
 QString DocumentPrivate::diff(const QString &oldVal, const QString &newVal)
 {
-    for (int i = 0; i < std::min(oldVal.size(), newVal.size()); i++) {
-        if (oldVal.at(i) != newVal.at(i)) {
-            return newVal.right(newVal.size() - i);
+    // We need to consider unicode surrogate pairs and others so working
+    // with QString directly, even with the private QStringIterator is
+    // not that simple to get right
+    // so let's just convert to ucs4
+    // also, given that toUcs4 is either a QList or a QVector depending on
+    // qt version, let's try keep it very auto-typed to ease Qt6 porting
+
+    auto oldUcs4 = oldVal.toUcs4();
+    auto newUcs4 = newVal.toUcs4();
+
+    for (int i = 0; i < std::min(oldUcs4.size(), newUcs4.size()); i++) {
+        if (oldUcs4.at(i) != newUcs4.at(i)) {
+            return QString::fromUcs4(newUcs4.mid(i).data(), newUcs4.size() - i);
         }
     }
-    if (oldVal.size() < newVal.size()) {
-        return newVal.right(newVal.size() - oldVal.size());
+    if (oldUcs4.size() < newUcs4.size()) {
+        return QString::fromUcs4(newUcs4.mid(oldUcs4.size()).data(), newUcs4.size() - oldUcs4.size());
     }
     return {};
 }
