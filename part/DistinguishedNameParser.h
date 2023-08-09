@@ -78,8 +78,10 @@ inline std::optional<std::string> parseHexString(std::string_view view)
     return result;
 }
 
-static const std::vector<std::pair<std::string_view, std::string_view>> oidmap = {
-    // clang-format off
+static const std::vector<std::pair<std::string_view, std::string_view>> &oidmap()
+{
+    static const std::vector<std::pair<std::string_view, std::string_view>> oidmap_ = {
+        // clang-format off
     // keep them ordered by oid:
     {"NameDistinguisher", "0.2.262.1.10.7.20"   },
     {"EMAIL",             "1.2.840.113549.1.9.1"},
@@ -93,15 +95,17 @@ static const std::vector<std::pair<std::string_view, std::string_view>> oidmap =
     {"PC",                "2.5.4.17"            },
     {"GN",                "2.5.4.42"            },
     {"Pseudo",            "2.5.4.65"            },
-    // clang-format on
-};
+        // clang-format on
+    };
+    return oidmap_;
+}
 
 static std::string_view attributeNameForOID(std::string_view oid)
 {
     if (oid.substr(0, 4) == std::string_view {"OID."} || oid.substr(0, 4) == std::string_view {"oid."}) { // c++20 has starts_with. we don't have that yet.
         oid.remove_prefix(4);
     }
-    for (const auto &m : oidmap) {
+    for (const auto &m : oidmap()) {
         if (oid == m.second) {
             return m.first;
         }
