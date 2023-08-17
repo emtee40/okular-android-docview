@@ -32,6 +32,9 @@
 #include "core/movie.h"
 #include "snapshottaker.h"
 
+const int kVideoPage = 0;
+const int kPosterPage = 1;
+
 static QAction *createToolBarButtonWithWidgetPopup(QToolBar *toolBar, QWidget *widget, const QIcon &icon)
 {
     QToolButton *button = new QToolButton(toolBar);
@@ -99,12 +102,12 @@ public:
     Okular::NormalizedRect geom;
     QMediaPlayer *player;
     QVideoWidget *videoWidget;
-//    Phonon::SeekSlider *seekSlider;
+    //    Phonon::SeekSlider *seekSlider;
     QToolBar *controlBar;
     QAction *playPauseAction;
     QAction *stopAction;
-//    QAction *seekSliderAction;
-//    QAction *seekSliderMenuAction;
+    //    QAction *seekSliderAction;
+    //    QAction *seekSliderMenuAction;
     QStackedLayout *pageLayout;
     QLabel *posterImagePage;
     bool loaded : 1;
@@ -139,7 +142,7 @@ void VideoWidget::Private::load()
 
     connect(player, &QMediaPlayer::stateChanged, q, [this](QMediaPlayer::State s) { stateChanged(s); });
 
-//    seekSlider->setEnabled(true);
+    //    seekSlider->setEnabled(true);
 }
 
 void VideoWidget::Private::setupPlayPauseAction(PlayPauseMode mode)
@@ -155,7 +158,6 @@ void VideoWidget::Private::setupPlayPauseAction(PlayPauseMode mode)
 
 void VideoWidget::Private::takeSnapshot()
 {
-    const QUrl url = urlFromUrlString(movie->url(), document);
     QPixmap pixmap = videoWidget->grab();
     QImage image = pixmap.toImage();
     setPosterImage(image);
@@ -164,7 +166,7 @@ void VideoWidget::Private::takeSnapshot()
 void VideoWidget::Private::videoStopped()
 {
     if (movie->showPosterImage()) {
-        pageLayout->setCurrentIndex(1);
+        pageLayout->setCurrentIndex(kPosterPage);
     } else {
         q->hide();
     }
@@ -228,7 +230,7 @@ void VideoWidget::Private::setPosterImage(const QImage &image)
 void VideoWidget::Private::stateChanged(QMediaPlayer::State newState)
 {
     if (newState == QMediaPlayer::PlayingState) {
-        pageLayout->setCurrentIndex(0);
+        pageLayout->setCurrentIndex(kVideoPage);
     }
 }
 
@@ -263,14 +265,14 @@ VideoWidget::VideoWidget(const Okular::Annotation *annotation, Okular::Movie *mo
     d->stopAction = d->controlBar->addAction(QIcon::fromTheme(QStringLiteral("media-playback-stop")), i18nc("stop the movie playback", "Stop"), this, SLOT(stop()));
     d->stopAction->setEnabled(false);
     d->controlBar->addSeparator();
-//    d->seekSlider = new Phonon::SeekSlider(d->player->mediaObject(), d->controlBar);
-//    d->seekSliderAction = d->controlBar->addWidget(d->seekSlider);
-//    d->seekSlider->setEnabled(false);
+    //    d->seekSlider = new Phonon::SeekSlider(d->player->mediaObject(), d->controlBar);
+    //    d->seekSliderAction = d->controlBar->addWidget(d->seekSlider);
+    //    d->seekSlider->setEnabled(false);
 
-//    Phonon::SeekSlider *verticalSeekSlider = new Phonon::SeekSlider(d->player->mediaObject(), nullptr);
-//    verticalSeekSlider->setMaximumHeight(100);
-//    d->seekSliderMenuAction = createToolBarButtonWithWidgetPopup(d->controlBar, verticalSeekSlider, QIcon::fromTheme(QStringLiteral("player-time")));
-//    d->seekSliderMenuAction->setVisible(false);
+    //    Phonon::SeekSlider *verticalSeekSlider = new Phonon::SeekSlider(d->player->mediaObject(), nullptr);
+    //    verticalSeekSlider->setMaximumHeight(100);
+    //    d->seekSliderMenuAction = createToolBarButtonWithWidgetPopup(d->controlBar, verticalSeekSlider, QIcon::fromTheme(QStringLiteral("player-time")));
+    //    d->seekSliderMenuAction->setVisible(false);
 
     d->controlBar->setVisible(movie->showControls());
 
@@ -292,7 +294,7 @@ VideoWidget::VideoWidget(const Okular::Annotation *annotation, Okular::Movie *mo
     d->pageLayout->addWidget(d->posterImagePage);
 
     if (movie->showPosterImage()) {
-        d->pageLayout->setCurrentIndex(1);
+        d->pageLayout->setCurrentIndex(kPosterPage);
 
         const QImage posterImage = movie->posterImage();
         if (posterImage.isNull()) {
@@ -301,7 +303,7 @@ VideoWidget::VideoWidget(const Okular::Annotation *annotation, Okular::Movie *mo
             d->setPosterImage(posterImage);
         }
     } else {
-        d->pageLayout->setCurrentIndex(0);
+        d->pageLayout->setCurrentIndex(kVideoPage);
     }
 }
 
@@ -333,7 +335,7 @@ void VideoWidget::pageInitialized()
 void VideoWidget::pageEntered()
 {
     if (d->movie->showPosterImage()) {
-        d->pageLayout->setCurrentIndex(1);
+        d->pageLayout->setCurrentIndex(kPosterPage);
         show();
     }
 
@@ -422,17 +424,17 @@ bool VideoWidget::event(QEvent *event)
     return QWidget::event(event);
 }
 
-void VideoWidget::resizeEvent(QResizeEvent *event)
+void VideoWidget::resizeEvent(QResizeEvent */*event*/)
 {
-    const QSize &s = event->size();
-//    int usedSpace = d->seekSlider->geometry().left() + d->seekSlider->iconSize().width();
+    // const QSize &s = event->size();
+    //    int usedSpace = d->seekSlider->geometry().left() + d->seekSlider->iconSize().width();
     // try to give the slider at least 30px of space
-//    if (s.width() < (usedSpace + 30)) {
-//        d->seekSliderAction->setVisible(false);
-//        d->seekSliderMenuAction->setVisible(true);
-//    } else {
-//        d->seekSliderAction->setVisible(true);
-//        d->seekSliderMenuAction->setVisible(false);
-//    }
+    //    if (s.width() < (usedSpace + 30)) {
+    //        d->seekSliderAction->setVisible(false);
+    //        d->seekSliderMenuAction->setVisible(true);
+    //    } else {
+    //        d->seekSliderAction->setVisible(true);
+    //        d->seekSliderMenuAction->setVisible(false);
+    //    }
 }
 #include "moc_videowidget.cpp"
