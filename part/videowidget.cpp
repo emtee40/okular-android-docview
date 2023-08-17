@@ -32,6 +32,9 @@
 #include "core/movie.h"
 #include "snapshottaker.h"
 
+const int kVideoPage = 0;
+const int kPosterPage = 1;
+
 static QAction *createToolBarButtonWithWidgetPopup(QToolBar *toolBar, QWidget *widget, const QIcon &icon)
 {
     QToolButton *button = new QToolButton(toolBar);
@@ -164,7 +167,7 @@ void VideoWidget::Private::takeSnapshot()
 void VideoWidget::Private::videoStopped()
 {
     if (movie->showPosterImage()) {
-        pageLayout->setCurrentIndex(1);
+        pageLayout->setCurrentIndex(kPosterPage);
     } else {
         q->hide();
     }
@@ -228,7 +231,7 @@ void VideoWidget::Private::setPosterImage(const QImage &image)
 void VideoWidget::Private::stateChanged(QMediaPlayer::State newState)
 {
     if (newState == QMediaPlayer::PlayingState) {
-        pageLayout->setCurrentIndex(0);
+        pageLayout->setCurrentIndex(kVideoPage);
     }
 }
 
@@ -292,7 +295,7 @@ VideoWidget::VideoWidget(const Okular::Annotation *annotation, Okular::Movie *mo
     d->pageLayout->addWidget(d->posterImagePage);
 
     if (movie->showPosterImage()) {
-        d->pageLayout->setCurrentIndex(1);
+        d->pageLayout->setCurrentIndex(kPosterPage);
 
         const QImage posterImage = movie->posterImage();
         if (posterImage.isNull()) {
@@ -301,7 +304,7 @@ VideoWidget::VideoWidget(const Okular::Annotation *annotation, Okular::Movie *mo
             d->setPosterImage(posterImage);
         }
     } else {
-        d->pageLayout->setCurrentIndex(0);
+        d->pageLayout->setCurrentIndex(kVideoPage);
     }
 }
 
@@ -333,7 +336,7 @@ void VideoWidget::pageInitialized()
 void VideoWidget::pageEntered()
 {
     if (d->movie->showPosterImage()) {
-        d->pageLayout->setCurrentIndex(1);
+        d->pageLayout->setCurrentIndex(kPosterPage);
         show();
     }
 
