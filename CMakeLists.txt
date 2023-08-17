@@ -570,7 +570,6 @@ if(BUILD_DESKTOP)
     part/searchwidget.cpp
     part/sidebar.cpp
     part/side_reviews.cpp
-    part/snapshottaker.cpp
     part/thumbnaillist.cpp
     part/toc.cpp
     part/toggleactionmenu.cpp
