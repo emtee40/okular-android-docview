@@ -9,6 +9,7 @@
 // qt/kde includes
 #include <QAction>
 #include <QApplication>
+#include <QBitmap>
 #include <QIcon>
 #include <QPainter>
 #include <QResizeEvent>
@@ -701,7 +702,14 @@ void ThumbnailListPrivate::slotDelayTimeout()
     delete m_bookmarkOverlay;
     const int expectedWidth = q->viewport()->width() / 4;
     if (expectedWidth > 10) {
-        m_bookmarkOverlay = new QPixmap(QIcon::fromTheme(QStringLiteral("bookmarks")).pixmap(expectedWidth));
+        m_bookmarkOverlay = new QPixmap(QIcon::fromTheme(QStringLiteral("bookmarks-bookmarked")).pixmap(expectedWidth));
+
+        if (Okular::Settings::enableBookmarkColor()) {
+            QBitmap mask = m_bookmarkOverlay->createMaskFromColor(QColor(0x232629), Qt::MaskOutColor);
+
+            m_bookmarkOverlay->fill(QColor(0xDA4453));
+            m_bookmarkOverlay->setMask(mask);
+        }
     } else {
         m_bookmarkOverlay = nullptr;
     }

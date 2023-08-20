@@ -20,12 +20,14 @@
 
 // qt/kde includes
 #include <QApplication>
+#include <QBitmap>
 #include <QClipboard>
 #include <QCursor>
 #include <QDesktopServices>
 #include <QElapsedTimer>
 #include <QEvent>
 #include <QGestureEvent>
+#include <QIcon>
 #include <QImage>
 #include <QInputDialog>
 #include <QLoggingCategory>
@@ -68,6 +70,7 @@
 #include "annotwindow.h"
 #include "colormodemenu.h"
 #include "core/annotations.h"
+#include "core/bookmarkmanager.h"
 #include "cursorwraphelper.h"
 #include "formwidgets.h"
 #include "gui/debug_ui.h"
@@ -1493,7 +1496,9 @@ void PageView::notifyPageChanged(int pageNumber, int changedFlags)
 {
     // only handle pixmap / highlight changes notifies
     if (changedFlags & DocumentObserver::Bookmark) {
-        return;
+        if (!Okular::Settings::showBookmarkOnPage()) {
+            return;
+        }
     }
 
     if (changedFlags & DocumentObserver::Annotations) {
@@ -3523,6 +3528,29 @@ void PageView::drawDocumentOnPainter(const QRect contentsRect, QPainter *p)
         // move the painter to the top-left corner of the real page
         p->save();
         p->translate(itemGeometry.left(), itemGeometry.top());
+
+        if (Okular::Settings::showBookmarkOnPage()) {
+            const bool isBookmarked = document()->bookmarkManager()->isBookmarked(item->pageNumber());
+
+            if (isBookmarked) {
+                const int expectedWidth = itemGeometry.width();
+                const int bookmarkWidth = expectedWidth / 8;
+
+                QPixmap bookmarkOverlay = QPixmap(QIcon::fromTheme(QStringLiteral("bookmarks-bookmarked")).pixmap(bookmarkWidth));
+
+                if (Okular::Settings::enableBookmarkColor()) {
+                    QBitmap mask = bookmarkOverlay.createMaskFromColor(QColor(0x232629), Qt::MaskOutColor);
+
+                    bookmarkOverlay.fill(QColor(0xDA4453));
+                    bookmarkOverlay.setMask(mask);
+                }
+
+                int pixW = bookmarkOverlay.width();
+                int pixH = bookmarkOverlay.height();
+
+                p->drawPixmap(expectedWidth - pixW, -pixH / 8, bookmarkOverlay);
+            }
+        }
 
         // draw the page outline (black border and bottom-right shadow)
         if (!itemGeometry.contains(contentsRect)) {
