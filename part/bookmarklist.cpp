@@ -23,6 +23,7 @@
 #include <KTreeWidgetSearchLine>
 
 #include <kwidgetsaddons_version.h>
+#include <qwidget.h>
 
 #include "core/action.h"
 #include "core/bookmarkmanager.h"
@@ -124,22 +125,29 @@ BookmarkList::BookmarkList(Okular::Document *document, QWidget *parent)
     , m_currentDocumentItem(nullptr)
 {
     QVBoxLayout *mainlay = new QVBoxLayout(this);
-    mainlay->setSpacing(6);
+    mainlay->setSpacing(0);
+    mainlay->setContentsMargins({});
 
     KTitleWidget *titleWidget = new KTitleWidget(this);
     titleWidget->setLevel(4);
     titleWidget->setText(i18n("Bookmarks"));
+    titleWidget->setContentsMargins(0, 6, 0, 6);
     mainlay->addWidget(titleWidget);
     mainlay->setAlignment(titleWidget, Qt::AlignHCenter);
 
-    m_showForAllDocumentsCheckbox = new QCheckBox(i18n("Show for all documents"), this);
+    auto checkBoxContainer = new QWidget(this);
+    auto containerLayout = new QVBoxLayout(checkBoxContainer);
+
+    m_showForAllDocumentsCheckbox = new QCheckBox(i18n("Show for all documents"), checkBoxContainer);
     m_showForAllDocumentsCheckbox->setChecked(true); // this setting isn't saved
     connect(m_showForAllDocumentsCheckbox, &QCheckBox::toggled, this, &BookmarkList::slotShowAllBookmarks);
-    mainlay->addWidget(m_showForAllDocumentsCheckbox);
+    containerLayout->addWidget(m_showForAllDocumentsCheckbox);
+    mainlay->addWidget(checkBoxContainer);
 
     m_searchLine = new KTreeWidgetSearchLine(this);
     mainlay->addWidget(m_searchLine);
     m_searchLine->setPlaceholderText(i18n("Search..."));
+    m_searchLine->setProperty("_breeze_borders_sides", QVariant::fromValue(QFlags{Qt::TopEdge, Qt::BottomEdge}));
 
     m_tree = new QTreeWidget(this);
     mainlay->addWidget(m_tree);
@@ -154,6 +162,7 @@ BookmarkList::BookmarkList(Okular::Document *document, QWidget *parent)
     m_tree->header()->hide();
     m_tree->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_tree->setEditTriggers(QAbstractItemView::EditKeyPressed);
+    m_tree->setProperty("_breeze_borders_sides", QVariant::fromValue(QFlags{Qt::BottomEdge}));
     connect(m_tree, &QTreeWidget::itemActivated, this, &BookmarkList::slotExecuted);
     connect(m_tree, &QTreeWidget::customContextMenuRequested, this, &BookmarkList::slotContextMenu);
     m_searchLine->addTreeWidget(m_tree);
