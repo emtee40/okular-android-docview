@@ -1400,6 +1400,9 @@ Okular::Document::PrintError PDFGenerator::print(QPrinter &printer)
         scaleMode = pdfOptionsPage->scaleMode();
     }
 
+    const auto isPdfOutput = printer.outputFormat() == QPrinter::PdfFormat;
+    const auto overprintPreviewEnabled = PDFSettings::overprintPreviewEnabled();
+
 #ifdef Q_OS_WIN
     // Windows can only print by rasterization, because that is
     // currently the only way Okular implements printing without using UNIX-specific
@@ -1409,6 +1412,7 @@ Okular::Document::PrintError PDFGenerator::print(QPrinter &printer)
 
     if (forceRasterize) {
         pdfdoc->setRenderHint(Poppler::Document::HideAnnotations, !printAnnots);
+        pdfdoc->setRenderHint(Poppler::Document::OverprintPreview, overprintPreviewEnabled);
 
         if (pdfOptionsPage) {
             // If requested, scale to full page instead of the printable area
@@ -1508,6 +1512,9 @@ Okular::Document::PrintError PDFGenerator::print(QPrinter &printer)
     psConverter->setStrictMargins(false);
     psConverter->setForceRasterize(forceRasterize);
     psConverter->setTitle(pstitle);
+#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 9, 0)
+    psConverter->setForceOverprintPreview(!isPdfOutput && overprintPreviewEnabled);
+#endif
 
     if (!printAnnots) {
         psConverter->setPSOptions(psConverter->psOptions() | Poppler::PSConverter::HideAnnotations);
