@@ -10,6 +10,7 @@
 #include <KAboutData>
 
 #include "core/version.h"
+#include "kdocumentviewer.h"
 
 #include <KLocalizedString>
 
@@ -36,6 +37,15 @@ inline KAboutData okularAboutData()
     about.addCredit(i18n("Eugene Trounev"), i18n("Annotations artwork"), QStringLiteral("eugene.trounev@gmail.com"));
     about.addCredit(i18n("Jiri Baum - NICTA"), i18n("Table selection tool"), QStringLiteral("jiri@baum.com.au"));
     about.addCredit(i18n("Fabio D'Urso"), i18n("Annotation improvements"), QStringLiteral("fabiodurso@hotmail.it"));
+
+    about.addEco();
+    about.setEcoCertifications(QList<KAboutEco::EcoCertification>() << KAboutEco::KDEEco << KAboutEco::BlueAngel);
+    about.setEnergyEfficiencyData(QUrl("https://invent.kde.org/teams/eco/blue-angel-application/-/blob/master/applications/okular/de-uz-215-eng-annex-7-okular.xml"));
+    about.setMinimalSystemRequirements(QUrl(""));
+    about.setOpenLicense(QUrl("https://invent.kde.org/graphics/okular/-/blob/master/COPYING"));
+    about.setSourceCode(QUrl("https://invent.kde.org/graphics/okular"));
+    about.setApiDocumentation(QUrl("https://api.kde.org/okular/html/index.html"));
+    about.setDataFormatDocumentation(QUrl("https://okular.kde.org/formats"));
 
     return about;
 }
