@@ -38,7 +38,7 @@ inline KAboutData okularAboutData()
     about.addCredit(i18n("Jiri Baum - NICTA"), i18n("Table selection tool"), QStringLiteral("jiri@baum.com.au"));
     about.addCredit(i18n("Fabio D'Urso"), i18n("Annotation improvements"), QStringLiteral("fabiodurso@hotmail.it"));
 
-    about.setEcoCertifications(QList<KAboutEco::EcoCertification>() << KAboutEco::KDEEco << KAboutEco::BlueAngel);
+    about.setEcoCertifications(QList<KAboutData::EcoCertification>() << KAboutData::KDEEco << KAboutData::BlueAngel);
     about.setEnergyEfficiencyDataLink(QStringLiteral("https://invent.kde.org/teams/eco/blue-angel-application/-/blob/master/applications/okular/de-uz-215-eng-annex-7-okular.xml"));
     about.setOpenLicenseLink(QStringLiteral("https://invent.kde.org/graphics/okular/-/blob/master/COPYING"));
     about.setSourceCodeLink(QStringLiteral("https://invent.kde.org/graphics/okular"));
