@@ -190,6 +190,9 @@
   <entry key="ShowEmbeddedContentMessages" type="Bool" >
    <default>true</default>
   </entry>
+  <entry key="ShowBookmarkOnPage" type="Bool" >
+   <default>true</default>
+  </entry>
   <entry key="DisplayDocumentTitle" type="Bool" >
    <default>true</default>
  </entry>
@@ -391,6 +394,9 @@
   </entry>
   <entry key="HighlightLinks" type="Bool" >
    <default>false</default>
+  </entry>
+  <entry key="EnableBookmarkColor" type="Bool" >
+   <default>true</default>
   </entry>
   <entry key="RecolorForeground" type="Color" >
    <default code="true" >0x600000</default>
