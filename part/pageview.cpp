@@ -44,9 +44,10 @@
 #include <KActionMenu>
 #include <KConfigWatcher>
 #include <KIO/CommandLauncherJob>
+#include <KIO/JobUiDelegateFactory>
+#include <KIO/OpenUrlJob>
 #include <KLocalizedString>
 #include <KMessageBox>
-#include <KRun>
 #include <KSelectAction>
 #include <KStandardAction>
 #include <KStringHandler>
@@ -3101,7 +3102,13 @@ void PageView::mouseReleaseEvent(QMouseEvent *e)
                             d->tts()->say(text);
 #endif
                         } else if (choice == httpLink) {
-                            new KRun(QUrl(url), this);
+                            auto *job = new KIO::OpenUrlJob(QUrl::fromLocalFile(url));
+#if KIO_VERSION >= QT_VERSION_CHECK(5, 98, 0)
+                            job->setUiDelegate(KIO::createDefaultJobUiDelegate(KJobUiDelegate::AutoHandlingEnabled, this));
+#else
+                            job->setUiDelegate(new KIO::JobUiDelegate(KJobUiDelegate::AutoHandlingEnabled, this));
+#endif
+                            job->start();
                         }
                     }
 
