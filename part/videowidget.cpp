@@ -19,6 +19,7 @@
 #include <qmediaplayer.h>
 #endif
 #include <qmenu.h>
+#include <qslider.h>
 #include <qstackedlayout.h>
 #include <qtoolbar.h>
 #include <qtoolbutton.h>
@@ -37,6 +38,25 @@
 
 const int kVideoPage = 0;
 const int kPosterPage = 1;
+
+static QAction *createToolBarButtonWithWidgetPopup(QToolBar *toolBar, QWidget *widget, const QIcon &icon)
+{
+    QToolButton *button = new QToolButton(toolBar);
+    QAction *action = toolBar->addWidget(button);
+    button->setAutoRaise(true);
+    button->setIcon(icon);
+    button->setPopupMode(QToolButton::InstantPopup);
+    QMenu *menu = new QMenu(button);
+    button->setMenu(menu);
+    QWidgetAction *widgetAction = new QWidgetAction(menu);
+    QWidget *dummy = new QWidget(menu);
+    widgetAction->setDefaultWidget(dummy);
+    QVBoxLayout *dummyLayout = new QVBoxLayout(dummy);
+    dummyLayout->setContentsMargins(5, 5, 5, 5);
+    dummyLayout->addWidget(widget);
+    menu->addAction(widgetAction);
+    return action;
+}
 
 #if HAVE_MULTIMEDIA
 
@@ -88,12 +108,12 @@ public:
     Okular::NormalizedRect geom;
     QMediaPlayer *player;
     QVideoWidget *videoWidget;
-    // Phonon::SeekSlider *seekSlider;
+    QSlider *seekSlider;
     QToolBar *controlBar;
     QAction *playPauseAction;
     QAction *stopAction;
-    // QAction *seekSliderAction;
-    // QAction *seekSliderMenuAction;
+    QAction *seekSliderAction;
+    QAction *seekSliderMenuAction;
     QStackedLayout *pageLayout;
     QLabel *posterImagePage;
     bool loaded : 1;
@@ -128,7 +148,7 @@ void VideoWidget::Private::load()
 
     connect(player, &QMediaPlayer::stateChanged, q, [this](QMediaPlayer::State s) { stateChanged(s); });
 
-    // seekSlider->setEnabled(true);
+    seekSlider->setEnabled(true);
 }
 
 void VideoWidget::Private::setupPlayPauseAction(PlayPauseMode mode)
@@ -251,14 +271,17 @@ VideoWidget::VideoWidget(const Okular::Annotation *annotation, Okular::Movie *mo
     d->stopAction = d->controlBar->addAction(QIcon::fromTheme(QStringLiteral("media-playback-stop")), i18nc("stop the movie playback", "Stop"), this, SLOT(stop()));
     d->stopAction->setEnabled(false);
     d->controlBar->addSeparator();
-    // d->seekSlider = new Phonon::SeekSlider(d->player->mediaObject(), d->controlBar);
-    // d->seekSliderAction = d->controlBar->addWidget(d->seekSlider);
-    // d->seekSlider->setEnabled(false);
+    d->seekSlider = new QSlider(Qt::Horizontal, d->controlBar);
+    connect(d->seekSlider, &QSlider::sliderMoved, this, &VideoWidget::sliderValueChanged);
+    connect(d->player, &QMediaPlayer::positionChanged, this, [this](int value) { d->seekSlider->setValue(value); });
+    connect(d->player, &QMediaPlayer::durationChanged, this, [this](int value) { d->seekSlider->setMaximum(value); });
+    d->seekSliderAction = d->controlBar->addWidget(d->seekSlider);
+    d->seekSlider->setEnabled(false);
 
-    // Phonon::SeekSlider *verticalSeekSlider = new Phonon::SeekSlider(d->player->mediaObject(), nullptr);
-    // verticalSeekSlider->setMaximumHeight(100);
-    // d->seekSliderMenuAction = createToolBarButtonWithWidgetPopup(d->controlBar, verticalSeekSlider, QIcon::fromTheme(QStringLiteral("player-time")));
-    // d->seekSliderMenuAction->setVisible(false);
+    QSlider *verticalSeekSlider = new QSlider(nullptr);
+    verticalSeekSlider->setMaximumHeight(100);
+    d->seekSliderMenuAction = createToolBarButtonWithWidgetPopup(d->controlBar, verticalSeekSlider, QIcon::fromTheme(QStringLiteral("player-time")));
+    d->seekSliderMenuAction->setVisible(false);
 
     d->controlBar->setVisible(movie->showControls());
 
@@ -359,6 +382,11 @@ void VideoWidget::stop()
     d->setupPlayPauseAction(Private::PlayMode);
 }
 
+void VideoWidget::sliderValueChanged(int position)
+{
+    d->player->setPosition(position);
+}
+
 void VideoWidget::pause()
 {
     d->player->pause();
@@ -410,19 +438,19 @@ bool VideoWidget::event(QEvent *event)
     return QWidget::event(event);
 }
 
-// void VideoWidget::resizeEvent(QResizeEvent *event)
-//{
-//     const QSize &s = event->size();
-//     int usedSpace = d->seekSlider->geometry().left() + d->seekSlider->iconSize().width();
-//  try to give the slider at least 30px of space
-//    if (s.width() < (usedSpace + 30)) {
-//        d->seekSliderAction->setVisible(false);
-//        d->seekSliderMenuAction->setVisible(true);
-//    } else {
-//        d->seekSliderAction->setVisible(true);
-//        d->seekSliderMenuAction->setVisible(false);
-//    }
-//}
+ void VideoWidget::resizeEvent(QResizeEvent *event)
+{
+    const QSize &s = event->size();
+    int usedSpace = d->seekSlider->geometry().left(); //  + d->seekSlider->iconSize().width();
+    //  try to give the slider at least 30px of space
+    if (s.width() < (usedSpace + 30)) {
+        d->seekSliderAction->setVisible(false);
+        d->seekSliderMenuAction->setVisible(true);
+    } else {
+        d->seekSliderAction->setVisible(true);
+        d->seekSliderMenuAction->setVisible(false);
+    }
+}
 
 #else
 

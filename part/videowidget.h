@@ -48,11 +48,12 @@ public Q_SLOTS:
     void play();
     void pause();
     void stop();
+    void sliderValueChanged(int position);
 
 protected:
     bool eventFilter(QObject *object, QEvent *event) override;
     bool event(QEvent *event) override;
-    // void resizeEvent(QResizeEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
 
 private:
     // private storage
