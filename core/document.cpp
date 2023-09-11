@@ -813,19 +813,16 @@ bool DocumentPrivate::openRelativeFile(const QString &fileName)
 
 Generator *DocumentPrivate::loadGeneratorLibrary(const KPluginMetaData &service)
 {
-    KPluginLoader loader(service.fileName());
-    qCDebug(OkularCoreDebug) << service.fileName();
-    KPluginFactory *factory = loader.factory();
-    if (!factory) {
-        qCWarning(OkularCoreDebug).nospace() << "Invalid plugin factory for " << service.fileName() << ":" << loader.errorString();
+    const auto result = KPluginFactory::instantiatePlugin<Okular::Generator>(service);
+
+    if (!result) {
+        qCWarning(OkularCoreDebug).nospace() << "Failed to load plugin " << service.fileName() << ": " << result.errorText;
         return nullptr;
     }
 
-    Generator *plugin = factory->create<Okular::Generator>();
-
-    GeneratorInfo info(plugin, service);
+    GeneratorInfo info(result.plugin, service);
     m_loadedGenerators.insert(service.pluginId(), info);
-    return plugin;
+    return result.plugin;
 }
 
 void DocumentPrivate::loadAllGeneratorLibraries()
@@ -2310,7 +2307,7 @@ QVector<KPluginMetaData> DocumentPrivate::availableGenerators()
 {
     static QVector<KPluginMetaData> result;
     if (result.isEmpty()) {
-        result = KPluginLoader::findPlugins(QStringLiteral("okular/generators"));
+        result = KPluginMetaData::findPlugins(QStringLiteral("okular/generators"));
     }
     return result;
 }
