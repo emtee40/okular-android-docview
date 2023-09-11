@@ -80,6 +80,9 @@ class PDFOptionsPage : public Okular::PrintOptionsWidget
     Q_OBJECT
 
 public:
+    enum PrintBackend { CUPSBackend, QPrinterBackend };
+    Q_ENUM(PrintBackend)
+
     enum ScaleMode { FitToPrintableArea, FitToPage, None };
     Q_ENUM(ScaleMode)
 
@@ -96,8 +99,24 @@ public:
         m_forceRaster->setWhatsThis(i18n("Forces the rasterization of each page into an image before printing it. This usually gives somewhat worse results, but is useful when printing documents that appear to print incorrectly."));
         layout->addWidget(m_forceRaster);
 
+        m_printBackend = new QComboBox;
+        // Windows can only print with the QPrinter backend, because the CUPS backend
+        // is UNIX-specific.
+#if !defined(Q_OS_WIN)
+        m_printBackend->insertItem(CUPSBackend, i18n("CUPS"), CUPSBackend);
+        m_printBackend->setItemData(CUPSBackend, xi18n("Print using the CUPS printing system.<nl/>This will convert your PDF file to PostScript first,<nl/>and then send the PostScript file to the printer."), Qt::ToolTipRole);
+        m_printBackend->setItemData(CUPSBackend, xi18n("Print using the CUPS printing system.<nl/>This will convert your PDF file to PostScript first,<nl/>and then send the PostScript file to the printer."), Qt::WhatsThisRole);
+#endif
+
+        // Print using the platform-independent Qt infrastructure. By necessity,
+        // this uses the QPainter backend of the Poppler PDF library.
+        // This backend is still somewhat immature, and you may see misrenderings
+        // of your PDF document.
+        m_printBackend->insertItem(QPrinterBackend, i18n("QPrinter (experimental)"), QPrinterBackend);
+        m_printBackend->setItemData(QPrinterBackend, i18n("Print with Qt (experimental, you may see rendering artifacts)"), Qt::ToolTipRole);
         QWidget *formWidget = new QWidget(this);
         QFormLayout *printBackendLayout = new QFormLayout(formWidget);
+        printBackendLayout->addRow(i18n("Print backend:"), m_printBackend);
 
         m_scaleMode = new QComboBox;
         m_scaleMode->insertItem(FitToPrintableArea, i18n("Fit to printable area"), FitToPrintableArea);
@@ -151,6 +170,11 @@ public:
         m_forceRaster->setChecked(forceRaster);
     }
 
+    PrintBackend printBackend() const
+    {
+        return m_printBackend->currentData().value<PrintBackend>();
+    }
+
     ScaleMode scaleMode() const
     {
         return m_scaleMode->currentData().value<ScaleMode>();
@@ -159,6 +183,7 @@ public:
 private:
     QCheckBox *m_printAnnots;
     QCheckBox *m_forceRaster;
+    QComboBox *m_printBackend;
     QComboBox *m_scaleMode;
 };
 
@@ -1392,22 +1417,17 @@ Okular::Document::PrintError PDFGenerator::print(QPrinter &printer)
 {
     bool printAnnots = true;
     bool forceRasterize = false;
+    PDFOptionsPage::PrintBackend printBackend = PDFOptionsPage::CUPSBackend;
     PDFOptionsPage::ScaleMode scaleMode = PDFOptionsPage::FitToPrintableArea;
 
     if (pdfOptionsPage) {
         printAnnots = pdfOptionsPage->printAnnots();
         forceRasterize = pdfOptionsPage->printForceRaster();
+        printBackend = pdfOptionsPage->printBackend();
         scaleMode = pdfOptionsPage->scaleMode();
     }
 
-#ifdef Q_OS_WIN
-    // Windows can only print by rasterization, because that is
-    // currently the only way Okular implements printing without using UNIX-specific
-    // tools like 'lpr'.
-    forceRasterize = true;
-#endif
-
-    if (forceRasterize) {
+    if (forceRasterize || printBackend == PDFOptionsPage::QPrinterBackend) {
         pdfdoc->setRenderHint(Poppler::Document::HideAnnotations, !printAnnots);
 
         if (pdfOptionsPage) {
@@ -1431,9 +1451,12 @@ Okular::Document::PrintError PDFGenerator::print(QPrinter &printer)
                 QSizeF pageSize = pp->pageSizeF();      // Unit is 'points' (i.e., 1/72th of an inch)
                 QRect painterWindow = painter.window(); // Unit is 'QPrinter::DevicePixel'
 
-                // Default: no scaling at all, but we need to go from DevicePixel units to 'points'
+                // We need to convert from DevicePixel units to 'points'
                 // Warning: We compute the horizontal scaling, and later assume that the vertical scaling will be the same.
-                double scaling = printer.paperRect(QPrinter::DevicePixel).width() / printer.paperRect(QPrinter::Point).width();
+                double unitsConversion = printer.paperRect(QPrinter::DevicePixel).width() / printer.paperRect(QPrinter::Point).width();
+
+                // Default: no scaling at all
+                double scaling = 1.0;
 
                 if (scaleMode != PDFOptionsPage::None) {
                     // Get the two scaling factors needed to fit the page onto paper horizontally or vertically
@@ -1441,16 +1464,36 @@ Okular::Document::PrintError PDFGenerator::print(QPrinter &printer)
                     auto verticalScaling = painterWindow.height() / pageSize.height();
 
                     // We use the smaller of the two for both directions, to keep the aspect ratio
-                    scaling = std::min(horizontalScaling, verticalScaling);
+                    scaling = std::min(horizontalScaling, verticalScaling) / unitsConversion;
                 }
 
+                if (forceRasterize) {
 #ifdef Q_OS_WIN
-                QImage img = pp->renderToImage(printer.physicalDpiX(), printer.physicalDpiY());
+                    QImage img = pp->renderToImage(printer.physicalDpiX(), printer.physicalDpiY());
 #else
-                // UNIX: Same resolution as the postscript rasterizer; see discussion at https://git.reviewboard.kde.org/r/130218/
-                QImage img = pp->renderToImage(300, 300);
+                    // UNIX: Same resolution as the postscript rasterizer; see discussion at https://git.reviewboard.kde.org/r/130218/
+                    QImage img = pp->renderToImage(300, 300);
 #endif
-                painter.drawImage(QRectF(QPointF(0, 0), scaling * pp->pageSizeF()), img);
+                    painter.drawImage(QRectF(QPointF(0, 0), unitsConversion * scaling * pp->pageSizeF()), img);
+                } else {
+                    QRect viewport;
+                    viewport.setWidth(scaling * painter.window().width());
+                    viewport.setHeight(scaling * painter.window().height());
+                    painter.setViewport(viewport);
+
+                    // temporarily switch to poppler's QPainter backend.
+                    // It is the only one that implements renderToPainter.
+                    auto actualRenderBackend = pdfdoc->renderBackend();
+#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(2, 11, 0)
+                    pdfdoc->setRenderBackend(Poppler::Document::QPainterBackend);
+#else
+                    pdfdoc->setRenderBackend(Poppler::Document::ArthurBackend);
+#endif
+
+                    pp->renderToPainter(&painter, printer.logicalDpiX(), printer.logicalDpiY());
+
+                    pdfdoc->setRenderBackend(actualRenderBackend);
+                }
             }
             userMutex()->unlock();
         }
