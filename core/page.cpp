@@ -554,12 +554,22 @@ void Page::setImage(DocumentObserver *observer, QImage *image, const NormalizedR
 {
     // Here we must recolor the image if the appropriate accessibility settings are turned on.
 
-    // cancel the old thread if it was just recoloring a partial pixmap
-    // (sometimes partial updates can come faster than recolors)
     QThread *oldThread = d->recolorThread;
+    // Thread interruptions don't work amazingly, so avoid creating a new thread for partial updates if there's an old one running
+    // (sometimes partial updates can come faster than recolors)
+    if (oldThread != nullptr && isPartial) {
+        delete image;
+        return;
+    }
+    // cancel the old thread if it was just recoloring a partial pixmap
     if (oldThread != nullptr && d->recolorIsPartial) {
         oldThread->disconnect(this);
-        QObject::connect(oldThread, &QThread::finished, oldThread, &QThread::deleteLater);
+        QObject::connect(oldThread, &QThread::finished, this, [=]() {
+            if (oldThread == d->recolorThread) {
+                d->recolorThread = nullptr;
+            }
+            oldThread->deleteLater();
+        });
         oldThread->requestInterruption();
     }
 
