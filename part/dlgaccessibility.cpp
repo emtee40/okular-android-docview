@@ -49,12 +49,6 @@ DlgAccessibility::DlgAccessibility(QWidget *parent)
     enableChangeColors->setObjectName(QStringLiteral("kcfg_ChangeColors"));
     layout->addRow(QString(), enableChangeColors);
 
-    // Label: Performance warning. This is no longer applicable.
-    /*QLabel *warningLabel = new QLabel(this);
-    warningLabel->setText(i18nc("@info Config dialog, accessibility page", "<b>Warning:</b> these options can badly affect drawing speed."));
-    warningLabel->setWordWrap(true);
-    layout->addRow(warningLabel);*/
-
     // Combobox: color modes
     QComboBox *colorMode = new QComboBox(this);
     colorMode->addItem(i18nc("@item:inlistbox Config dialog, accessibility page", "Invert colors"));

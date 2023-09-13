@@ -1,3 +1,9 @@
+/*
+    SPDX-FileCopyrightText: 2023 Max Mueggler <maxmueggler@gmail.com>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
+
 #include "recolor.h"
 #include "core/debug_p.h"
 #include "qthread.h"
