@@ -59,6 +59,7 @@
 // local includes
 #include "../interfaces/viewerinterface.h"
 #include "kdocumentviewer.h"
+#include "okulartabwidget.h"
 #include "shellutils.h"
 
 static const char *shouldShowMenuBarComingFromFullScreen = "shouldShowMenuBarComingFromFullScreen";
@@ -198,7 +199,7 @@ Shell::Shell(const QString &serializedOptions)
         m_welcomeScreen->installEventFilter(this);
 
         // Setup tab bar
-        m_tabWidget = new QTabWidget(this);
+        m_tabWidget = new OkularTabWidget(this);
         m_tabWidget->setTabsClosable(true);
         m_tabWidget->setElideMode(Qt::ElideRight);
         m_tabWidget->tabBar()->hide();

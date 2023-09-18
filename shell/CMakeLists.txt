@@ -13,6 +13,7 @@ set(okular_SRCS
    shellutils.cpp
    recentitemsmodel.cpp
    welcomescreen.cpp
+   okulartabwidget.cpp
 )
 
 ki18n_wrap_ui(okular_SRCS
