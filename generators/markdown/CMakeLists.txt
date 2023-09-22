@@ -11,7 +11,7 @@ set(okularGenerator_md_PART_SRCS
 
 okular_add_generator(okularGenerator_md ${okularGenerator_md_PART_SRCS})
 
-target_link_libraries(okularGenerator_md PRIVATE okularcore KF5::I18n PkgConfig::Discount)
+target_link_libraries(okularGenerator_md PRIVATE okularcore KF${QT_MAJOR_VERSION}::I18n PkgConfig::Discount)
 
 ########### install files ###############
 if (QT_MAJOR_VERSION STREQUAL "5")
