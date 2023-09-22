@@ -7,7 +7,7 @@ set(okularGenerator_fax_PART_SRCS generator_fax.cpp faxdocument.cpp faxexpand.cp
 
 okular_add_generator(okularGenerator_fax ${okularGenerator_fax_PART_SRCS})
 
-target_link_libraries(okularGenerator_fax okularcore KF5::I18n Qt${QT_MAJOR_VERSION}::Xml)
+target_link_libraries(okularGenerator_fax okularcore KF${QT_MAJOR_VERSION}::I18n Qt${QT_MAJOR_VERSION}::Xml)
 
 ########### install files ###############
 if (QT_MAJOR_VERSION STREQUAL "5")
