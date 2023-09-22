@@ -34,6 +34,8 @@ ecm_add_test(autotests/chmgeneratortest.cpp
 target_compile_definitions(chmgeneratortest PRIVATE -DGENERATOR_PATH="$<TARGET_FILE:okularGenerator_chmlib>")
 
 ########### install files ###############
-install( FILES okularChm.desktop  DESTINATION  ${KDE_INSTALL_KSERVICES5DIR} )
+if (QT_MAJOR_VERSION STREQUAL "5")
+    install( FILES okularChm.desktop  DESTINATION  ${KDE_INSTALL_KSERVICES5DIR} )
+endif()
 install( PROGRAMS okularApplication_chm.desktop org.kde.mobile.okular_chm.desktop  DESTINATION  ${KDE_INSTALL_APPDIR} )
 install( FILES org.kde.okular-chm.metainfo.xml DESTINATION ${KDE_INSTALL_METAINFODIR} )
