@@ -16,7 +16,12 @@ set(OKULAR_UI "" CACHE STRING "Which Okular user interface to build. Possible va
 option(FORCE_NOT_REQUIRED_DEPENDENCIES "List (semicolon-separated) of dependencies that will be downgraded from REQUIRED to RECOMMENDED")
 
 if (ANDROID AND (NOT FORCE_NOT_REQUIRED_DEPENDENCIES) AND (NOT FORCE_NOT_REQUIRED_DEPENDENCIES STREQUAL ""))
-    set(FORCE_NOT_REQUIRED_DEPENDENCIES "KF5Wallet;KF5DocTools;Qt${QT_MAJOR_VERSION}Qml;TIFF;JPEG;LibSpectre;KF5KExiv2;CHM;KF5KHtml;LibZip;DjVuLibre;EPub;Discount;")
+    set(FORCE_NOT_REQUIRED_DEPENDENCIES "KF${QT_MAJOR_VERSION}Wallet;KF${QT_MAJOR_VERSION}DocTools;Qt${QT_MAJOR_VERSION}Qml;TIFF;JPEG;LibSpectre;KF${QT_MAJOR_VERSION}KExiv2;CHM;LibZip;DjVuLibre;EPub;Discount;")
+
+    if (QT_MAJOR_VERSION STREQUAL "5")
+        list(APPEND FORCE_NOT_REQUIRED_DEPENDENCIES "KF${QT_MAJOR_VERSION}KHtml;")
+    endif()
+
 endif()
 
 function(set_okular_optional_package_properties _name _props)
@@ -270,10 +275,12 @@ set_okular_optional_package_properties(CHM PROPERTIES
         URL "http://www.jedrea.com/chmlib"
         PURPOSE "Support CHM files in okular.")
 
-find_package(KF5KHtml CONFIG)
-set_okular_optional_package_properties(KF5KHtml PROPERTIES
-        DESCRIPTION "HTML rendering library"
-        PURPOSE "Support CHM files in okular.")
+if (QT_MAJOR_VERSION STREQUAL "5")
+    find_package(KF${QT_MAJOR_VERSION}KHtml CONFIG)
+    set_okular_optional_package_properties(KF${QT_MAJOR_VERSION}KHtml PROPERTIES
+            DESCRIPTION "HTML rendering library"
+            PURPOSE "Support CHM files in okular.")
+endif()
 
 find_package(LibZip)
 set_okular_optional_package_properties(LibZip PROPERTIES
