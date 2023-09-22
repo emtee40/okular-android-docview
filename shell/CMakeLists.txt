@@ -25,14 +25,14 @@ ecm_add_app_icon(okular_SRCS ICONS ${ICONS_SRCS})
 
 add_executable(okular ${okular_SRCS})
 
-target_link_libraries(okular KF5::I18n KF5::Parts KF5::WindowSystem KF5::Crash KF5::IconThemes)
+target_link_libraries(okular KF${QT_MAJOR_VERSION}::I18n KF${QT_MAJOR_VERSION}::Parts KF${QT_MAJOR_VERSION}::WindowSystem KF${QT_MAJOR_VERSION}::Crash KF${QT_MAJOR_VERSION}::IconThemes)
 if (TARGET Qt${QT_MAJOR_VERSION}::DBus)
     target_link_libraries(okular Qt${QT_MAJOR_VERSION}::DBus)
 endif()
-if(TARGET KF5::Activities)
+if(TARGET KF${QT_MAJOR_VERSION}::Activities)
     target_compile_definitions(okular PUBLIC -DWITH_KACTIVITIES=1)
 
-	target_link_libraries(okular KF5::Activities)
+	target_link_libraries(okular KF${QT_MAJOR_VERSION}::Activities)
 endif()
 
 if (HAVE_X11)
