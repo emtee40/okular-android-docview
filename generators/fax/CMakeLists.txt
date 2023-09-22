@@ -10,6 +10,8 @@ okular_add_generator(okularGenerator_fax ${okularGenerator_fax_PART_SRCS})
 target_link_libraries(okularGenerator_fax okularcore KF5::I18n Qt${QT_MAJOR_VERSION}::Xml)
 
 ########### install files ###############
-install( FILES okularFax.desktop  DESTINATION  ${KDE_INSTALL_KSERVICES5DIR} )
+if (QT_MAJOR_VERSION STREQUAL "5")
+    install( FILES okularFax.desktop  DESTINATION  ${KDE_INSTALL_KSERVICES5DIR} )
+endif()
 install( PROGRAMS okularApplication_fax.desktop org.kde.mobile.okular_fax.desktop  DESTINATION  ${KDE_INSTALL_APPDIR} )
 install( FILES org.kde.okular-fax.metainfo.xml DESTINATION ${KDE_INSTALL_METAINFODIR} )

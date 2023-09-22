@@ -20,6 +20,8 @@ endif()
 
 
 ########### install files ###############
-install( FILES okularKimgio.desktop  DESTINATION  ${KDE_INSTALL_KSERVICES5DIR} )
+if (QT_MAJOR_VERSION STREQUAL "5")
+    install( FILES okularKimgio.desktop  DESTINATION  ${KDE_INSTALL_KSERVICES5DIR} )
+endif()
 install( PROGRAMS okularApplication_kimgio.desktop org.kde.mobile.okular_kimgio.desktop  DESTINATION  ${KDE_INSTALL_APPDIR} )
 install( FILES org.kde.okular-kimgio.metainfo.xml DESTINATION ${KDE_INSTALL_METAINFODIR} )
