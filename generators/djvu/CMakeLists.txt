@@ -12,7 +12,7 @@ set(okularGenerator_djvu_SRCS
 okular_add_generator(okularGenerator_djvu ${okularGenerator_djvu_SRCS})
 
 target_include_directories(okularGenerator_djvu PRIVATE ${DJVULIBRE_INCLUDE_DIR})
-target_link_libraries(okularGenerator_djvu okularcore ${DJVULIBRE_LIBRARY} KF5::I18n)
+target_link_libraries(okularGenerator_djvu okularcore ${DJVULIBRE_LIBRARY} KF${QT_MAJOR_VERSION}::I18n)
 
 ########### install files ###############
 if (QT_MAJOR_VERSION STREQUAL "5")

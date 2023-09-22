@@ -120,7 +120,7 @@ ecm_setup_qtplugin_macro_names(
         PACKAGE_SETUP_AUTOMOC_VARIABLES
 )
 
-find_package(KF5 ${KF_REQUIRED_VERSION} REQUIRED COMPONENTS
+find_package(KF${QT_MAJOR_VERSION} ${KF_REQUIRED_VERSION} REQUIRED COMPONENTS
     Archive
     Bookmarks
     Completion
@@ -133,17 +133,17 @@ find_package(KF5 ${KF_REQUIRED_VERSION} REQUIRED COMPONENTS
     WindowSystem
 )
 
-find_package(KF5Wallet ${KF_REQUIRED_VERSION})
-set_okular_optional_package_properties(KF5Wallet PROPERTIES
+find_package(KF${QT_MAJOR_VERSION}Wallet ${KF_REQUIRED_VERSION})
+set_okular_optional_package_properties(KF${QT_MAJOR_VERSION}Wallet PROPERTIES
     PURPOSE "Required for document storing passwords in secure wallets.")
-if(KF5Wallet_FOUND)
+if(KF${QT_MAJOR_VERSION}Wallet_FOUND)
     set(HAVE_KWALLET 1)
 else()
     set(HAVE_KWALLET 0)
 endif()
 
-find_package(KF5DocTools ${KF_REQUIRED_VERSION})
-set_okular_optional_package_properties(KF5DocTools PROPERTIES
+find_package(KF${QT_MAJOR_VERSION}DocTools ${KF_REQUIRED_VERSION})
+set_okular_optional_package_properties(KF${QT_MAJOR_VERSION}DocTools PROPERTIES
     PURPOSE "Required for compiling and installing the user documentation.")
 
 find_package(Qt${QT_MAJOR_VERSION}Qml)
@@ -164,13 +164,13 @@ if (BUILD_DESKTOP)
     else()
         set(HAVE_DBUS 0)
     endif()
-    find_package(KF5 ${KF_REQUIRED_VERSION} REQUIRED COMPONENTS Parts Crash IconThemes TextWidgets)
+    find_package(KF${QT_MAJOR_VERSION} ${KF_REQUIRED_VERSION} REQUIRED COMPONENTS Parts Crash IconThemes TextWidgets)
 
-    find_package(KF5Purpose)
-    set_okular_optional_package_properties(KF5Purpose PROPERTIES
+    find_package(KF${QT_MAJOR_VERSION}Purpose)
+    set_okular_optional_package_properties(KF${QT_MAJOR_VERSION}Purpose PROPERTIES
         DESCRIPTION "A framework for services and actions integration"
         PURPOSE "Required for enabling the share menu.")
-    if (KF5Purpose_FOUND)
+    if (KF${QT_MAJOR_VERSION}Purpose_FOUND)
         set(HAVE_PURPOSE 1)
     else()
         set(HAVE_PURPOSE 0)
@@ -188,14 +188,14 @@ endif()
 
 if (BUILD_MOBILE)
     find_package(Qt${QT_MAJOR_VERSION} ${QT_REQUIRED_VERSION} CONFIG REQUIRED COMPONENTS Qml Quick)
-    find_package(KF5Kirigami2)
-    set_package_properties(KF5Kirigami2 PROPERTIES
+    find_package(KF${QT_MAJOR_VERSION}Kirigami2)
+    set_package_properties(KF${QT_MAJOR_VERSION}Kirigami2 PROPERTIES
         DESCRIPTION "A QtQuick based components set"
         PURPOSE "Required at runtime by the mobile app"
         TYPE RUNTIME
     )
-    find_package(KF5KirigamiAddons)
-    set_package_properties(KF5KirigamiAddons PROPERTIES
+    find_package(KF${QT_MAJOR_VERSION}KirigamiAddons)
+    set_package_properties(KF${QT_MAJOR_VERSION}KirigamiAddons PROPERTIES
         DESCRIPTION "A set of widgets for Kirigami along with  code to support them"
         PURPOSE "Required at runtime by the mobile app"
         TYPE RUNTIME
@@ -203,10 +203,10 @@ if (BUILD_MOBILE)
 endif()
 
 if(NOT WIN32 AND NOT ANDROID AND NOT APPLE)
-    find_package(KF5 ${KF_REQUIRED_VERSION} REQUIRED COMPONENTS
+    find_package(KF${QT_MAJOR_VERSION} ${KF_REQUIRED_VERSION} REQUIRED COMPONENTS
         Activities
     )
-    set_package_properties("KF5Activities" PROPERTIES
+    set_package_properties("KF${QT_MAJOR_VERSION}Activities" PROPERTIES
         DESCRIPTION  "Activities interface library"
         URL "https://api.kde.org/frameworks/kactivities/html/"
         PURPOSE "Required for Activities integration.")
@@ -263,8 +263,8 @@ set_okular_optional_package_properties(LibSpectre PROPERTIES
         URL "https://libspectre.freedesktop.org"
         PURPOSE "Support for PS files in okular.")
 
-find_package(KF5KExiv2 CONFIG)
-set_okular_optional_package_properties(KF5KExiv2 PROPERTIES
+find_package(KF${QT_MAJOR_VERSION}KExiv2 CONFIG)
+set_okular_optional_package_properties(KF${QT_MAJOR_VERSION}KExiv2 PROPERTIES
         DESCRIPTION  "Wrapper around Exiv2 library"
         URL "https://commits.kde.org/libkexiv2"
         PURPOSE "Support for exif rotation in image files.")
@@ -300,8 +300,14 @@ set_okular_optional_package_properties(EPub PROPERTIES
         URL "http://sourceforge.net/projects/ebook-tools"
         PURPOSE "Support for EPub documents in Okular.")
 
-find_package(QMobipocket "2" CONFIG)
-set_okular_optional_package_properties(QMobipocket PROPERTIES
+if (QT_MAJOR_VERSION STREQUAL "5")
+    set(MOBIPOCKET QMobipocket)
+else()
+    set(MOBIPOCKET QMobipocket6)
+endif()
+
+find_package(${MOBIPOCKET} "2" CONFIG)
+set_okular_optional_package_properties(${MOBIPOCKET} PROPERTIES
         DESCRIPTION  "A library for reading Mobipocket documents"
         URL "https://commits.kde.org/kdegraphics-mobipocket"
         PURPOSE "Support for Mobipocket documents in Okular.")
@@ -340,7 +346,7 @@ if(BUILD_TESTING)
    add_subdirectory( autotests )
 endif()
 
-if(KF5DocTools_FOUND)
+if(KF${QT_MAJOR_VERSION}DocTools_FOUND)
     add_subdirectory(doc)
 endif()
 
@@ -468,19 +474,19 @@ target_link_libraries(okularcore
 PRIVATE
     ${OKULAR_IOKIT}
     ${SHLWAPI}
-    KF5::Archive
-    KF5::KIOCore
-    KF5::KIOWidgets
-    KF5::I18n
-    KF5::ThreadWeaver
-    KF5::Bookmarks
+    KF${QT_MAJOR_VERSION}::Archive
+    KF${QT_MAJOR_VERSION}::KIOCore
+    KF${QT_MAJOR_VERSION}::KIOWidgets
+    KF${QT_MAJOR_VERSION}::I18n
+    KF${QT_MAJOR_VERSION}::ThreadWeaver
+    KF${QT_MAJOR_VERSION}::Bookmarks
     Qt${QT_MAJOR_VERSION}::Svg
     ${MATH_LIB}
     ZLIB::ZLIB
 PUBLIC  # these are included from the installed headers
-    KF5::CoreAddons
-    KF5::XmlGui
-    KF5::ConfigGui
+    KF${QT_MAJOR_VERSION}::CoreAddons
+    KF${QT_MAJOR_VERSION}::XmlGui
+    KF${QT_MAJOR_VERSION}::ConfigGui
     Qt${QT_MAJOR_VERSION}::PrintSupport
     Qt${QT_MAJOR_VERSION}::Widgets
 )
@@ -489,8 +495,8 @@ if (Phonon4Qt${QT_MAJOR_VERSION}_FOUND)
 endif()
 
 
-if (KF5Wallet_FOUND)
-    target_link_libraries(okularcore PRIVATE KF5::Wallet)
+if (KF${QT_MAJOR_VERSION}Wallet_FOUND)
+    target_link_libraries(okularcore PRIVATE KF${QT_MAJOR_VERSION}::Wallet)
 endif()
 if (TARGET Qt${QT_MAJOR_VERSION}::Qml)
     target_sources(okularcore PRIVATE
@@ -611,16 +617,16 @@ generate_export_header(okularpart BASE_NAME okularpart)
 target_link_libraries(okularpart okularcore
     ${MATH_LIB}
     Qt${QT_MAJOR_VERSION}::Svg
-    KF5::Archive
-    KF5::Bookmarks
-    KF5::I18n
-    KF5::IconThemes
-    KF5::ItemViews
-    KF5::KIOCore
-    KF5::KIOWidgets
-    KF5::Parts
-    KF5::WindowSystem
-    KF5::TextWidgets
+    KF${QT_MAJOR_VERSION}::Archive
+    KF${QT_MAJOR_VERSION}::Bookmarks
+    KF${QT_MAJOR_VERSION}::I18n
+    KF${QT_MAJOR_VERSION}::IconThemes
+    KF${QT_MAJOR_VERSION}::ItemViews
+    KF${QT_MAJOR_VERSION}::KIOCore
+    KF${QT_MAJOR_VERSION}::KIOWidgets
+    KF${QT_MAJOR_VERSION}::Parts
+    KF${QT_MAJOR_VERSION}::WindowSystem
+    KF${QT_MAJOR_VERSION}::TextWidgets
 )
 if (TARGET Qt${QT_MAJOR_VERSION}::DBus)
     target_link_libraries(okularpart Qt${QT_MAJOR_VERSION}::DBus)
@@ -629,12 +635,12 @@ if (Phonon4Qt${QT_MAJOR_VERSION}_FOUND)
    target_link_libraries(okularpart Phonon::phonon4qt${QT_MAJOR_VERSION})
 endif()
 
-if(KF5Wallet_FOUND)
-    target_link_libraries(okularpart KF5::Wallet)
+if(KF${QT_MAJOR_VERSION}Wallet_FOUND)
+    target_link_libraries(okularpart KF${QT_MAJOR_VERSION}::Wallet)
 endif()
 
-if (KF5Purpose_FOUND)
-    target_link_libraries(okularpart KF5::PurposeWidgets)
+if (KF${QT_MAJOR_VERSION}Purpose_FOUND)
+    target_link_libraries(okularpart KF${QT_MAJOR_VERSION}::PurposeWidgets)
 endif()
 
 set_target_properties(okularpart PROPERTIES PREFIX "")
@@ -660,7 +666,7 @@ install(FILES okular.upd DESTINATION ${KDE_INSTALL_KCONFUPDATEDIR})
 install(FILES okular.categories  DESTINATION  ${KDE_INSTALL_LOGGINGCATEGORIESDIR})
 
 ki18n_install(po)
-if(KF5DocTools_FOUND)
+if(KF${QT_MAJOR_VERSION}DocTools_FOUND)
     kdoctools_install(po)
 endif()
 
