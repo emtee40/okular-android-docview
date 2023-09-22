@@ -23,9 +23,9 @@ target_link_libraries(okularplugin
         Qt${QT_MAJOR_VERSION}::Core
         Qt${QT_MAJOR_VERSION}::Xml
         Qt${QT_MAJOR_VERSION}::Svg
-        KF5::Bookmarks
-        KF5::I18n
-        KF5::Service
+        KF${QT_MAJOR_VERSION}::Bookmarks
+        KF${QT_MAJOR_VERSION}::I18n
+        KF${QT_MAJOR_VERSION}::Service
         okularcore
         )
 
