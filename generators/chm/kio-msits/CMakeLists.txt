@@ -10,4 +10,4 @@ include_directories(
 set(kio_msits_PART_SRCS msits.cpp kio_mits_debug.cpp)
 
 kcoreaddons_add_plugin(kio_msits SOURCES ${kio_msits_PART_SRCS} INSTALL_NAMESPACE "kf5/kio")
-target_link_libraries(kio_msits  KF5::KIOCore Qt${QT_MAJOR_VERSION}::Core ${CHM_LIBRARY} Qt${QT_MAJOR_VERSION}::Network)
+target_link_libraries(kio_msits  KF${QT_MAJOR_VERSION}::KIOCore Qt${QT_MAJOR_VERSION}::Core ${CHM_LIBRARY} Qt${QT_MAJOR_VERSION}::Network)

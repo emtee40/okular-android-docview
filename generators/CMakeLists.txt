@@ -22,7 +22,7 @@ endif(LIBSPECTRE_FOUND)
 
 add_subdirectory( kimgio )
 
-if(CHM_FOUND AND KF5KHtml_FOUND AND LIBZIP_FOUND)
+if(CHM_FOUND AND KF${QT_MAJOR_VERSION}KHtml_FOUND AND LIBZIP_FOUND)
   add_subdirectory( chm )
 endif()
 
