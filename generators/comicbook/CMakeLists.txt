@@ -34,6 +34,8 @@ ecm_add_test(autotests/comicbooktest.cpp
 )
 
 ########### install files ###############
-install( FILES okularComicbook.desktop  DESTINATION  ${KDE_INSTALL_KSERVICES5DIR} )
+if (QT_MAJOR_VERSION STREQUAL "5")
+    install( FILES okularComicbook.desktop  DESTINATION  ${KDE_INSTALL_KSERVICES5DIR} )
+endif()
 install( PROGRAMS okularApplication_comicbook.desktop org.kde.mobile.okular_comicbook.desktop  DESTINATION  ${KDE_INSTALL_APPDIR} )
 install( FILES org.kde.okular-comicbook.metainfo.xml DESTINATION ${KDE_INSTALL_METAINFODIR} )
