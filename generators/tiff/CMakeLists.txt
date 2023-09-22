@@ -8,7 +8,7 @@ set(okularGenerator_tiff_SRCS
 )
 
 okular_add_generator(okularGenerator_tiff ${okularGenerator_tiff_SRCS})
-target_link_libraries(okularGenerator_tiff okularcore TIFF::TIFF KF5::I18n)
+target_link_libraries(okularGenerator_tiff okularcore TIFF::TIFF KF${QT_MAJOR_VERSION}::I18n)
 
 ########### install files ###############
 if (QT_MAJOR_VERSION STREQUAL "5")

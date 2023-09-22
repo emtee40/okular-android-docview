@@ -12,7 +12,7 @@ set(okularGenerator_fb_PART_SRCS
 
 okular_add_generator(okularGenerator_fb ${okularGenerator_fb_PART_SRCS})
 
-target_link_libraries(okularGenerator_fb okularcore KF5::Archive KF5::I18n Qt${QT_MAJOR_VERSION}::Xml)
+target_link_libraries(okularGenerator_fb okularcore KF${QT_MAJOR_VERSION}::Archive KF${QT_MAJOR_VERSION}::I18n Qt${QT_MAJOR_VERSION}::Xml)
 
 ########### install files ###############
 if (QT_MAJOR_VERSION STREQUAL "5")
