@@ -15,7 +15,9 @@ okular_add_generator(okularGenerator_fb ${okularGenerator_fb_PART_SRCS})
 target_link_libraries(okularGenerator_fb okularcore KF5::Archive KF5::I18n Qt${QT_MAJOR_VERSION}::Xml)
 
 ########### install files ###############
-install( FILES okularFb.desktop  DESTINATION  ${KDE_INSTALL_KSERVICES5DIR} )
+if (QT_MAJOR_VERSION STREQUAL "5")
+  install( FILES okularFb.desktop  DESTINATION  ${KDE_INSTALL_KSERVICES5DIR} )
+endif()
 install( PROGRAMS okularApplication_fb.desktop org.kde.mobile.okular_fb.desktop  DESTINATION  ${KDE_INSTALL_APPDIR} )
 install( FILES org.kde.okular-fb.metainfo.xml DESTINATION ${KDE_INSTALL_METAINFODIR} )
 
