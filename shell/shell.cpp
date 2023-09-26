@@ -377,6 +377,16 @@ bool Shell::openDocument(const QString &urlString, const QString &serializedOpti
     return openDocument(QUrl(urlString), serializedOptions);
 }
 
+void Shell::openNewlySignedFile(const QString &path, int pageNumber)
+{
+    QUrl url = QUrl::fromLocalFile(path);
+    url.setFragment(QStringLiteral("page=%1").arg(pageNumber));
+
+    const int activeTab = m_tabWidget->currentIndex();
+    KParts::ReadWritePart *const activePart = m_tabs[activeTab].part;
+    activePart->openUrl(url);
+}
+
 bool Shell::canOpenDocs(int numDocs, int desktop)
 {
     if (m_tabs.size() <= 0 || numDocs <= 0 || m_unique) {
@@ -952,6 +962,7 @@ void Shell::connectPart(const KParts::ReadWritePart *part)
     connect(part, SIGNAL(enableCloseAction(bool)), this, SLOT(setCloseEnabled(bool)));           // clazy:exclude=old-style-connect
     connect(part, SIGNAL(mimeTypeChanged(QMimeType)), this, SLOT(setTabIcon(QMimeType)));        // clazy:exclude=old-style-connect
     connect(part, SIGNAL(urlsDropped(QList<QUrl>)), this, SLOT(handleDroppedUrls(QList<QUrl>))); // clazy:exclude=old-style-connect
+    connect(part, SIGNAL(requestOpenNewlySignedFile(QString, int)), this, SLOT(openNewlySignedFile(QString, int))); // clazy:exclude=old-style-connect
     // clang-format off
     // Otherwise the QSize,QSize gets turned into QSize, QSize that is not normalized signals and is slightly slower
     connect(part, SIGNAL(fitWindowToPage(QSize,QSize)), this, SLOT(slotFitWindowToPage(QSize,QSize)));   // clazy:exclude=old-style-connect
