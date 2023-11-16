@@ -5958,6 +5958,9 @@ struct Okular::NewSignatureDataPrivate {
     QString location;
     QString reason;
     QString backgroundImagePath;
+    bool showLeftText = true;
+    bool showDate = true;
+    int fontSize = 10;
     int page = -1;
     NormalizedRect boundingRectangle;
 };
@@ -6060,6 +6063,36 @@ QString Okular::NewSignatureData::backgroundImagePath() const
 void Okular::NewSignatureData::setBackgroundImagePath(const QString &path)
 {
     d->backgroundImagePath = path;
+}
+
+bool NewSignatureData::showDate() const
+{
+    return d->showDate;
+}
+
+void NewSignatureData::setShowDate(bool showDate)
+{
+    d->showDate = showDate;
+}
+
+bool NewSignatureData::showLeftText() const
+{
+    return d->showLeftText;
+}
+
+void NewSignatureData::setShowLeftText(bool showLeftText)
+{
+    d->showLeftText = showLeftText;
+}
+
+int NewSignatureData::fontSize() const
+{
+    return d->fontSize;
+}
+
+void NewSignatureData::setFontSize(int fontSize)
+{
+    d->fontSize = fontSize;
 }
 
 #undef foreachObserver

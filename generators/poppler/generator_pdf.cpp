@@ -1374,12 +1374,19 @@ void PDFGenerator::okularToPoppler(const Okular::NewSignatureData &oData, Popple
     pData->setCertNickname(oData.certNickname());
     pData->setPassword(oData.password());
     pData->setPage(oData.page());
-    const QString datetime = QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd hh:mm:ss t"));
-    pData->setSignatureText(i18n("Signed by: %1\n\nDate: %2", oData.certSubjectCommonName(), datetime));
-    pData->setSignatureLeftText(oData.certSubjectCommonName());
+    if (oData.showDate()) {
+        const QString datetime = QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd hh:mm:ss t"));
+        pData->setSignatureText(i18n("Signed by: %1\n\nDate: %2", oData.certSubjectCommonName(), datetime));
+    } else {
+        pData->setSignatureText(i18n("Signed by: %1", oData.certSubjectCommonName()));
+    }
+    if (oData.showLeftText()) {
+        pData->setSignatureLeftText(oData.certSubjectCommonName());
+    }
     const Okular::NormalizedRect bRect = oData.boundingRectangle();
     pData->setBoundingRectangle({bRect.left, bRect.top, bRect.width(), bRect.height()});
     pData->setFontColor(Qt::black);
+    pData->setFontSize(oData.fontSize());
     pData->setBorderColor(Qt::black);
     pData->setReason(oData.reason());
     pData->setLocation(oData.location());

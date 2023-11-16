@@ -30,6 +30,9 @@ struct SigningInformation {
     QString reason;
     QString location;
     QString backgroundImagePath;
+    bool showDate;
+    bool showLeftText;
+    int fontSize;
 };
 
 enum class SigningInformationOption { None = 0x0, BackgroundImage = 0x1 };

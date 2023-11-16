@@ -1581,6 +1581,13 @@ public:
     /// @since 23.08
     void setBackgroundImagePath(const QString &path);
 
+    bool showDate() const;
+    void setShowDate(bool showDate);
+    bool showLeftText() const;
+    void setShowLeftText(bool showLeftText);
+    int fontSize() const;
+    void setFontSize(int fontSize);
+
 private:
     NewSignatureDataPrivate *const d;
 };
