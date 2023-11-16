@@ -384,7 +384,7 @@ public:
             location = signInfo->location;
             backgroundImagePath = signInfo->backgroundImagePath;
             showLeftText = signInfo->showLeftText;
-            showDate = signInfo -> showDate;
+            showDate = signInfo->showDate;
             fontSize = signInfo->fontSize;
         }
 
