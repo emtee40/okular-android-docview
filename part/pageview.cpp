@@ -2575,46 +2575,18 @@ void PageView::mousePressEvent(QMouseEvent *e)
 
             PageViewItem *pageItem = pickItemOnPoint(eventPos.x(), eventPos.y());
             if (pageItem) {
-                // find out normalized mouse coords inside current item
-                double nX = pageItem->absToPageX(eventPos.x());
+
+                // get the start and end points of the line as Okular::TextSelection
                 double nY = pageItem->absToPageY(eventPos.y());
+                Okular::NormalizedPoint start = Okular::NormalizedPoint(0, nY);
+                Okular::NormalizedPoint end = Okular::NormalizedPoint(pageItem->page()->width(), nY);
+                Okular::TextSelection s = Okular::TextSelection(start, end);
 
-                // get all words in page and find which one was clicked
-                Okular::TextEntity::List allWords = pageItem->page()->words(nullptr, Okular::TextPage::AnyPixelTextAreaInclusionBehaviour);
-                Okular::TextEntity *te;
-                int i;
-                for (i = 0; i < allWords.size(); i++) {
-                    te = allWords.at(i);
-                    if (te->area()->contains(nX, nY)) {
-                        break;
-                    }
-                }
-                if (i < allWords.size()) {
-                    // a word was clicked, so "expand" the selection
-                    // both forwards and backwards until finding a newline.
-                    // TODO: what to do with hyphenated words?
+                // get the text selection
+                Okular::RegularAreaRect *area = pageItem->page()->textArea(&s);
 
-                    Okular::RegularAreaRect *area = new Okular::RegularAreaRect;
-                    int wordPos = i;
-
-                    // forwards
-                    for (i = wordPos; i < allWords.size(); i++) {
-                        te = allWords.at(i);
-                        area->appendShape(*te->area());
-                        if (te->text().contains(QLatin1String("\n"))) {
-                            break;
-                        }
-                    }
-
-                    // backwards
-                    for (i = wordPos; i >= 0; i--) {
-                        te = allWords.at(i);
-                        if (te->text().contains(QLatin1String("\n"))) {
-                            break;
-                        }
-                        area->appendShape(*te->area());
-                    }
-
+                // if the text selection is valid, set it
+                if (area != nullptr) {
                     d->document->setPageTextSelection(pageItem->pageNumber(), area, palette().color(QPalette::Active, QPalette::Highlight));
                     d->pagesWithTextSelection << pageItem->pageNumber();
                     if (d->document->isAllowed(Okular::AllowCopy)) {
@@ -2626,10 +2598,6 @@ void PageView::mousePressEvent(QMouseEvent *e)
                             }
                         }
                     }
-                }
-
-                for (const Okular::TextEntity *te : allWords) {
-                    delete te;
                 }
             }
         }
