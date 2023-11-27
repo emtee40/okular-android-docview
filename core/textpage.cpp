@@ -614,6 +614,59 @@ RegularAreaRect *TextPage::textArea(TextSelection *sel) const
     return ret;
 }
 
+RegularAreaRect *TextPage::textAreaLine(const NormalizedPoint &point) const
+{
+    RegularAreaRect *ret = nullptr;
+    RegularAreaRect *word = wordAt(point, nullptr);
+    if (word != nullptr) {
+        // get all words in horizontal line, and find which one was clicked
+        NormalizedRect &wordrect = word->first();
+        NormalizedRect line = NormalizedRect(0.0, wordrect.top, 1.0, wordrect.bottom);
+        RegularAreaRect lineRect = RegularAreaRect();
+        lineRect.appendShape(line);
+        Okular::TextEntity::List allWords = d->m_page->words(&lineRect, Okular::TextPage::AnyPixelTextAreaInclusionBehaviour);
+
+        Okular::TextEntity *te;
+        int i;
+        for (i = 0; i < allWords.size(); i++) {
+            te = allWords.at(i);
+            if (te->area()->contains(point.x, point.y)) {
+                break;
+            }
+        }
+        if (i < allWords.size()) {
+            // a word was clicked, so "expand" the selection
+            // both forwards and backwards until finding a newline.
+
+            ret = new RegularAreaRect;
+            int wordPos = i;
+
+            // forwards
+            for (i = wordPos; i < allWords.size(); i++) {
+                te = allWords.at(i);
+                ret->appendShape(*te->area());
+                if (te->text().contains(QLatin1String("\n"))) {
+                    break;
+                }
+            }
+
+            // backwards
+            for (i = wordPos; i >= 0; i--) {
+                te = allWords.at(i);
+                if (te->text().contains(QLatin1String("\n"))) {
+                    break;
+                }
+                ret->appendShape(*te->area());
+            }
+        }
+
+        for (const Okular::TextEntity *te : allWords) {
+            delete te;
+        }
+    }
+    return ret;
+}
+
 RegularAreaRect *TextPage::findText(int searchID, const QString &query, SearchDirection direct, Qt::CaseSensitivity caseSensitivity, const RegularAreaRect *area)
 {
     SearchDirection dir = direct;

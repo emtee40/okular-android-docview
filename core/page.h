@@ -223,6 +223,12 @@ public:
     RegularAreaRect *textArea(TextSelection *selection) const;
 
     /**
+     * Returns the rectangular area of the line of text defined by the
+     * given @p point which was triple clicked.
+     */
+    RegularAreaRect *textAreaLine(const NormalizedPoint &point) const;
+
+    /**
      * Returns the object rect of the given @p type which is at point (@p x, @p y) at scale (@p xScale, @p yScale).
      */
     const ObjectRect *objectRect(ObjectRect::ObjectType type, double x, double y, double xScale, double yScale) const;

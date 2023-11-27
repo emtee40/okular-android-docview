@@ -276,6 +276,15 @@ RegularAreaRect *Page::textArea(TextSelection *selection) const
     return nullptr;
 }
 
+RegularAreaRect *Page::textAreaLine(const NormalizedPoint &point) const
+{
+    if (d->m_text) {
+        return d->m_text->textAreaLine(point);
+    }
+
+    return nullptr;
+}
+
 bool Page::hasObjectRect(double x, double y, double xScale, double yScale) const
 {
     if (m_rects.isEmpty()) {

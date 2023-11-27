@@ -2575,15 +2575,11 @@ void PageView::mousePressEvent(QMouseEvent *e)
 
             PageViewItem *pageItem = pickItemOnPoint(eventPos.x(), eventPos.y());
             if (pageItem) {
-
-                // get the start and end points of the line as Okular::TextSelection
-                double nY = pageItem->absToPageY(eventPos.y());
-                Okular::NormalizedPoint start = Okular::NormalizedPoint(0, nY);
-                Okular::NormalizedPoint end = Okular::NormalizedPoint(pageItem->page()->width(), nY);
-                Okular::TextSelection s = Okular::TextSelection(start, end);
+                // get the point that was triple clicked
+                Okular::NormalizedPoint point = Okular::NormalizedPoint(pageItem->absToPageX(eventPos.x()), pageItem->absToPageY(eventPos.y()));
 
                 // get the text selection
-                Okular::RegularAreaRect *area = pageItem->page()->textArea(&s);
+                Okular::RegularAreaRect *area = pageItem->page()->textAreaLine(point);
 
                 // if the text selection is valid, set it
                 if (area != nullptr) {

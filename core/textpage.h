@@ -197,6 +197,12 @@ public:
      */
     RegularAreaRect *textArea(TextSelection *selection) const;
 
+    /**
+     * Returns the rectangular area of the line of text defined by the
+     * given point @p which was triple clicked.
+     */
+    RegularAreaRect *textAreaLine(const NormalizedPoint &point) const;
+
 private:
     TextPagePrivate *const d;
 
