@@ -372,7 +372,15 @@ std::optional<SigningInformation> getCertificateAndPasswordForSigning(PageView *
     }
 
     if (passok) {
-        return SigningInformation {std::make_unique<Okular::CertificateInfo>(std::move(cert)), password, documentPassword, dialog.ui->reasonInput->text(), dialog.ui->locationInput->text(), backGroundImage};
+        return SigningInformation {std::make_unique<Okular::CertificateInfo>(std::move(cert)),
+                                   password,
+                                   documentPassword,
+                                   dialog.ui->reasonInput->text(),
+                                   dialog.ui->locationInput->text(),
+                                   backGroundImage,
+                                   dialog.ui->stampLeftCheckBox->isChecked(),
+                                   dialog.ui->stampDateCheckBox->isChecked(),
+                                   dialog.ui->fontSizeComboBox->currentText().toInt()};
     }
     return std::nullopt;
 }

@@ -383,6 +383,9 @@ public:
             reason = signInfo->reason;
             location = signInfo->location;
             backgroundImagePath = signInfo->backgroundImagePath;
+            showLeftText = signInfo->showLeftText;
+            showDate = signInfo->showDate;
+            fontSize = signInfo->fontSize;
         }
 
         m_creationCompleted = false;
@@ -418,6 +421,9 @@ public:
         data.setReason(reason);
         data.setLocation(location);
         data.setBackgroundImagePath(backgroundImagePath);
+        data.setShowLeftText(showLeftText);
+        data.setShowDate(showDate);
+        data.setFontSize(fontSize);
         passToUse.clear();
         documentPassword.clear();
         return m_document->sign(data, newFilePath);
@@ -431,6 +437,9 @@ private:
     QString location;
     QString backgroundImagePath;
     QString reason;
+    bool showLeftText;
+    bool showDate;
+    int fontSize;
 
     Okular::Document *m_document;
     const Okular::Page *m_page;
