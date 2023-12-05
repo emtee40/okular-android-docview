@@ -24,6 +24,7 @@
 #if HAVE_X11
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 #include <private/qtx11extras_p.h>
+#include <KX11Extras>
 #else
 #include <QX11Info>
 #endif
@@ -107,7 +108,15 @@ static bool attachExistingInstance(const QStringList &paths, const QString &seri
     const QString pattern = QStringLiteral("org.kde.okular-");
     const QString myPid = QString::number(qApp->applicationPid());
     QScopedPointer<QDBusInterface> bestService;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    #if HAVE_X11
+    const int desktop = KX11Extras::currentDesktop();
+    #else
+    const int desktop = 0;
+    #endif
+#else
     const int desktop = KWindowSystem::currentDesktop();
+#endif
 
     // Select the first instance that isn't us (metric may change in future)
     for (const QString &service : services) {
