@@ -28,7 +28,10 @@
 #include <KRecentFilesAction>
 #include <KSharedConfig>
 #include <KStandardAction>
+#ifndef Q_OS_WIN
 #include <KStartupInfo>
+#include <KWindowInfo>
+#endif
 #include <KToggleFullScreenAction>
 #include <KToolBar>
 #include <KUrlMimeData>
@@ -390,10 +393,12 @@ bool Shell::canOpenDocs(int numDocs, int desktop)
         return false;
     }
 
-    const KWindowInfo winfo(window()->effectiveWinId(), KWindowSystem::WMDesktop);
+#ifndef Q_OS_WIN
+    const KWindowInfo winfo(window()->effectiveWinId(), NET::WMDesktop);
     if (winfo.desktop() != desktop) {
         return false;
     }
+#endif
 
     return true;
 }
@@ -668,11 +673,15 @@ void Shell::fileOpen()
 
 void Shell::tryRaise(const QString &startupId)
 {
+#ifndef Q_OS_WIN
     if (KWindowSystem::isPlatformWayland()) {
         KWindowSystem::setCurrentXdgActivationToken(startupId);
     } else if (KWindowSystem::isPlatformX11()) {
         KStartupInfo::setNewStartupId(window()->windowHandle(), startupId.toUtf8());
     }
+#else
+    Q_UNUSED(startupId);
+#endif
 
     KWindowSystem::activateWindow(window()->windowHandle());
 }
