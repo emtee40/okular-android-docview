@@ -8,14 +8,22 @@
 #ifndef _EXTENSIONS_H_
 #define _EXTENSIONS_H_
 
+#include <QtGlobal>
+
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <kparts/browserextension.h>
 #include <kparts/liveconnectextension.h>
+using NavigationExtension = KParts::BrowserExtension;
+#else
+#include <KParts/NavigationExtension>
+using NavigationExtension = KParts::NavigationExtension;
+#endif
 
 namespace Okular
 {
 class Part;
 
-class BrowserExtension : public KParts::BrowserExtension
+class BrowserExtension : public NavigationExtension
 {
     Q_OBJECT
 
@@ -30,6 +38,7 @@ private:
     Part *m_part;
 };
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 class OkularLiveConnectExtension : public KParts::LiveConnectExtension
 {
     Q_OBJECT
@@ -49,6 +58,7 @@ private:
     bool m_inEval;
     QString m_evalRes;
 };
+#endif
 
 }
 
