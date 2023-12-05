@@ -10,13 +10,15 @@
 // local includes
 #include "part.h"
 
+#include <KParts/Part>
+
 namespace Okular
 {
 /*
  * BrowserExtension class
  */
 BrowserExtension::BrowserExtension(Part *parent)
-    : KParts::BrowserExtension(parent)
+    : NavigationExtension(parent)
     , m_part(parent)
 {
     Q_EMIT enableAction("print", true);
@@ -28,6 +30,7 @@ void BrowserExtension::print()
     m_part->slotPrint();
 }
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 /*
  * OkularLiveConnectExtension class
  */
@@ -102,6 +105,7 @@ void OkularLiveConnectExtension::postMessage(const QStringList &args)
                         "{ this.messageHandler.onMessage(") +
          arrayarg + QStringLiteral(") }"));
 }
+#endif
 
 }
 
