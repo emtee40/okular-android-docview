@@ -4320,9 +4320,11 @@ void Document::processAction(const Action *action)
                 realUrl = url;
             }
             if (realUrl.isValid()) {
-                // KRun autodeletes
-                KRun *r = new KRun(realUrl, d->m_widget);
-                r->setRunExecutables(false);
+                // KJob autodeletes
+                auto job = new KIO::OpenUrlJob(realUrl, d->m_widget);
+                job->setUiDelegate(KIO::createDefaultJobUiDelegate(KJobUiDelegate::AutoHandlingEnabled, d->m_widget));
+                job->setRunExecutables(false);
+                job->start();
             }
         }
     } break;
