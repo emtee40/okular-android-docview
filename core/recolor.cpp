@@ -6,7 +6,6 @@
 
 #include "recolor.h"
 #include "core/debug_p.h"
-#include "qthread.h"
 #include "settings_core.h"
 
 using namespace Okular;
@@ -16,27 +15,17 @@ bool Recolor::settingEnabled()
     return (Okular::SettingsCore::changeColors() && (Okular::SettingsCore::renderMode() != Okular::SettingsCore::EnumRenderMode::Paper));
 }
 
-class RecolorThread : public QThread
+Recolor::RecolorThread::RecolorThread(QImage image)
+    : image(image)
 {
-private:
-    Q_OBJECT
-    QImage *image;
+    setObjectName(QStringLiteral("Image recolor thread"));
+}
+void Recolor::RecolorThread::run()
+{
+    Recolor::applyCurrentRecolorModeToImage(&image);
+}
 
-public:
-    explicit RecolorThread(QImage *image)
-        : image(image)
-    {
-        setObjectName(QStringLiteral("Image recolor thread"));
-    }
-
-protected:
-    void run() override
-    {
-        Recolor::applyCurrentRecolorModeToImage(image);
-    }
-};
-
-QThread *Recolor::recolorThread(QImage *image)
+Recolor::RecolorThread *Recolor::recolorThread(QImage image)
 {
     if (settingEnabled()) {
         return new RecolorThread(image);

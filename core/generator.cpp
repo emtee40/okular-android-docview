@@ -112,8 +112,7 @@ void GeneratorPrivate::pixmapGenerationFinished()
     }
 
     if (!request->shouldAbortRender()) {
-        QImage *imgPtr = new QImage(img);
-        request->page()->setImage(request->observer(), imgPtr, request->normalizedRect());
+        request->page()->setImage(request->observer(), img, request->normalizedRect());
         const int pageNumber = request->page()->number();
 
         if (mPixmapGenerationThread->calcBoundingBox()) {
@@ -304,14 +303,14 @@ void Generator::generatePixmap(PixmapRequest *request)
         return;
     }
 
-    QImage *img = new QImage(image(request));
+    QImage img = image(request);
 
     const int pageNumber = request->page()->number();
 
     d->mPixmapReady = true;
 
     if (calcBoundingBox) {
-        updatePageBoundingBox(pageNumber, Utils::imageBoundingBox(img));
+        updatePageBoundingBox(pageNumber, Utils::imageBoundingBox(&img));
     }
     request->page()->setImage(request->observer(), img, request->normalizedRect());
     signalPixmapRequestDone(request);
@@ -456,7 +455,7 @@ void Generator::signalPartialPixmapRequest(PixmapRequest *request, const QImage 
     if (request->shouldAbortRender()) {
         return;
     }
-    request->page()->setImage(request->observer(), new QImage(image), request->normalizedRect(), true);
+    request->page()->setImage(request->observer(), image, request->normalizedRect(), true);
 }
 
 const Document *Generator::document() const

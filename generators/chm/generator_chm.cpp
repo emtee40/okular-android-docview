@@ -187,10 +187,10 @@ void CHMGenerator::slotCompleted()
         return;
     }
 
-    QImage *image = new QImage(m_request->width(), m_request->height(), QImage::Format_ARGB32);
-    image->fill(Qt::white);
+    QImage image(m_request->width(), m_request->height(), QImage::Format_ARGB32);
+    image.fill(Qt::white);
 
-    QPainter p(image);
+    QPainter p(&image);
     QRect r(0, 0, m_request->width(), m_request->height());
 
     bool moreToPaint;
@@ -212,7 +212,7 @@ void CHMGenerator::slotCompleted()
     m_request = nullptr;
 
     if (!req->page()->isBoundingBoxKnown()) {
-        updatePageBoundingBox(req->page()->number(), Okular::Utils::imageBoundingBox(image));
+        updatePageBoundingBox(req->page()->number(), Okular::Utils::imageBoundingBox(&image));
     }
     req->page()->setImage(req->observer(), image);
     signalPixmapRequestDone(req);

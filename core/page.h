@@ -275,7 +275,7 @@ public:
      * If @p rect is not set (default) the @p image is set to the entire
      * page.
      */
-    void setImage(DocumentObserver *observer, QImage *image, const NormalizedRect &rect = NormalizedRect(), bool isPartial = false);
+    void setImage(DocumentObserver *observer, const QImage &image, const NormalizedRect &rect = NormalizedRect(), bool isPartial = false);
 
     /**
      * Does the same as setImage(), but is less efficient if accessibility recoloring is enabled.

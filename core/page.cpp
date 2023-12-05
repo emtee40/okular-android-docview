@@ -550,7 +550,7 @@ QList<FormField *> Page::formFields() const
     return d->formfields;
 }
 
-void Page::setImage(DocumentObserver *observer, QImage *image, const NormalizedRect &rect, bool isPartial)
+void Page::setImage(DocumentObserver *observer, const QImage &image, const NormalizedRect &rect, bool isPartial)
 {
     // Here we must recolor the image if the appropriate accessibility settings are turned on.
 
@@ -558,13 +558,15 @@ void Page::setImage(DocumentObserver *observer, QImage *image, const NormalizedR
     // Thread interruptions don't work amazingly, so avoid creating a new thread for partial updates if there's an old one running
     // (sometimes partial updates can come faster than recolors)
     if (oldThread != nullptr && isPartial) {
-        delete image;
         return;
     }
     // cancel the old thread if it was just recoloring a partial pixmap
     if (oldThread != nullptr && d->recolorIsPartial) {
+        // Remove the finished listener below, which sets
         oldThread->disconnect(this);
-        QObject::connect(oldThread, &QThread::finished, this, [=]() {
+        // When the thread has finished executing, delete it and clear the pointer.
+        QObject::connect(oldThread, &QThread::finished, this, [this, oldThread]() {
+            // Clear the pointer only if it hasn't been set to something else already.
             if (oldThread == d->recolorThread) {
                 d->recolorThread = nullptr;
             }
@@ -573,21 +575,20 @@ void Page::setImage(DocumentObserver *observer, QImage *image, const NormalizedR
         oldThread->requestInterruption();
     }
 
-    QThread *newThread = Okular::Recolor::recolorThread(image);
+    // A thread is essentially being used as a future here because QFuture doesn't support cancellation
+    Recolor::RecolorThread *newThread = Okular::Recolor::recolorThread(image);
     d->recolorThread = newThread;
     d->recolorIsPartial = isPartial;
 
     if (newThread == nullptr) { // if there is no recoloring to be done
-        d->setPixmap(observer, new QPixmap(QPixmap::fromImage(*image)), rect, isPartial);
-        delete image;
+        d->setPixmap(observer, new QPixmap(QPixmap::fromImage(image)), rect, isPartial);
     } else {
         QObject::connect(
             newThread,
             &QThread::finished,
             this,
-            [=] {
-                d->setPixmap(observer, new QPixmap(QPixmap::fromImage(*image)), rect, isPartial);
-                delete image;
+            [this, observer, rect, isPartial, newThread] {
+                d->setPixmap(observer, new QPixmap(QPixmap::fromImage(newThread->image)), rect, isPartial);
 
                 newThread->deleteLater();
                 if (d->recolorThread == newThread) {
@@ -603,7 +604,7 @@ void Page::setImage(DocumentObserver *observer, QImage *image, const NormalizedR
 void Page::setPixmap(DocumentObserver *observer, QPixmap *pixmap, const NormalizedRect &rect)
 {
     if (Okular::Recolor::settingEnabled()) {
-        setImage(observer, new QImage(pixmap->toImage()), rect);
+        setImage(observer, QImage(pixmap->toImage()), rect);
         delete pixmap;
     } else {
         d->setPixmap(observer, pixmap, rect, false /*isPartialPixmap*/);

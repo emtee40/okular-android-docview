@@ -7,6 +7,7 @@
 #ifndef _OKULAR_GSRENDERERTHREAD_H_
 #define _OKULAR_GSRENDERERTHREAD_H_
 
+#include <QImage>
 #include <QMutex>
 #include <QQueue>
 #include <QSemaphore>
@@ -58,7 +59,7 @@ public:
     void addRequest(const GSRendererThreadRequest &req);
 
 Q_SIGNALS:
-    void imageDone(QImage *image, Okular::PixmapRequest *request);
+    void imageDone(QImage image, Okular::PixmapRequest *request);
 
 private:
     GSRendererThread();
