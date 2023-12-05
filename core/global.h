@@ -8,6 +8,7 @@
 #define OKULAR_GLOBAL_H
 
 #include <QGlobalStatic>
+#include <QFlags>
 
 /**
  * \namespace Okular global.h
