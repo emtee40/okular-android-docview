@@ -2401,7 +2401,12 @@ Document::OpenResult Document::openDocument(const QString &docFile, const QUrl &
     int fd = -1;
     if (url.scheme() == QLatin1String("fd")) {
         bool ok;
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
         fd = url.path().midRef(1).toInt(&ok);
+#else
+        const auto midView = QStringView{url.path()}.mid(1);
+        fd = midView.toInt(&ok);
+#endif
         if (!ok) {
             return OpenError;
         }
@@ -2951,10 +2956,10 @@ DocumentInfo Document::documentInfo(const QSet<DocumentInfo::Key> &keys) const
             info.set(DocumentInfo::Pages, QString::number(this->pages()));
         }
 
-        d->m_documentInfo.d->values.unite(info.d->values);
-        d->m_documentInfo.d->titles.unite(info.d->titles);
-        result.d->values.unite(info.d->values);
-        result.d->titles.unite(info.d->titles);
+        d->m_documentInfo.d->values.insert(info.d->values);
+        d->m_documentInfo.d->titles.insert(info.d->titles);
+        result.d->values.insert(info.d->values);
+        result.d->titles.insert(info.d->titles);
     }
     d->m_documentInfoAskedKeys += keys;
 
