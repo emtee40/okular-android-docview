@@ -52,6 +52,7 @@
 #ifdef WITH_KACTIVITIES
 #include <KActivities/ResourceInstance>
 #endif
+#include <KWindowInfo>
 
 #include <kio_version.h>
 #include <kxmlgui_version.h>
@@ -390,7 +391,7 @@ bool Shell::canOpenDocs(int numDocs, int desktop)
         return false;
     }
 
-    const KWindowInfo winfo(window()->effectiveWinId(), KWindowSystem::WMDesktop);
+    const KWindowInfo winfo(window()->effectiveWinId(), NET::WMDesktop);
     if (winfo.desktop() != desktop) {
         return false;
     }
