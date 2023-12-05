@@ -60,7 +60,9 @@
 #include <KMacroExpander>
 #include <KPluginMetaData>
 #include <KProcess>
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <KRun>
+#endif
 #include <KShell>
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <Kdelibs4Migration>
@@ -4178,13 +4180,21 @@ void Document::processAction(const Action *action)
         QMimeDatabase db;
         QMimeType mime = db.mimeTypeForUrl(url);
         // Check executables
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
         if (KRun::isExecutableFile(url, mime.name())) {
+#else
+        if (KIO::OpenUrlJob::isExecutableFile(url, mime.name())) {
+#endif
             // Don't have any pdf that uses this code path, just a guess on how it should work
             if (!exe->parameters().isEmpty()) {
                 url = d->giveAbsoluteUrl(exe->parameters());
                 mime = db.mimeTypeForUrl(url);
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
                 if (KRun::isExecutableFile(url, mime.name())) {
+#else
+                if (KIO::OpenUrlJob::isExecutableFile(url, mime.name())) {
+#endif
                     // this case is a link pointing to an executable with a parameter
                     // that also is an executable, possibly a hand-crafted pdf
                     Q_EMIT error(i18n("The document is trying to execute an external application and, for your safety, Okular does not allow that."), -1);
