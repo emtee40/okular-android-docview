@@ -15,6 +15,9 @@ set(OKULAR_UI "" CACHE STRING "Which Okular user interface to build. Possible va
 
 option(FORCE_NOT_REQUIRED_DEPENDENCIES "List (semicolon-separated) of dependencies that will be downgraded from REQUIRED to RECOMMENDED")
 
+find_package(ECM ${KF_REQUIRED_VERSION} CONFIG REQUIRED)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${ECM_MODULE_PATH})
+
 if (ANDROID AND (NOT FORCE_NOT_REQUIRED_DEPENDENCIES) AND (NOT FORCE_NOT_REQUIRED_DEPENDENCIES STREQUAL ""))
     set(FORCE_NOT_REQUIRED_DEPENDENCIES "KF${QT_MAJOR_VERSION}Wallet;KF${QT_MAJOR_VERSION}DocTools;Qt${QT_MAJOR_VERSION}Qml;TIFF;JPEG;LibSpectre;KF${QT_MAJOR_VERSION}KExiv2;CHM;LibZip;DjVuLibre;EPub;Discount;")
 
@@ -73,9 +76,6 @@ endif()
 if (BUILD_MOBILE)
     set(QT_REQUIRED_VERSION "5.15.2")
 endif()
-
-find_package(ECM ${KF_REQUIRED_VERSION} CONFIG REQUIRED)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${ECM_MODULE_PATH})
 
 include(ECMInstallIcons)
 include(ECMSetupVersion)
