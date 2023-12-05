@@ -12,8 +12,13 @@
 #define _OKULAR_GENERATOR_PDF_H_
 
 //#include "synctex/synctex_parser.h"
+#include <QtGlobal>
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <poppler-qt5.h>
+#else
+#include <poppler-qt6.h>
+#endif
 #include <poppler-version.h>
 
 #define POPPLER_VERSION_MACRO ((POPPLER_VERSION_MAJOR << 16) | (POPPLER_VERSION_MINOR << 8) | (POPPLER_VERSION_MICRO))

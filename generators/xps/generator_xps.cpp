@@ -126,7 +126,12 @@ static bool nextAbbPathToken(AbbPathToken *token)
         while ((*curPos < data.length()) && (!data.at(*curPos).isSpace()) && (data.at(*curPos) != QLatin1Char(',') && (!data.at(*curPos).isLetter() || data.at(*curPos) == QLatin1Char('e')))) {
             (*curPos)++;
         }
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
         token->number = data.midRef(start, *curPos - start).toDouble();
+#else
+        const auto dataView = QStringView{data}.mid(start, *curPos - start);
+        token->number = dataView.toDouble();
+#endif
         token->type = abtNumber;
 
     } else if (ch == QLatin1Char(',')) {
@@ -177,14 +182,23 @@ static QPointF getPointFromString(const QString &string)
 
     QPointF result;
     bool ok = false;
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     QStringRef ref = string.midRef(0, commaPos);
-    result.setX(QString::fromRawData(ref.constData(), ref.count()).toDouble(&ok));
+#else
+    QStringView ref{string};
+    ref = ref.mid(0, commaPos);
+#endif
+    result.setX(QString::fromRawData(ref.constData(), ref.size()).toDouble(&ok));
     if (!ok) {
         return QPointF();
     }
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     ref = string.midRef(commaPos + 1);
-    result.setY(QString::fromRawData(ref.constData(), ref.count()).toDouble(&ok));
+#else
+    ref = QStringView{string}.mid(commaPos + 1);
+#endif
+    result.setY(QString::fromRawData(ref.constData(), ref.size()).toDouble(&ok));
     if (!ok) {
         return QPointF();
     }
