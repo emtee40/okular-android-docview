@@ -508,6 +508,9 @@ if (Phonon4Qt${QT_MAJOR_VERSION}_FOUND)
     target_link_libraries(okularcore PRIVATE Phonon::phonon4qt${QT_MAJOR_VERSION})
 endif()
 
+if (QT_MAJOR_VERSION STREQUAL "6")
+    target_link_libraries(okularcore PRIVATE KF6::BookmarksWidgets)
+endif()
 
 if (KF${QT_MAJOR_VERSION}Wallet_FOUND)
     target_link_libraries(okularcore PRIVATE KF${QT_MAJOR_VERSION}::Wallet)
