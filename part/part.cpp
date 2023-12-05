@@ -351,8 +351,10 @@ Part::Part(QWidget *parentWidget, QObject *parent, const QVariantList &args)
 
     // create browser extension (for printing when embedded into browser)
     m_bExtension = new BrowserExtension(this);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     // create live connect extension (for integrating with browser scripting)
     new OkularLiveConnectExtension(this);
+#endif
 
     const QStringList iconDirs = QStandardPaths::locateAll(QStandardPaths::GenericDataLocation, QStringLiteral("okular/pics"), QStandardPaths::LocateDirectory);
     QIcon::setFallbackSearchPaths(QIcon::fallbackSearchPaths() << iconDirs);
