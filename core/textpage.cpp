@@ -50,7 +50,11 @@ public:
 
 /* text comparison functions */
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+static bool CaseInsensitiveCmpFn(const QStringView &from, const QStringView &to)
+#else
 static bool CaseInsensitiveCmpFn(const QStringRef &from, const QStringRef &to)
+#endif
 {
 #ifdef DEBUG_TEXTPAGE
     qDebug(OkularCoreDebug) << from << ":" << to << "(case insensitive)";
@@ -58,7 +62,11 @@ static bool CaseInsensitiveCmpFn(const QStringRef &from, const QStringRef &to)
     return from.compare(to, Qt::CaseInsensitive) == 0;
 }
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+static bool CaseSensitiveCmpFn(const QStringView &from, const QStringView &to)
+#else
 static bool CaseSensitiveCmpFn(const QStringRef &from, const QStringRef &to)
+#endif
 {
 #ifdef DEBUG_TEXTPAGE
     qDebug(OkularCoreDebug) << from << ":" << to << "(case sensitive)";
@@ -766,7 +774,13 @@ RegularAreaRect *TextPagePrivate::findTextInternalForward(int searchID, const QS
             // we have equal (or less than) area of the query left as the length of the current
             // entity
             const int min = qMin(queryLeft, matchingLen - offset);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+            QStringView left = QStringView{str}.mid(offset, min);
+            QStringView right = QStringView{query}.mid(j, min);
+            if (comparer(left, right)) {
+#else
             if (comparer(str.midRef(offset, min), query.midRef(j, min))) {
+#endif
                 matchedLen = min;
                 break;
             }
@@ -873,7 +887,14 @@ RegularAreaRect *TextPagePrivate::findTextInternalBackward(int searchID, const Q
         for (int matchingLen = strLen; matchingLen >= adjustedLen; matchingLen--) {
             const int hyphenOffset = (strLen - matchingLen);
             const int min = qMin(queryLeft + hyphenOffset, offset);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+
+            QStringView left = QStringView{str}.mid(offset - min, min - hyphenOffset);
+            QStringView right = QStringView{query}.mid(j - min + hyphenOffset, min - hyphenOffset);
+            if (comparer(left, right)) {
+#else
             if (comparer(str.midRef(offset - min, min - hyphenOffset), query.midRef(j - min + hyphenOffset, min - hyphenOffset))) {
+#endif
                 matchedLen = min - hyphenOffset;
                 break;
             }
