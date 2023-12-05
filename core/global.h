@@ -9,6 +9,7 @@
 
 #include <QFlags>
 #include <QGlobalStatic>
+#include <QFlags>
 
 /**
  * \namespace Okular global.h
