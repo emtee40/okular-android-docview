@@ -16,7 +16,7 @@ set(OKULAR_UI "" CACHE STRING "Which Okular user interface to build. Possible va
 option(FORCE_NOT_REQUIRED_DEPENDENCIES "List (semicolon-separated) of dependencies that will be downgraded from REQUIRED to RECOMMENDED")
 
 if (ANDROID AND (NOT FORCE_NOT_REQUIRED_DEPENDENCIES) AND (NOT FORCE_NOT_REQUIRED_DEPENDENCIES STREQUAL ""))
-    set(FORCE_NOT_REQUIRED_DEPENDENCIES "KF${QT_MAJOR_VERSION}Wallet;KF${QT_MAJOR_VERSION}DocTools;Qt${QT_MAJOR_VERSION}Qml;TIFF;JPEG;LibSpectre;KF${QT_MAJOR_VERSION}KExiv2;CHM;LibZip;DjVuLibre;EPub;Discount;")
+    set(FORCE_NOT_REQUIRED_DEPENDENCIES "KF${QT_MAJOR_VERSION}Wallet;KF${QT_MAJOR_VERSION}DocTools;Qt${QT_MAJOR_VERSION}Qml;TIFF;JPEG;LibSpectre;KExiv2Qt6;CHM;LibZip;DjVuLibre;EPub;Discount;")
 
     if (QT_MAJOR_VERSION STREQUAL "5")
         list(APPEND FORCE_NOT_REQUIRED_DEPENDENCIES "KF${QT_MAJOR_VERSION}KHtml;")
@@ -203,17 +203,23 @@ if (BUILD_MOBILE)
 endif()
 
 if(NOT WIN32 AND NOT ANDROID AND NOT APPLE)
-    find_package(KF${QT_MAJOR_VERSION} ${KF_REQUIRED_VERSION} REQUIRED COMPONENTS
-        Activities
-    )
-    set_package_properties("KF${QT_MAJOR_VERSION}Activities" PROPERTIES
-        DESCRIPTION  "Activities interface library"
-        URL "https://api.kde.org/frameworks/kactivities/html/"
-        PURPOSE "Required for Activities integration.")
-
     if (QT_MAJOR_VERSION STREQUAL "5")
+        find_package(KF5 ${KF_REQUIRED_VERSION} REQUIRED COMPONENTS
+            Activities
+        )
+        set_package_properties("KF5Activities" PROPERTIES
+            DESCRIPTION  "Activities interface library"
+            URL "https://api.kde.org/frameworks/kactivities/html/"
+            PURPOSE "Required for Activities integration."
+        )
         find_package(Qt${QT_MAJOR_VERSION}X11Extras REQUIRED)
     else()
+        find_package(PlasmaActivities REQUIRED)
+        set_package_properties("PlasmaActivities" PROPERTIES
+            DESCRIPTION  "Activities interface library"
+            URL "https://invent.kde.org/plasma/plasma-activities"
+            PURPOSE "Required for Activities integration."
+        )
         find_package(Qt${QT_MAJOR_VERSION}Gui REQUIRED COMPONENTS Private)
     endif()
 
@@ -263,11 +269,19 @@ set_okular_optional_package_properties(LibSpectre PROPERTIES
         URL "https://libspectre.freedesktop.org"
         PURPOSE "Support for PS files in okular.")
 
-find_package(KF${QT_MAJOR_VERSION}KExiv2 CONFIG)
-set_okular_optional_package_properties(KF${QT_MAJOR_VERSION}KExiv2 PROPERTIES
-        DESCRIPTION  "Wrapper around Exiv2 library"
-        URL "https://commits.kde.org/libkexiv2"
-        PURPOSE "Support for exif rotation in image files.")
+if (QT_MAJOR_VERSION STREQUAL "5")
+    find_package(KF5KExiv2 CONFIG)
+    set_okular_optional_package_properties(KF5KExiv2 PROPERTIES
+            DESCRIPTION  "Wrapper around Exiv2 library"
+            URL "https://commits.kde.org/libkexiv2"
+            PURPOSE "Support for exif rotation in image files.")
+else()
+    find_package(KExiv2Qt6 CONFIG)
+    set_okular_optional_package_properties(KExiv2Qt6 PROPERTIES
+            DESCRIPTION  "Wrapper around Exiv2 library"
+            URL "https://commits.kde.org/libkexiv2"
+            PURPOSE "Support for exif rotation in image files.")
+endif()
 
 if (QT_MAJOR_VERSION STREQUAL "5")
     find_package(CHM)
