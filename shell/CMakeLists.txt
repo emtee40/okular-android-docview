@@ -25,7 +25,14 @@ ecm_add_app_icon(okular_SRCS ICONS ${ICONS_SRCS})
 
 add_executable(okular ${okular_SRCS})
 
-target_link_libraries(okular KF${QT_MAJOR_VERSION}::I18n KF${QT_MAJOR_VERSION}::Parts KF${QT_MAJOR_VERSION}::WindowSystem KF${QT_MAJOR_VERSION}::Crash KF${QT_MAJOR_VERSION}::IconThemes)
+target_link_libraries(okular
+    KF${QT_MAJOR_VERSION}::I18n
+    KF${QT_MAJOR_VERSION}::Parts
+    KF${QT_MAJOR_VERSION}::WindowSystem
+    KF${QT_MAJOR_VERSION}::Crash
+    KF${QT_MAJOR_VERSION}::IconThemes
+    KF${QT_MAJOR_VERSION}::KIOGui
+)
 if (TARGET Qt${QT_MAJOR_VERSION}::DBus)
     target_link_libraries(okular Qt${QT_MAJOR_VERSION}::DBus)
 endif()
