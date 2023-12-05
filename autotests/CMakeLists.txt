@@ -118,18 +118,18 @@ ecm_add_test(check_distinguished_name_parser.cpp
     TEST_NAME "distinguishednameparser"
     LINK_LIBRARIES Qt${QT_MAJOR_VERSION}::Test)
 
-if(KF${QT_MAJOR_VERSION}Activities_FOUND AND BUILD_DESKTOP)
+if((KF5Activities_FOUND OR PlasmaActivities_FOUND ) AND BUILD_DESKTOP)
 	ecm_add_test(mainshelltest.cpp ../shell/okular_main.cpp ../shell/shellutils.cpp ../shell/shell.cpp ../shell/welcomescreen.cpp ../shell/recentitemsmodel.cpp closedialoghelper.cpp
 		TEST_NAME "mainshelltest"
-		LINK_LIBRARIES Qt${QT_MAJOR_VERSION}::Test KF${QT_MAJOR_VERSION}::Activities okularpart okularcore
+		LINK_LIBRARIES Qt${QT_MAJOR_VERSION}::Test okularpart okularcore
 	)
 	target_compile_definitions(mainshelltest PRIVATE OKULAR_BINARY="$<TARGET_FILE:okular>")
 
 	if (HAVE_X11)
         if (QT_MAJOR_VERSION STREQUAL "5")
-            target_link_libraries(mainshelltest Qt${QT_MAJOR_VERSION}::X11Extras)
+            target_link_libraries(mainshelltest Qt${QT_MAJOR_VERSION}::X11Extras KF5::Activities)
         else()
-            target_link_libraries(mainshelltest Qt${QT_MAJOR_VERSION}::GuiPrivate)
+            target_link_libraries(mainshelltest Qt${QT_MAJOR_VERSION}::GuiPrivate Plasma::Activities)
         endif()
     endif()
 endif()
