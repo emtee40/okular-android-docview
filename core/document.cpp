@@ -4177,34 +4177,13 @@ void Document::processAction(const Action *action)
         QMimeDatabase db;
         QMimeType mime = db.mimeTypeForUrl(url);
         // Check executables
-
-        auto isExecutableFile = [](const QUrl &url, const QString &mimetype) -> bool {
-            if (!url.isLocalFile()) {
-                return false;
-            }
-
-            QMimeDatabase db;
-            QMimeType mimeType = db.mimeTypeForName(mimetype);
-            if (!mimeType.inherits(QStringLiteral("application/x-executable")) && !mimeType.inherits(QStringLiteral("application/x-ms-dos-executable")) && !mimeType.inherits(QStringLiteral("application/x-executable-script")) &&
-                !mimeType.inherits(QStringLiteral("application/x-sharedlib"))) {
-                return false;
-            }
-
-            QFileInfo info(url.toLocalFile());
-            if (!info.isExecutable() && !mimeType.inherits(QStringLiteral("application/x-ms-dos-executable"))) {
-                return false;
-            }
-
-            return true;
-        };
-
-        if (isExecutableFile(url, mime.name())) {
+        if (KRun::isExecutableFile(url, mime.name())) {
             // Don't have any pdf that uses this code path, just a guess on how it should work
             if (!exe->parameters().isEmpty()) {
                 url = d->giveAbsoluteUrl(exe->parameters());
                 mime = db.mimeTypeForUrl(url);
 
-                if (isExecutableFile(url, mime.name())) {
+                if (KRun::isExecutableFile(url, mime.name())) {
                     // this case is a link pointing to an executable with a parameter
                     // that also is an executable, possibly a hand-crafted pdf
                     Q_EMIT error(i18n("The document is trying to execute an external application and, for your safety, Okular does not allow that."), -1);
