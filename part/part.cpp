@@ -58,6 +58,7 @@
 #include <KActionMenu>
 #include <KBookmarkAction>
 #include <KColorSchemeManager>
+#include <KColorSchemeMenu>
 #include <KCompressionDevice>
 #include <KDirWatch>
 #include <KFilterBase>
@@ -871,7 +872,7 @@ void Part::setupActions()
     KActionCollection *ac = actionCollection();
 
     auto manager = new KColorSchemeManager(this);
-    KActionMenu *schemeMenu = manager->createSchemeSelectionMenu(this);
+    KActionMenu *schemeMenu = KColorSchemeMenu::createMenu(manager,this);
     ac->addAction(QStringLiteral("colorscheme_menu"), schemeMenu->menu()->menuAction());
 
     m_copy = KStandardAction::create(KStandardAction::Copy, m_pageView, SLOT(copyTextSelection()), ac);
