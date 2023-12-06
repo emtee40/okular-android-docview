@@ -105,9 +105,9 @@ void OkularLiveConnectExtension::postMessage(const QStringList &args)
                         "{ this.messageHandler.onMessage(") +
          arrayarg + QStringLiteral(") }"));
 }
+#endif
 
 }
-#else
 
 #include "moc_extensions.cpp"
 
