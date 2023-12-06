@@ -1753,8 +1753,8 @@ bool Part::openFile()
             const QString caption = i18n("Request to Change Viewing Mode");
             const KGuiItem yesItem = KGuiItem(i18n("Enter Presentation Mode"), QStringLiteral("dialog-ok"));
             const KGuiItem noItem = KGuiItem(i18n("Deny Request"), QStringLiteral("dialog-cancel"));
-            const int result = KMessageBox::questionYesNo(widget(), text, caption, yesItem, noItem);
-            if (result == KMessageBox::No) {
+            const int result = KMessageBox::questionTwoActions(widget(), text, caption, yesItem, noItem);
+            if (result == KMessageBox::SecondaryAction) {
                 goAheadWithPresentationMode = false;
             }
         }
@@ -1870,7 +1870,7 @@ bool Part::queryClose()
     if (m_fileLastModified != QFileInfo(localFilePath()).lastModified()) {
         int res;
         if (m_isReloading) {
-            res = KMessageBox::warningYesNo(widget(),
+            res = KMessageBox::warningContinueCancel(widget(),
                                             xi18nc("@info",
                                                    "The file <filename>%1</filename> has unsaved changes but has been modified by another program. Reloading it "
                                                    "will replace the unsaved changes with the changes made in the other "
@@ -1880,7 +1880,7 @@ bool Part::queryClose()
                                             KGuiItem(i18n("Continue Reloading")), // <- KMessageBox::Yes
                                             KGuiItem(i18n("Abort Reloading")));
         } else {
-            res = KMessageBox::warningYesNo(widget(),
+            res = KMessageBox::warningContinueCancel(widget(),
                                             xi18nc("@info",
                                                    "The file <filename>%1</filename> has unsaved changes but has been modified by another program. Closing it "
                                                    "will replace the unsaved changes with the changes made in the other "
@@ -1890,18 +1890,18 @@ bool Part::queryClose()
                                             KGuiItem(i18n("Continue Closing")), // <- KMessageBox::Yes
                                             KGuiItem(i18n("Abort Closing")));
         }
-        return res == KMessageBox::Yes;
+        return res == KMessageBox::Continue;
     }
 
     // Not all things are saveable (e.g. files opened from stdin, folders)
     if (m_save->isEnabled()) {
-        const int res = KMessageBox::warningYesNoCancel(widget(), i18n("Do you want to save your changes to \"%1\" or discard them?", url().fileName()), i18n("Close Document"), KStandardGuiItem::save(), KStandardGuiItem::discard());
+        const int res = KMessageBox::warningTwoActionsCancel(widget(), i18n("Do you want to save your changes to \"%1\" or discard them?", url().fileName()), i18n("Close Document"), KStandardGuiItem::save(), KStandardGuiItem::discard());
 
         switch (res) {
-        case KMessageBox::Yes: // Save
+        case KMessageBox::PrimaryAction: // Save
             saveFile();
             return !isModified(); // Only allow closing if file was really saved
-        case KMessageBox::No:     // Discard
+        case KMessageBox::SecondaryAction:     // Discard
             return true;
         default: // Cancel
             return false;
@@ -2631,13 +2631,13 @@ bool Part::slotSaveFileAs(bool showOkularArchiveAsDefaultFormat)
         Q_ASSERT(okularArchiveMimeType.suffixes().at(0) == okularArchiveMimeType.preferredSuffix());
         const QString wantedExtension = QLatin1Char('.') + okularArchiveMimeType.preferredSuffix();
         if (!saveUrl.path().endsWith(wantedExtension)) {
-            const auto button = KMessageBox::questionYesNo(widget(),
+            const auto button = KMessageBox::questionTwoActions(widget(),
                                                            i18n("You have chosen to save an Okular Archive without the file name ending with the '%1' extension. That is not allowed, do you want to choose a new name?", wantedExtension),
                                                            i18n("Unsupported extension"),
                                                            KGuiItem(i18nc("@action:button", "Choose New Name"), QStringLiteral("edit-rename")),
                                                            KStandardGuiItem::cancel());
 
-            return button == KMessageBox::Yes ? slotSaveFileAs(showOkularArchiveAsDefaultFormat) : false;
+            return button == KMessageBox::PrimaryAction ? slotSaveFileAs(showOkularArchiveAsDefaultFormat) : false;
         }
     }
 
@@ -2674,7 +2674,7 @@ bool Part::saveAs(const QUrl &saveUrl, SaveAsFlags flags)
     // nothing to warn about.
     const QFileInfo fi(localFilePath());
     if (fi.exists() && m_fileLastModified != fi.lastModified() && saveUrl == realUrl()) {
-        const int res = KMessageBox::warningYesNoCancel(widget(),
+        const int res = KMessageBox::warningTwoActionsCancel(widget(),
                                                         xi18nc("@info",
                                                                "The file <filename>%1</filename> has been modified by another program. If you save now, any "
                                                                "changes made in the other program will be lost. Are you sure you want to continue?",
@@ -2684,17 +2684,17 @@ bool Part::saveAs(const QUrl &saveUrl, SaveAsFlags flags)
                                                         KGuiItem(i18n("Save a Copy Elsewhere")), // <- KMessageBox::No
                                                         KStandardGuiItem::cancel());             // <- KMessageBox::Cancel
 
-        if (res == KMessageBox::No) {
+        if (res == KMessageBox::SecondaryAction) {
             slotSaveFileAs(false);
         }
-        if (res != KMessageBox::Yes) {
+        if (res != KMessageBox::PrimaryAction) {
             return false;
         }
     }
 
     bool hasUserAcceptedReload = false;
     if (m_documentOpenWithPassword) {
-        const int res = KMessageBox::warningYesNo(
+        const int res = KMessageBox::warningContinueCancel(
             widget(),
             i18n("The current document is protected with a password.<br />In order to save, the file needs to be reloaded. You will be asked for the password again and your undo/redo history will be lost.<br />Do you want to continue?"),
             i18n("Save - Warning"),
@@ -2702,11 +2702,11 @@ bool Part::saveAs(const QUrl &saveUrl, SaveAsFlags flags)
             KStandardGuiItem::cancel());
 
         switch (res) {
-        case KMessageBox::Yes:
+        case KMessageBox::Continue:
             hasUserAcceptedReload = true;
             // do nothing
             break;
-        case KMessageBox::No: // User said no to continue, so return true even if save didn't happen otherwise we will get an error
+        case KMessageBox::Cancel: // User said no to continue, so return true even if save didn't happen otherwise we will get an error
             return true;
         }
     }
@@ -2747,17 +2747,17 @@ bool Part::saveAs(const QUrl &saveUrl, SaveAsFlags flags)
     // Does the user want a .okular archive?
     if (flags & SaveAsOkularArchive) {
         if (!hasUserAcceptedReload && !m_document->canSwapBackingFile()) {
-            const int res = KMessageBox::warningYesNo(widget(),
+            const int res = KMessageBox::warningContinueCancel(widget(),
                                                       i18n("After saving, the current document format requires the file to be reloaded. Your undo/redo history will be lost.<br />Do you want to continue?"),
                                                       i18n("Save - Warning"),
                                                       KStandardGuiItem::cont(),
                                                       KStandardGuiItem::cancel());
 
             switch (res) {
-            case KMessageBox::Yes:
+            case KMessageBox::Continue:
                 // do nothing
                 break;
-            case KMessageBox::No: // User said no to continue, so return true even if save didn't happen otherwise we will get an error
+            case KMessageBox::Cancel: // User said no to continue, so return true even if save didn't happen otherwise we will get an error
                 return true;
             }
         }
@@ -2785,7 +2785,7 @@ bool Part::saveAs(const QUrl &saveUrl, SaveAsFlags flags)
             if (saveUrl == url()) {
                 // Save
                 const QString warningMessage = i18n("You are about to save changes, but the current file format does not support saving the following elements. Please use the <i>Okular document archive</i> format to preserve them.");
-                const int result = KMessageBox::warningYesNoList(widget(),
+                const int result = KMessageBox::warningContinueCancelList(widget(),
                                                                  warningMessage,
                                                                  listOfwontSaves,
                                                                  i18n("Warning"),
@@ -2793,7 +2793,7 @@ bool Part::saveAs(const QUrl &saveUrl, SaveAsFlags flags)
                                                                  KStandardGuiItem::cancel());
 
                 switch (result) {
-                case KMessageBox::Yes: // -> Save as Okular document archive
+                case KMessageBox::Continue: // -> Save as Okular document archive
                     return slotSaveFileAs(true /* showOkularArchiveAsDefaultFormat */);
                 default:
                     return false;
@@ -2807,7 +2807,7 @@ bool Part::saveAs(const QUrl &saveUrl, SaveAsFlags flags)
                                                                                       "You are about to save changes, but the current file format does not support saving the following elements. Please use the <i>Okular document "
                                                                                       "archive</i> format to preserve them. Click <i>Continue</i> to save, but you will lose these elements as well as the undo/redo history.");
                 const QString continueMessage = m_document->canSwapBackingFile() ? i18n("Continue") : i18n("Continue losing changes");
-                const int result = KMessageBox::warningYesNoCancelList(widget(),
+                const int result = KMessageBox::warningTwoActionsCancelList(widget(),
                                                                        warningMessage,
                                                                        listOfwontSaves,
                                                                        i18n("Warning"),
@@ -2815,9 +2815,9 @@ bool Part::saveAs(const QUrl &saveUrl, SaveAsFlags flags)
                                                                        KGuiItem(continueMessage, QStringLiteral("arrow-right")));                                // <- KMessageBox::NO
 
                 switch (result) {
-                case KMessageBox::Yes: // -> Save as Okular document archive
+                case KMessageBox::PrimaryAction: // -> Save as Okular document archive
                     return slotSaveFileAs(true /* showOkularArchiveAsDefaultFormat */);
-                case KMessageBox::No: // -> Continue
+                case KMessageBox::SecondaryAction: // -> Continue
                     setModifiedAfterSave = m_document->canSwapBackingFile();
                     break;
                 case KMessageBox::Cancel:
