@@ -12,6 +12,7 @@ set( okularGenerator_comicbook_PART_SRCS
 
 add_library(okular_comicbook STATIC ${okularGenerator_comicbook_PART_SRCS})
 target_link_libraries(okular_comicbook okularcore KF${QT_MAJOR_VERSION}::I18n KF${QT_MAJOR_VERSION}::Archive)
+set_target_properties(okular_comicbook PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 okular_add_generator(okularGenerator_comicbook generator_comicbook.cpp)
 target_link_libraries(okularGenerator_comicbook okular_comicbook)
