@@ -283,13 +283,13 @@ else()
             PURPOSE "Support for exif rotation in image files.")
 endif()
 
-find_package(CHM)
-set_okular_optional_package_properties(CHM PROPERTIES
-        DESCRIPTION  "A library for dealing with Microsoft ITSS/CHM format files"
-        URL "http://www.jedrea.com/chmlib"
-        PURPOSE "Support CHM files in okular.")
-
 if (QT_MAJOR_VERSION STREQUAL "5")
+    find_package(CHM)
+    set_okular_optional_package_properties(CHM PROPERTIES
+            DESCRIPTION  "A library for dealing with Microsoft ITSS/CHM format files"
+            URL "http://www.jedrea.com/chmlib"
+            PURPOSE "Support CHM files in okular.")
+
     find_package(KF${QT_MAJOR_VERSION}KHtml CONFIG)
     set_okular_optional_package_properties(KF${QT_MAJOR_VERSION}KHtml PROPERTIES
             DESCRIPTION "HTML rendering library"
