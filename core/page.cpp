@@ -576,7 +576,7 @@ void Page::setImage(DocumentObserver *observer, const QImage &image, const Norma
     }
 
     // A thread is essentially being used as a future here because QFuture doesn't support cancellation
-    Recolor::RecolorThread *newThread = Okular::Recolor::recolorThread(image);
+    RecolorThread *newThread = Okular::Recolor::recolorThread(image);
     d->recolorThread = newThread;
     d->recolorIsPartial = isPartial;
 

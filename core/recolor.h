@@ -8,19 +8,20 @@
 namespace Okular
 {
 
+class RecolorThread : public QThread
+{
+    Q_OBJECT
+public:
+    QImage image;
+    explicit RecolorThread(const QImage &image);
+
+protected:
+    void run() override;
+};
+
 class OKULARCORE_EXPORT Recolor
 {
 public:
-    class RecolorThread : public QThread
-    {
-    public:
-        QImage image;
-        explicit RecolorThread(QImage image);
-
-    protected:
-        void run() override;
-    };
-
     /**
      * Returns true if the recoloring accessibility setting is enabled.
      * If this is false, then applyCurrentRecolorModeToImage and related functions are no-ops.
@@ -34,7 +35,7 @@ public:
      * Creates a new QThread which will call applyCurrentRecolorModeToImage.
      * Returns null if settingEnabled is false.
      */
-    static RecolorThread *recolorThread(QImage image);
+    static RecolorThread *recolorThread(const QImage &image);
     /**
      * Changes just a single color instead of the whole image.
      */

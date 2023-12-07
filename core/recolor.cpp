@@ -16,17 +16,17 @@ bool Recolor::settingEnabled()
     return (Okular::SettingsCore::changeColors() && (Okular::SettingsCore::renderMode() != Okular::SettingsCore::EnumRenderMode::Paper));
 }
 
-Recolor::RecolorThread::RecolorThread(QImage image)
+RecolorThread::RecolorThread(const QImage &image)
     : image(image)
 {
     setObjectName(QStringLiteral("Image recolor thread"));
 }
-void Recolor::RecolorThread::run()
+void RecolorThread::run()
 {
     Recolor::applyCurrentRecolorModeToImage(&image);
 }
 
-Recolor::RecolorThread *Recolor::recolorThread(QImage image)
+RecolorThread *Recolor::recolorThread(const QImage &image)
 {
     if (settingEnabled()) {
         return new RecolorThread(image);
