@@ -9,6 +9,8 @@ Dependencies:
     'frameworks/ki18n': '@same'
     'frameworks/kio': '@same'
     'frameworks/karchive': '@same'
+    'frameworks/parts': '@same'
+    'frameworks/textwidgets': '@same'
     'libraries/phonon': '@same'
     'graphics/kdegraphics-mobipocket': '@same'
 
