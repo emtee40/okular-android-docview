@@ -109,7 +109,11 @@ static bool attachExistingInstance(const QStringList &paths, const QString &seri
     const QString myPid = QString::number(qApp->applicationPid());
     QScopedPointer<QDBusInterface> bestService;
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    #if HAVE_X11
     const int desktop = KX11Extras::currentDesktop();
+    #else
+    const int desktop = 0;
+    #endif
 #else
     const int desktop = KWindowSystem::currentDesktop();
 #endif
