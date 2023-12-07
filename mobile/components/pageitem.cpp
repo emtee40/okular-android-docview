@@ -252,7 +252,11 @@ void PageItem::removeBookmark(const QString &bookmark)
 }
 
 // Reimplemented
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 void PageItem::geometryChanged(const QRectF &newGeometry, const QRectF &oldGeometry)
+#else
+void PageItem::geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry)
+#endif
 {
     if (newGeometry.size().isEmpty()) {
         return;
@@ -264,7 +268,11 @@ void PageItem::geometryChanged(const QRectF &newGeometry, const QRectF &oldGeome
         m_redrawTimer->start();
     }
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     QQuickItem::geometryChanged(newGeometry, oldGeometry);
+#else
+    QQuickItem::geometryChange(newGeometry, oldGeometry);
+#endif
 
     if (changed) {
         // Why aren't they automatically emitted?
