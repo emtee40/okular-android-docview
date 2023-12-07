@@ -109,7 +109,7 @@ ecm_setup_version(${PROJECT_VERSION}
 
 find_package(Qt${QT_MAJOR_VERSION} ${QT_REQUIRED_VERSION} CONFIG REQUIRED COMPONENTS Core Test Widgets PrintSupport Svg Xml)
 
-if(ANDROID)
+if(ANDROID AND "${QT_MAJOR_VERSION}" STREQUAL "5" )
     find_package(Qt${QT_MAJOR_VERSION} ${QT_REQUIRED_VERSION} CONFIG REQUIRED COMPONENTS AndroidExtras)
 endif()
 
