@@ -7,9 +7,10 @@ include_directories(
 add_executable(okularkirigami main.cpp app.qrc)
 target_link_libraries(okularkirigami Qt${QT_MAJOR_VERSION}::Widgets Qt${QT_MAJOR_VERSION}::Qml KF${QT_MAJOR_VERSION}::I18n KF${QT_MAJOR_VERSION}::CoreAddons)
 if (ANDROID)
-    find_package(Qt${QT_MAJOR_VERSION} COMPONENTS AndroidExtras)
     target_sources(okularkirigami PRIVATE android.cpp)
-    target_link_libraries(okularkirigami Qt${QT_MAJOR_VERSION}::AndroidExtras)
+    if (TARGET Qt${QT_MAJOR_VERSION}::AndroidExtras)
+       target_link_libraries(okularkirigami Qt${QT_MAJOR_VERSION}::AndroidExtras)
+    endif()
 
     # androiddeployqt only packages libraries needed by the main binary.
     # That is problematic because some of the libraries we need we only use in plugins
