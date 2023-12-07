@@ -29,7 +29,7 @@ target_link_libraries(okularplugin
         okularcore
         )
 
-if(ANDROID)
+if(TARGET Qt${QT_MAJOR_VERSION}::AndroidExtras)
     target_link_libraries(okularplugin Qt${QT_MAJOR_VERSION}::AndroidExtras)
 endif()
 

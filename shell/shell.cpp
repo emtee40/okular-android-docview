@@ -28,7 +28,9 @@
 #include <KRecentFilesAction>
 #include <KSharedConfig>
 #include <KStandardAction>
+#ifndef Q_OS_WIN
 #include <KStartupInfo>
+#endif
 #include <KToggleFullScreenAction>
 #include <KToolBar>
 #include <KUrlMimeData>
@@ -666,11 +668,15 @@ void Shell::fileOpen()
 
 void Shell::tryRaise(const QString &startupId)
 {
+#ifndef Q_OS_WIN
     if (KWindowSystem::isPlatformWayland()) {
         KWindowSystem::setCurrentXdgActivationToken(startupId);
     } else if (KWindowSystem::isPlatformX11()) {
         KStartupInfo::setNewStartupId(window()->windowHandle(), startupId.toUtf8());
     }
+#else
+    Q_UNUSED(startupId);
+#endif
 
     KWindowSystem::activateWindow(window()->windowHandle());
 }
