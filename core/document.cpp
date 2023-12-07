@@ -4017,9 +4017,7 @@ void Document::editFormButtons(int pageNumber, const QList<FormFieldButton *> &f
 
 void Document::reloadDocument() const
 {
-    const int numOfPages = pages();
-    for (int i = 0; i < numOfPages; ++i) {
-        Page *pg = d->m_pagesVector.at(i);
+    for (Page *pg : qAsConst(d->m_pagesVector)) {
         if (pg) {
             pg->deletePixmaps();
         }

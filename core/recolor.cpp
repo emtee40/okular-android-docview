@@ -1,4 +1,5 @@
 /*
+    SPDX-FileCopyrightText: 2016 Martin T. H. Sandsmark <martin.sandsmark@kde.org>
     SPDX-FileCopyrightText: 2023 Max Mueggler <maxmueggler@gmail.com>
 
     SPDX-License-Identifier: GPL-2.0-or-later

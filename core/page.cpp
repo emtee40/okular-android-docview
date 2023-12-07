@@ -17,6 +17,7 @@
 #include <QPixmap>
 #include <QSet>
 #include <QString>
+#include <QThread>
 #include <QUuid>
 #include <QVariant>
 
@@ -36,7 +37,6 @@
 #include "pagecontroller_p.h"
 #include "pagesize.h"
 #include "pagetransition.h"
-#include "qthread.h"
 #include "rotationjob_p.h"
 #include "textpage_p.h"
 #include "tile.h"
