@@ -131,6 +131,7 @@ find_package(KF${QT_MAJOR_VERSION} ${KF_REQUIRED_VERSION} REQUIRED COMPONENTS
     KIO
     ThreadWeaver
     WindowSystem
+    XmlGui
 )
 
 if (NOT WIN32)
