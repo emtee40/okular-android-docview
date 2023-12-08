@@ -105,7 +105,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 ecm_setup_version(${PROJECT_VERSION}
                   VARIABLE_PREFIX OKULAR
                   VERSION_HEADER "${CMAKE_CURRENT_BINARY_DIR}/core/version.h"
-                  PACKAGE_VERSION_FILE "${CMAKE_CURRENT_BINARY_DIR}/Okular5ConfigVersion.cmake")
+                  PACKAGE_VERSION_FILE "${CMAKE_CURRENT_BINARY_DIR}/Okular${QT_MAJOR_VERSION}ConfigVersion.cmake")
 
 find_package(Qt${QT_MAJOR_VERSION} ${QT_REQUIRED_VERSION} CONFIG REQUIRED COMPONENTS Core Test Widgets PrintSupport Svg Xml)
 
@@ -537,9 +537,9 @@ if (TARGET Qt${QT_MAJOR_VERSION}::Qml)
     target_link_libraries(okularcore PRIVATE Qt${QT_MAJOR_VERSION}::Qml)
 endif()
 
-set_target_properties(okularcore PROPERTIES VERSION 11.0.0 SOVERSION 11 OUTPUT_NAME Okular5Core EXPORT_NAME Core)
+set_target_properties(okularcore PROPERTIES VERSION 11.0.0 SOVERSION 11 OUTPUT_NAME Okular${QT_MAJOR_VERSION}Core EXPORT_NAME Core)
 
-install(TARGETS okularcore EXPORT Okular5Targets ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
+install(TARGETS okularcore EXPORT Okular${QT_MAJOR_VERSION}Targets ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
 
 install(FILES conf/okular.kcfg DESTINATION ${KDE_INSTALL_KCFGDIR})
 install(FILES conf/okular_core.kcfg DESTINATION ${KDE_INSTALL_KCFGDIR})
@@ -692,22 +692,22 @@ endif()
 
 ########### cmake files #################
 
-set(CMAKECONFIG_INSTALL_DIR "${KDE_INSTALL_CMAKEPACKAGEDIR}/Okular5")
+set(CMAKECONFIG_INSTALL_DIR "${KDE_INSTALL_CMAKEPACKAGEDIR}/Okular${QT_MAJOR_VERSION}")
 configure_package_config_file(
-  "${CMAKE_CURRENT_SOURCE_DIR}/Okular5Config.cmake.in"
-  "${CMAKE_CURRENT_BINARY_DIR}/Okular5Config.cmake"
+  "${CMAKE_CURRENT_SOURCE_DIR}/OkularConfig.cmake.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/Okular${QT_MAJOR_VERSION}Config.cmake"
   INSTALL_DESTINATION  ${CMAKECONFIG_INSTALL_DIR}
   PATH_VARS  KDE_INSTALL_INCLUDEDIR CMAKE_INSTALL_PREFIX
 )
 
 install(FILES
-  "${CMAKE_CURRENT_BINARY_DIR}/Okular5Config.cmake"
-  "${CMAKE_CURRENT_BINARY_DIR}/Okular5ConfigVersion.cmake"
+  "${CMAKE_CURRENT_BINARY_DIR}/Okular${QT_MAJOR_VERSION}Config.cmake"
+  "${CMAKE_CURRENT_BINARY_DIR}/Okular${QT_MAJOR_VERSION}ConfigVersion.cmake"
   DESTINATION "${CMAKECONFIG_INSTALL_DIR}"
   COMPONENT Devel
 )
 
-install(EXPORT Okular5Targets DESTINATION "${CMAKECONFIG_INSTALL_DIR}" FILE Okular5Targets.cmake NAMESPACE Okular::)
+install(EXPORT Okular${QT_MAJOR_VERSION}Targets DESTINATION "${CMAKECONFIG_INSTALL_DIR}" FILE Okular${QT_MAJOR_VERSION}Targets.cmake NAMESPACE Okular::)
 
 install(FILES
    core/stamps.svg
