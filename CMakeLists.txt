@@ -211,13 +211,15 @@ if(NOT WIN32 AND NOT ANDROID AND NOT APPLE)
 else()
     set(HAVE_X11 FALSE)
 endif()
-find_package(Phonon4Qt5 CONFIG)
-set_okular_optional_package_properties(Phonon4Qt5 PROPERTIES
-    PURPOSE "Required for documents with audio or video elements")
-if (Phonon4Qt5_FOUND)
-    set(HAVE_PHONON 1)
+
+find_package(Qt5MultimediaWidgets ${QT_REQUIRED_VERSION} CONFIG)
+set_okular_optional_package_properties(Qt5::MultimediaWidgets PROPERTIES
+    PURPOSE "Required for documents with audio or video elements.")
+
+if (TARGET Qt5::MultimediaWidgets)
+    set(HAVE_MULTIMEDIA 1)
 else()
-    set(HAVE_PHONON 0)
+    set(HAVE_MULTIMEDIA 0)
 endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/modules)
@@ -472,10 +474,10 @@ PUBLIC  # these are included from the installed headers
     Qt5::PrintSupport
     Qt5::Widgets
 )
-if (Phonon4Qt5_FOUND)
-    target_link_libraries(okularcore PRIVATE Phonon::phonon4qt5)
-endif()
 
+if (TARGET Qt5::MultimediaWidgets)
+    target_link_libraries(okularcore PRIVATE Qt5::MultimediaWidgets)
+endif()
 
 if (KF5Wallet_FOUND)
     target_link_libraries(okularcore PRIVATE KF5::Wallet)
@@ -569,7 +571,6 @@ if(BUILD_DESKTOP)
     part/searchwidget.cpp
     part/sidebar.cpp
     part/side_reviews.cpp
-    part/snapshottaker.cpp
     part/thumbnaillist.cpp
     part/toc.cpp
     part/toggleactionmenu.cpp
@@ -610,8 +611,8 @@ target_link_libraries(okularpart okularcore
 if (TARGET Qt5::DBus)
     target_link_libraries(okularpart Qt5::DBus)
 endif()
-if (Phonon4Qt5_FOUND)
-   target_link_libraries(okularpart Phonon::phonon4qt5)
+if (TARGET Qt5::MultimediaWidgets) 
+    target_link_libraries(okularpart Qt5::MultimediaWidgets)
 endif()
 
 if(KF5Wallet_FOUND)

@@ -7,6 +7,9 @@
 /* Defines if qtspeech is available */
 #cmakedefine01 HAVE_SPEECH
 
+/* Defines if qtmultimedia is available */
+#cmakedefine01 HAVE_MULTIMEDIA
+
 /* Defines if kwallet is available */
 #cmakedefine01 HAVE_KWALLET
 
@@ -18,9 +21,6 @@
 
 /* Defines whether we are building with X11 support */
 #cmakedefine01 HAVE_X11
-
-/* Defines wheter we are building with Phonon support */
-#cmakedefine01 HAVE_PHONON
 
 /* Defines whether we are building with dbus enabled */
 #cmakedefine01 HAVE_DBUS
