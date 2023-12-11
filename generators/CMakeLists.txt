@@ -54,7 +54,7 @@ endif(EPUB_FOUND)
 
 add_subdirectory(txt)
 
-if(QMobipocket_FOUND)
+if(${MOBIPOCKET}_FOUND)
   add_subdirectory(mobipocket)
 endif()
 
