@@ -448,13 +448,11 @@ void fontPool::release_fonts()
 
 void fontPool::mf_output_receiver()
 {
-    if (!kpsewhich_) {
-        return;
+    if (kpsewhich_) {
+        const QString output_data = QString::fromLocal8Bit(kpsewhich_->readAllStandardError());
+        kpsewhichOutput.append(output_data);
+        MetafontOutput.append(output_data);
     }
-    const QString output_data = QString::fromLocal8Bit(kpsewhich_->readAllStandardError());
-
-    kpsewhichOutput.append(output_data);
-    MetafontOutput.append(output_data);
 
     // We'd like to print only full lines of text.
     int numleft;
