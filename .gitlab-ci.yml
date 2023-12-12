@@ -8,6 +8,7 @@ include:
       - /gitlab-templates/linux.yml
       - /gitlab-templates/freebsd.yml
       - /gitlab-templates/windows.yml
+      - /gitlab-templates/clang-format.yml
       - /gitlab-templates/craft-android-apks.yml
 
 #build_ubuntu_22_04:
@@ -71,18 +72,3 @@ build_clazy_clang_tidy:
     - cp "$CI_PROJECT_DIR/.clang-tidy" .
     - CLAZY_IGNORE_DIRS="settings_mobile.[cpp|h]|settings.[cpp.h]|pdfsettings.h|gssettings.h" ninja -k 0
     - run-clang-tidy
-
-clang_format:
-  stage: build
-  image: debian:testing
-  tags:
-    - Linux
-  only:
-    - merge_requests
-    - master
-  before_script:
-    - apt-get update
-    - apt-get install --yes --no-install-recommends git clang-format-13
-  script:
-    - find . \( -name "*.cpp" -or -name "*.h"  -or -name "*.c"  -or -name "*.cc" \) -exec clang-format-13 -i {} \;
-    - git diff --exit-code
