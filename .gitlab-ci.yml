@@ -46,7 +46,7 @@ build_clazy_clang_tidy:
     # Default UI
     - mkdir -p /tmp/okular_build
     - cd /tmp/okular_build
-    - cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -G Ninja $CI_PROJECT_DIR
+    - cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -G Ninja -DCMAKE_PREFIX_PATH=$CMAKE_PREFIX_PATH $CI_PROJECT_DIR
     - cat compile_commands.json | jq  '[.[] | select(.file | contains("'"$CI_PROJECT_DIR"'"))]' > compile_commands.aux.json
     - cat compile_commands.aux.json | jq  '[.[] | select(.file | contains("/synctex/")| not)]' > compile_commands.json
     - cp "$CI_PROJECT_DIR/.clang-tidy" .
