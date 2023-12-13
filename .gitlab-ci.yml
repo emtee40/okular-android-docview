@@ -37,7 +37,8 @@ build_clazy_clang_tidy:
     - merge_requests
   before_script:
     - ls /usr/bin/ | grep clang
-    - zypper --non-interactive install clang14
+    - sudo zypper --non-interactive install clang14 || true
+    - ls /usr/bin/ | grep clang
   variables:
     CLAZY_CHECKS: level0,level1,level2,no-ctor-missing-parent-argument,isempty-vs-count,qhash-with-char-pointer-key,raw-environment-function,qproperty-type-mismatch,no-no-module-include
     CXXFLAGS: -Werror -Wno-deprecated-declarations
@@ -55,7 +56,7 @@ build_clazy_clang_tidy:
     - cat compile_commands.aux.json | jq  '[.[] | select(.file | contains("/synctex/")| not)]' > compile_commands.json
     - cp "$CI_PROJECT_DIR/.clang-tidy" .
     - CLAZY_IGNORE_DIRS="settings_core.[cpp|h]|settings.[cpp.h]|pdfsettings.h|gssettings.h|ui_selectcertificatedialog.h" ninja -k 0
-    - run-clang-tidy-14
+    - run-clang-tidy
     - rm -rf *
     # Mobile UI
     - echo "Now compiling the mobile UI"
