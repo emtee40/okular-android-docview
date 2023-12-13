@@ -41,10 +41,12 @@ static QString popplerEnumToUserString(Poppler::CryptoSignBackend backend)
 
 std::optional<Poppler::CryptoSignBackend> PDFSettingsWidget::settingStringToPopplerEnum(QStringView backend)
 {
-    if (backend == QStringLiteral("NSS"))
+    if (backend == QStringLiteral("NSS")) {
         return Poppler::CryptoSignBackend::NSS;
-    if (backend == QStringLiteral("GPG"))
+    }
+    if (backend == QStringLiteral("GPG")) {
         return Poppler::CryptoSignBackend::GPG;
+    }
     return std::nullopt;
 }
 #endif
