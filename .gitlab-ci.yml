@@ -35,23 +35,34 @@ build_clazy_clang_tidy:
      - Linux
   only:
     - merge_requests
+  variables:
+    CLAZY_CHECKS: level0,level1,level2,no-ctor-missing-parent-argument,isempty-vs-count,qhash-with-char-pointer-key,raw-environment-function,qproperty-type-mismatch
+    CXXFLAGS: -Werror -Wno-deprecated-declarations
+    CC: clang
+    CXX: clazy
   script:
     - git config --global --add safe.directory $CI_PROJECT_DIR
-    - mv CMakeLists.txt CMakeLists.lol
-    - python3 -u ci-utilities/run-ci-build.py --project $CI_PROJECT_NAME --branch $CI_COMMIT_REF_NAME --platform Linux/Qt5/Shared || true
-    - mv CMakeLists.lol CMakeLists.txt
-    - srcdir=`pwd` && mkdir -p /tmp/okular_build && cd /tmp/okular_build && CC=clang CXX=clazy CXXFLAGS="-Werror -Wno-deprecated-declarations" cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_INSTALL_PREFIX="/builds/graphics/okular/_install -G Ninja $srcdir && cat compile_commands.json | jq  '[.[] | select(.file | contains("'"$srcdir"'"))]' > compile_commands.aux.json && cat compile_commands.aux.json | jq  '[.[] | select(.file | contains("/synctex/")| not)]' > compile_commands.json && cp "$srcdir/.clang-tidy" .
-    - echo "Did the jq things"
-    - CLAZY_IGNORE_DIRS="settings_core.[cpp|h]|settings.[cpp.h]|pdfsettings.h|gssettings.h|ui_selectcertificatedialog.h" CLAZY_CHECKS="level0,level1,level2,no-ctor-missing-parent-argument,isempty-vs-count,qhash-with-char-pointer-key,raw-environment-function,qproperty-type-mismatch" ninja
-    - echo "Did the ninja things"
+    - python3 -u ci-utilities/run-ci-build.py --project $CI_PROJECT_NAME --branch $CI_COMMIT_REF_NAME --platform Linux/Qt5/Shared --only-setup-environment
+    # Default UI
+    - mkdir -p /tmp/okular_build
+    - cd /tmp/okular_build
+    - cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -G Ninja $CI_PROJECT_DIR
+    - cat compile_commands.json | jq  '[.[] | select(.file | contains("'"$CI_PROJECT_DIR"'"))]' > compile_commands.aux.json
+    - cat compile_commands.aux.json | jq  '[.[] | select(.file | contains("/synctex/")| not)]' > compile_commands.json
+    - cp "$CI_PROJECT_DIR/.clang-tidy" .
+    - CLAZY_IGNORE_DIRS="settings_core.[cpp|h]|settings.[cpp.h]|pdfsettings.h|gssettings.h|ui_selectcertificatedialog.h" ninja
     - run-clang-tidy-14
     - rm -rf *
+    # Mobile UI
     - echo "Now compiling the mobile UI"
-    - cd "$CI_PROJECT_DIR"
-    - srcdir=`pwd` && mkdir -p /tmp/okular_build && cd /tmp/okular_build && CC=clang CXX=clazy CXXFLAGS="-Werror -Wno-deprecated-declarations" cmake -DOKULAR_UI=mobile -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_INSTALL_PREFIX="/builds/graphics/okular/_install -G Ninja $srcdir && cat compile_commands.json | jq  '[.[] | select(.file | contains("'"$srcdir"'"))]' > compile_commands.aux.json && cat compile_commands.aux.json | jq  '[.[] | select(.file | contains("/synctex/")| not)]' > compile_commands.json && cp "$srcdir/.clang-tidy" .
-    - CLAZY_IGNORE_DIRS="settings_mobile.[cpp|h]|settings.[cpp.h]|pdfsettings.h|gssettings.h" CLAZY_CHECKS="level0,level1,level2,no-ctor-missing-parent-argument,isempty-vs-count,qhash-with-char-pointer-key,raw-environment-function,qproperty-type-mismatch" ninja
+    - mkdir -p /tmp/okular_build
+    - cd /tmp/okular_build
+    - cmake -DOKULAR_UI=mobile -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -G Ninja $CI_PROJECT_DIR
+    - cat compile_commands.json | jq  '[.[] | select(.file | contains("'"$CI_PROJECT_DIR"'"))]' > compile_commands.aux.json
+    - cat compile_commands.aux.json | jq  '[.[] | select(.file | contains("/synctex/")| not)]' > compile_commands.json
+    - cp "$CI_PROJECT_DIR/.clang-tidy" .
+    - CLAZY_IGNORE_DIRS="settings_mobile.[cpp|h]|settings.[cpp.h]|pdfsettings.h|gssettings.h" ninja
     - run-clang-tidy-14
-
 
 build_clazy_clang_tidy_old:
   stage: build
