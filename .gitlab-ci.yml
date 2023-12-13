@@ -37,8 +37,6 @@ build_clazy_clang_tidy:
     - merge_requests
   before_script:
     - ls /usr/bin/ | grep clang
-    - sudo zypper --non-interactive install clang14 || true
-    - ls /usr/bin/ | grep clang
   variables:
     CLAZY_CHECKS: level0,level1,level2,no-ctor-missing-parent-argument,isempty-vs-count,qhash-with-char-pointer-key,raw-environment-function,qproperty-type-mismatch,no-no-module-include
     CXXFLAGS: -Werror -Wno-deprecated-declarations
