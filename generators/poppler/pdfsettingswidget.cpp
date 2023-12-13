@@ -87,7 +87,7 @@ PDFSettingsWidget::PDFSettingsWidget(QWidget *parent)
         m_pdfsw.kcfg_SignatureBackend->setProperty("kcfg_property", QByteArray("currentData"));
 
         m_pdfsw.kcfg_SignatureBackend->setCurrentIndex(selected);
-        connect(m_pdfsw.kcfg_SignatureBackend, &QComboBox::currentTextChanged, [this](const QString &text) {
+        connect(m_pdfsw.kcfg_SignatureBackend, &QComboBox::currentTextChanged, this, [this](const QString &text) {
             auto backendEnum = settingStringToPopplerEnum(text);
             if (!backendEnum) {
                 return;
