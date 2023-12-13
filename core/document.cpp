@@ -397,6 +397,7 @@ void DocumentPrivate::cleanupPixmapMemory(qulonglong memoryToFree)
     }
 
     m_allocatedPixmaps.splice(m_allocatedPixmaps.end(), pixmapsToKeep);
+    Q_UNUSED(pagesFreed);
     // p--rintf("freeMemory A:[%d -%d = %d] \n", m_allocatedPixmaps.count() + pagesFreed, pagesFreed, m_allocatedPixmaps.count() );
 }
 
