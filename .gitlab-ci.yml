@@ -29,15 +29,23 @@ build_ubuntu_22_04:
     - ninja
 
 build_clazy_clang_tidy:
-  extends:
-     - suse_tumbleweed_qt515
+  stage: build
+  image: invent-registry.kde.org/sysadmin/ci-images/suse-qt515:latest
   tags:
-     - Linux
+    - Linux
+  interruptible: true
+  before_script:
+    - git clone https://invent.kde.org/sysadmin/ci-utilities.git --depth=1
+    - git clone https://invent.kde.org/sysadmin/repo-metadata.git ci-utilities/repo-metadata/ --depth=1
+    - sudo zypper --non-interactive install clang14 || true
+    - ls /usr/bin | grep clang
   only:
     - merge_requests
-  before_script:
-    - ls /usr/bin/ | grep clang
   variables:
+    KDECI_CC_CACHE: /mnt/caches/suse-qt5.15/
+    KDECI_CACHE_PATH: /mnt/artifacts/suse-qt5.15/
+    KDECI_GITLAB_SERVER: https://invent.kde.org/
+    KDECI_PACKAGE_PROJECT: teams/ci-artifacts/suse-qt5.15
     CLAZY_CHECKS: level0,level1,level2,no-ctor-missing-parent-argument,isempty-vs-count,qhash-with-char-pointer-key,raw-environment-function,qproperty-type-mismatch,no-no-module-include
     CXXFLAGS: -Werror -Wno-deprecated-declarations
     CC: clang
