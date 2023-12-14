@@ -75,7 +75,7 @@ QString EpubDocument::checkCSS(const QString &c)
     // HACK transform em and rem notation to px, because QTextDocument doesn't support
     // em and rem.
     static const QRegularExpression cssSplitRegex{QStringLiteral("\\s+")};
-    const QStringList cssArray = css.split(cssSplitRegex));
+    const QStringList cssArray = css.split(cssSplitRegex);
     QStringList cssArrayReplaced;
     std::size_t cssArrayCount = cssArray.count();
     std::size_t i = 0;
