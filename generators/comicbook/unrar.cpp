@@ -45,7 +45,7 @@ static UnrarFlavour *detectUnrar(const QString &unrarPath, const QString &versio
     proc.start(unrarPath, QStringList() << versionCommand);
     bool ok = proc.waitForFinished(-1);
     Q_UNUSED(ok)
-    const QRegularExpression regex(QStringLiteral("[\r\n]"));
+    static const QRegularExpression regex(QStringLiteral("[\r\n]"));
     const QStringList lines = QString::fromLocal8Bit(proc.readAllStandardOutput()).split(regex, Qt::SkipEmptyParts);
     if (!lines.isEmpty()) {
         if (lines.first().startsWith(QLatin1String("UNRAR "))) {
