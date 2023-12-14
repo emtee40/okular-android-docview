@@ -37,6 +37,7 @@
 #include "core/page_p.h"
 #include "gui/guiutils.h"
 #include "gui/pagepainter.h"
+#include "qpainter.h"
 
 #define FILEATTACH_ICONSIZE 48
 
@@ -603,7 +604,8 @@ QIcon LineAnnotationWidget::endStyleIcon(Okular::LineAnnotation::TermStyle endSt
     prototype.style().setLineStyle(Okular::Annotation::LineStyle::Solid);
     prototype.setBoundingRectangle({0, 0, 1, 1});
     LineAnnotPainter linepainter {&prototype, QSize {iconSize, iconSize}, 1, QTransform()};
-    linepainter.draw(image);
+    QPainter imagePainter(&image);
+    linepainter.draw(imagePainter);
     return QIcon(QPixmap::fromImage(image));
 }
 

@@ -44,8 +44,9 @@ class Tile;
  *
  * Note: The class takes ownership of all objects.
  */
-class OKULARCORE_EXPORT Page
+class OKULARCORE_EXPORT Page : public QObject
 {
+    Q_OBJECT
 public:
     /**
      * An action to be executed when particular events happen.
@@ -269,12 +270,18 @@ public:
     QList<FormField *> formFields() const;
 
     /**
-     * Sets the region described by @p rect with @p pixmap for the
-     * given @p observer.
-     * If @p rect is not set (default) the @p pixmap is set to the entire
+     * Sets the region described by @p rect with @p image for the
+     * given @p observer. Ownership is taken of the image.
+     * If @p rect is not set (default) the @p image is set to the entire
      * page.
      */
-    void setPixmap(DocumentObserver *observer, QPixmap *pixmap, const NormalizedRect &rect = NormalizedRect());
+    void setImage(DocumentObserver *observer, QImage *image, const NormalizedRect &rect = NormalizedRect(), bool isPartial = false);
+
+    /**
+     * Does the same as setImage(), but is less efficient if accessibility recoloring is enabled.
+     * Ownership is taken of the pixmap.
+     */
+    [[deprecated]] void setPixmap(DocumentObserver *observer, QPixmap *pixmap, const NormalizedRect &rect = NormalizedRect());
 
     /**
      * Sets the @p text page.

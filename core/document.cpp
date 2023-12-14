@@ -2249,6 +2249,9 @@ Document::Document(QWidget *widget)
     connect(d->m_undoStack, &QUndoStack::canRedoChanged, this, &Document::canRedoChanged);
     connect(d->m_undoStack, &QUndoStack::cleanChanged, this, &Document::undoHistoryCleanChanged);
 
+    // All pixmaps must be re-created when the color mode changes, as they will be the wrong color.
+    connect(SettingsCore::self(), &SettingsCore::colorModesChanged, this, &Document::reloadDocument);
+
     qRegisterMetaType<Okular::FontInfo>();
 }
 
@@ -4015,12 +4018,13 @@ void Document::editFormButtons(int pageNumber, const QList<FormFieldButton *> &f
 void Document::reloadDocument() const
 {
     const int numOfPages = pages();
-    for (int i = currentPage(); i >= 0; i--) {
-        d->refreshPixmaps(i);
+    for (int i = 0; i < numOfPages; ++i) {
+        Page *pg = d->m_pagesVector.at(i);
+        if (pg)
+            pg->deletePixmaps();
     }
-    for (int i = currentPage() + 1; i < numOfPages; i++) {
-        d->refreshPixmaps(i);
-    }
+
+    foreachObserver(notifyContentsCleared(DocumentObserver::Pixmap));
 }
 
 BookmarkManager *Document::bookmarkManager() const
