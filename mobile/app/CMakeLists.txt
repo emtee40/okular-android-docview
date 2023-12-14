@@ -12,6 +12,9 @@ if (ANDROID)
        target_link_libraries(okularkirigami Qt${QT_MAJOR_VERSION}::AndroidExtras)
     endif()
 
+    ecm_add_android_apk(okularkirigami ANDROID_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../android)
+
+
     # androiddeployqt only packages libraries needed by the main binary.
     # That is problematic because some of the libraries we need we only use in plugins
     # here we help androiddeployqt by linking those plugins dependencies
