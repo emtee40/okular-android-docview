@@ -78,7 +78,7 @@ void Converter::convertAgain()
 QTextDocument *Converter::convertOpenFile()
 {
     int result = fseek(m_markdownFile, 0, SEEK_SET);
-    if (result < 0) {
+    if (result != 0) {
         Q_EMIT error(i18n("Failed to open the document"), -1);
         return nullptr;
     }
