@@ -1691,7 +1691,6 @@ void PartTest::testCrashTextEditDestroy()
 
 void PartTest::testAnnotWindow()
 {
-    QVariantList dummyArgs;
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     Okular::Part part(nullptr, nullptr, {});
 #else
