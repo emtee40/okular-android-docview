@@ -581,7 +581,7 @@ Okular::Action *createLinkFromPopplerLink(const Poppler::Link *popplerLink, bool
 /**
  * Note: the function will take ownership of the popplerLink objects.
  */
-static QList<Okular::ObjectRect *> generateLinks(std::vector<std::unique_ptr<Poppler::Link>> popplerLinks)
+static QList<Okular::ObjectRect *> generateLinks(std::vector<std::unique_ptr<Poppler::Link>> &&popplerLinks)
 {
     QList<Okular::ObjectRect *> links;
     for (const auto &popplerLink : popplerLinks) {
