@@ -33,6 +33,11 @@ include(ECMAddAppIcon)
 include(CMakePackageConfigHelpers)
 include(ECMSetupQtPluginMacroNames)
 
+if (ANDROID)
+    include(ECMAddAndroidApk)
+endif ()
+
+
 if (ANDROID AND (NOT FORCE_NOT_REQUIRED_DEPENDENCIES) AND (NOT FORCE_NOT_REQUIRED_DEPENDENCIES STREQUAL ""))
     set(FORCE_NOT_REQUIRED_DEPENDENCIES "KF${QT_MAJOR_VERSION}Wallet;KF${QT_MAJOR_VERSION}DocTools;Qt${QT_MAJOR_VERSION}Qml;TIFF;JPEG;LibSpectre;KExiv2Qt6;CHM;LibZip;DjVuLibre;EPub;Discount;")
 
