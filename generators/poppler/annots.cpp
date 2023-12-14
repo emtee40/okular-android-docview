@@ -1107,7 +1107,7 @@ Okular::Annotation *createAnnotationFromPopplerAnnotation(Poppler::Annotation *p
             okularRevisions << okularRevision;
 
             if (!deletePopplerRevision) {
-                popplerRevision.release();
+                (void)popplerRevision.release(); //
             }
         }
 
