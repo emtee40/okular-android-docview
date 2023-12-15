@@ -83,10 +83,8 @@
 
 #if HAVE_PURPOSE
 #include <Purpose/AlternativesModel>
-#include <purpose_version.h>
 #include <Purpose/Menu>
-#include <PurposeWidgets/Menu>
-#endif
+#include <purpose_version.h>
 #endif
 
 // local includes
