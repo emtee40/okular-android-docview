@@ -159,9 +159,6 @@ Shell::Shell(const QString &serializedOptions)
     : KParts::MainWindow()
     , m_menuBarWasShown(true)
     , m_toolBarWasShown(true)
-#ifndef Q_OS_WIN
-    , m_activityResource(nullptr)
-#endif
     , m_isValid(true)
 {
     setObjectName(QStringLiteral("okular::Shell#"));
