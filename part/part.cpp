@@ -85,8 +85,6 @@
 #include <Purpose/AlternativesModel>
 #include <purpose_version.h>
 #include <Purpose/Menu>
-#include <PurposeWidgets/Menu>
-#endif
 #endif
 
 // local includes
