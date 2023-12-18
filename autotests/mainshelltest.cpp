@@ -111,6 +111,7 @@ private Q_SLOTS:
     void testOpenTheSameFileSeveralTimes();
 
 private:
+    QTemporaryDir homeDir;
 };
 
 QList<Shell *> getShells()
@@ -140,6 +141,14 @@ Shell *findShell(Shell *ignore = nullptr)
 
 void MainShellTest::initTestCase()
 {
+    // Ensure consistent configs/caches and Default UI
+    Q_ASSERT(homeDir.isValid());
+    QByteArray homePath = QFile::encodeName(homeDir.path());
+    qputenv("USERPROFILE", homePath);
+    qputenv("HOME", homePath);
+    qputenv("XDG_DATA_HOME", homePath + "/.local");
+    qputenv("XDG_CONFIG_HOME", homePath + "/.kde-unit-test/xdg/config");
+
     QStandardPaths::setTestModeEnabled(true);
     // Don't pollute people's okular settings
     Okular::Settings::instance(QStringLiteral("mainshelltest"));
