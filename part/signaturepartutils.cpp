@@ -35,11 +35,11 @@
 #include <KSharedConfig>
 namespace
 {
-static constexpr char ConfigGroup[] = "Signature";
-static constexpr char ConfigBackgroundKey[] = "RecentBackgrounds";
-static constexpr char ConfigLastReason[] = "Reason";
-static constexpr char ConfigLastLocation[] = "Location";
-static constexpr char ConfigLastKeyNick[] = "KeyNick";
+static const QString ConfigGroup = QStringLiteral("Signature");
+static const QString ConfigBackgroundKey = QStringLiteral("RecentBackgrounds");
+static const QString ConfigLastReason = QStringLiteral("Reason");
+static const QString ConfigLastLocation = QStringLiteral("Location");
+static const QString ConfigLastKeyNick = QStringLiteral("KeyNick");
 
 }
 
@@ -107,7 +107,7 @@ class RecentImagesModel : public QAbstractListModel
 public:
     RecentImagesModel()
     {
-        const auto recentList = KSharedConfig::openConfig()->group(QLatin1String(ConfigGroup)).readEntry<QStringList>(QLatin1String(ConfigBackgroundKey), QStringList());
+        const auto recentList = KSharedConfig::openConfig()->group(ConfigGroup).readEntry<QStringList>(ConfigBackgroundKey, QStringList());
         for (const auto &element : recentList) {
             if (QFile::exists(element)) { // maybe the image has been removed from disk since last invocation
                 m_storedElements.push_back(element);
@@ -206,7 +206,7 @@ public:
         while (elementsToStore.size() > 3) {
             elementsToStore.pop_back();
         }
-        KSharedConfig::openConfig()->group(QString::fromUtf8(ConfigGroup)).writeEntry(ConfigBackgroundKey, elementsToStore);
+        KSharedConfig::openConfig()->group(ConfigGroup).writeEntry(ConfigBackgroundKey, elementsToStore);
     }
 
 private:

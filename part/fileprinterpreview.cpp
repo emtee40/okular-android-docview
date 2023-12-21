@@ -67,6 +67,7 @@ public:
     KSharedConfig::Ptr config;
     Q_DISABLE_COPY(FilePrinterPreviewPrivate)
 };
+static const QString ConfigGroupKey = QStringLiteral("Print Preview");
 
 void FilePrinterPreviewPrivate::getPart()
 {
@@ -122,12 +123,12 @@ FilePrinterPreview::FilePrinterPreview(const QString &filename, QWidget *parent)
 
     connect(d->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
-    KWindowConfig::restoreWindowSize(windowHandle(), d->config->group("Print Preview"));
+    KWindowConfig::restoreWindowSize(windowHandle(), d->config->group(ConfigGroupKey));
 }
 
 FilePrinterPreview::~FilePrinterPreview()
 {
-    KConfigGroup group(d->config->group("Print Preview"));
+    KConfigGroup group(d->config->group(ConfigGroupKey));
     KWindowConfig::saveWindowSize(windowHandle(), group);
 
     delete d;
