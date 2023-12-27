@@ -77,7 +77,7 @@ private:
 
 private Q_SLOTS:
     void searchFileName();
-    void exportImage();
+    void accept() override;
     void reject() override;
     void setDefaults();
 }; //

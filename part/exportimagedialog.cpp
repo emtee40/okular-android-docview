@@ -155,7 +155,7 @@ void ExportImageDialog::initUI()
     groupLayout->addWidget(qualitySelectorGroupBox);
     // Export button
     exportButton = new QPushButton(i18n("Export"), this);
-    connect(exportButton, &QPushButton::clicked, this, &ExportImageDialog::exportImage);
+    connect(exportButton, &QPushButton::clicked, this, &ExportImageDialog::accept);
     cancelButton = new QPushButton(i18n("Cancel"), this);
     connect(cancelButton, &QPushButton::clicked, this, &ExportImageDialog::reject);
     defaultButton = new QPushButton(i18n("Default"), this);
@@ -194,7 +194,7 @@ void ExportImageDialog::searchFileName()
     }
 }
 
-void ExportImageDialog::exportImage()
+void ExportImageDialog::accept()
 {
     std::vector<std::pair<int, int>> pageRanges;
     if(allPagesRadioButton->isChecked())
@@ -256,6 +256,7 @@ void ExportImageDialog::exportImage()
             *m_pixmapRequestList << new Okular::PixmapRequest(m_observer, i, width, height,  1 /* dpr */, 1, Okular::PixmapRequest::Asynchronous);
         }
     }
+    QDialog::accept();
 }
 
 void ExportImageDialog::reject()
