@@ -15,17 +15,22 @@
 #include <QFormLayout>
 #include <QString>
 #include <QFileDialog>
+#include <QDir>
+
+#include <vector>
+#include <utility>
 
 #include <KLocalizedString>
 
 #include "core/observer.h"
 #include "core/document.h"
 
-ExportImageDialog::ExportImageDialog(QWidget *parent, Okular::Document *document, QString *fileName, QString filter)
+ExportImageDialog::ExportImageDialog(QWidget *parent, Okular::Document *document, QString *dirName, QList<Okular::PixmapRequest*> *pixmapRequestList, ExportImageDocumentObserver *observer)
     : m_parentWidget(parent)
     , m_document(document)
-    , m_fileName(fileName)
-    , m_filter(filter)
+    , m_dirName(dirName)
+    , m_pixmapRequestList(pixmapRequestList)
+    , m_observer(observer)
 {
     initUI();
 }
@@ -42,12 +47,15 @@ void ExportImageDialog::initUI()
     imageTypeComboBox->addItem(i18n("PNG"));
     imageTypeComboBox->addItem(i18n("JPEG"));
 
-    // File Name selection
-    fileNameLabel = new QLabel(i18n("Output file:"), this);
-    fileNameLineEdit = new QLineEdit(this);
-    fileNameBrowseButton = new QPushButton(i18n("..."), this);
-    fileNameBrowseButton->setMaximumSize(30, 30);
-    connect(fileNameBrowseButton, &QPushButton::clicked, this, &ExportImageDialog::searchFileName);
+    // Directory Name selection
+    dirNameLabel = new QLabel(i18n("Output path:"), this);
+    dirNameLineEdit = new QLineEdit(this);
+    *m_dirName = QDir::homePath();
+    dirNameLineEdit->setText(*m_dirName);
+
+    dirNameBrowseButton = new QPushButton(i18n("..."), this);
+    dirNameBrowseButton->setMaximumSize(30, 30);
+    connect(dirNameBrowseButton, &QPushButton::clicked, this, &ExportImageDialog::searchFileName);
 
     // Options tab
     exportRangeGroupBox = new QGroupBox(i18n("Export range"), this);
@@ -147,17 +155,17 @@ void ExportImageDialog::initUI()
     exportButton = new QPushButton(i18n("Export"), this);
     connect(exportButton, &QPushButton::clicked, this, &ExportImageDialog::exportImage);
     cancelButton = new QPushButton(i18n("Cancel"), this);
-    connect(cancelButton, &QPushButton::clicked, this, &ExportImageDialog::cancel);
+    connect(cancelButton, &QPushButton::clicked, this, &ExportImageDialog::reject);
     defaultButton = new QPushButton(i18n("Default"), this);
     connect(defaultButton, &QPushButton::clicked, this, &ExportImageDialog::setDefaults);
 
-    QHBoxLayout *fileNameLayout = new QHBoxLayout;
-    fileNameLayout->addWidget(fileNameLineEdit);
-    fileNameLayout->addWidget(fileNameBrowseButton);
+    QHBoxLayout *dirNameLayout = new QHBoxLayout;
+    dirNameLayout->addWidget(dirNameLineEdit);
+    dirNameLayout->addWidget(dirNameBrowseButton);
 
     QFormLayout *formLayout = new QFormLayout;
     formLayout->addRow(imageTypeLabel, imageTypeComboBox);
-    formLayout->addRow(fileNameLabel, fileNameLayout);
+    formLayout->addRow(dirNameLabel, dirNameLayout);
     formLayout->addRow(groupLayout);
 
     // Layout for export and cancel buttons
@@ -178,19 +186,74 @@ void ExportImageDialog::initUI()
 
 void ExportImageDialog::searchFileName()
 {
-    *m_fileName = QFileDialog::getSaveFileName(this, QString(), QString(), m_filter);
-    if (!(m_fileName->isEmpty())) {
-        fileNameLineEdit->setText(*m_fileName);
+    *m_dirName = QFileDialog::getExistingDirectory(this, QString(), QDir::homePath(), QFileDialog::ShowDirsOnly);
+    if (!(m_dirName->isEmpty())) {
+        dirNameLineEdit->setText(*m_dirName);
     }
 }
 
 void ExportImageDialog::exportImage()
 {
-    std::cout << "Exported..." << std::endl;
+    std::vector<std::pair<int, int>> pageRanges;
+    if(allPagesRadioButton->isChecked())
+    {
+        pageRanges.push_back({1, m_document->pages()});
+    }
+    else if(pageRangeRadioButton->isChecked())
+    {
+        int start = pageStartSpinBox->value();
+        int end = pageEndSpinBox->value();
+        if(start <= end)
+        {
+            pageRanges.push_back({pageStartSpinBox->value(), pageEndSpinBox->value()});
+        }
+        else
+        {
+            pageRanges.push_back({pageStartSpinBox->value(), pageEndSpinBox->value()});
+        }
+    }
+    else if(customPageRadioButton->isChecked())
+    {
+        QStringList separatePageRanges = customPageRangeLineEdit->text().split(QStringLiteral(","), Qt::SkipEmptyParts);
+        bool ok;
+        for (const QString &part : separatePageRanges)
+        {
+            QStringList range = part.split(QStringLiteral("-"));
+            if(range.size() == 1)
+            {
+                int pageVal = range[0].toInt(&ok);
+                if(!ok)
+                {
+                    reject();
+                }
+                pageRanges.push_back({pageVal, pageVal});
+            }
+            else if(range.size() == 2)
+            {
+                int pageStart = range[0].toInt(&ok);
+                int pageEnd = range[1].toInt(&ok);
+                if(!ok)
+                {
+                    reject();
+                }
+                pageRanges.push_back({pageStart, pageEnd});
+            }
+            else
+            {
+                reject();
+            }
+        }
+    }
+    int quality = qualitySlider->value();
+    for(const std::pair<int, int> &p : pageRanges)
+    {
+        std::cout << p.first << " " << p.second << std::endl;
+    }
 }
 
-void ExportImageDialog::cancel()
+void ExportImageDialog::reject()
 {
+    *m_dirName = QString();
     QDialog::reject();
 }
 
@@ -207,7 +270,17 @@ void ExportImageDialog::setDefaults()
     defaultQualityRadioButton->setChecked(true);
 }
 
-void ExportImageDialog::notifyPageChanged(int pageNumber, int changedFlags)
+ExportImageDocumentObserver::ExportImageDocumentObserver()
 {
-    return;
+
+}
+
+ExportImageDocumentObserver::~ExportImageDocumentObserver()
+{
+
+}
+
+void ExportImageDocumentObserver::notifyPageChanged(int page, int flags)
+{
+    std::cout << page << " " << flags << std::endl;
 }

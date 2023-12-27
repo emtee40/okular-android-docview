@@ -4,6 +4,7 @@
 
 #include "core/observer.h"
 #include "core/document.h"
+#include "core/generator.h"
 
 #include <QDialog>
 #include <QPixmap>
@@ -16,26 +17,37 @@
 #include <QSpinBox>
 #include <QGroupBox>
 #include <QRadioButton>
+#include <QList>
 
-class ExportImageDialog : public QDialog, public Okular::DocumentObserver
+class ExportImageDocumentObserver : public Okular::DocumentObserver
+{
+public:
+    ExportImageDocumentObserver();
+    ~ExportImageDocumentObserver();
+
+    void notifyPageChanged(int page, int flags) override;
+};
+
+class ExportImageDialog : public QDialog
 {
     Q_OBJECT
 public:
-    ExportImageDialog(QWidget *parent, Okular::Document *m_document, QString *fileName, QString filter);
+    ExportImageDialog(QWidget *parent, Okular::Document *document, QString *dirName, QList<Okular::PixmapRequest*> *pixmapRequestList, ExportImageDocumentObserver *observer);
     ~ExportImageDialog() override;
-
-    void notifyPageChanged(int pageNumber, int changedFlags) override;
 
 private:
 
     QWidget *m_parentWidget;
     Okular::Document *m_document;
+    QString *m_dirName;
+    QList<Okular::PixmapRequest*> *m_pixmapRequestList;
+    ExportImageDocumentObserver *m_observer;
 
     QLabel *imageTypeLabel;
     QComboBox *imageTypeComboBox;
 
-    QLabel *fileNameLabel;
-    QLineEdit *fileNameLineEdit;
+    QLabel *dirNameLabel;
+    QLineEdit *dirNameLineEdit;
 
     QGroupBox *exportRangeGroupBox;
     QGroupBox *qualitySelectorGroupBox;
@@ -56,10 +68,8 @@ private:
     QPushButton *exportButton;
     QPushButton *cancelButton;
     QPushButton *defaultButton;
-    QPushButton *fileNameBrowseButton;
+    QPushButton *dirNameBrowseButton;
 
-    QString *m_fileName;
-    QString m_filter;
     void initUI();
 
     // pixmap request members
@@ -68,7 +78,7 @@ private:
 private Q_SLOTS:
     void searchFileName();
     void exportImage();
-    void cancel();
+    void reject() override;
     void setDefaults();
 }; //
 
