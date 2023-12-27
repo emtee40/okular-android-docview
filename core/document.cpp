@@ -3088,6 +3088,11 @@ bool Document::canExportToText() const
     return !d->m_exportToText.isNull();
 }
 
+bool Document::canExportToImage() const
+{
+    return true;
+}
+
 bool Document::exportToText(const QString &fileName) const
 {
     if (!d->m_generator) {

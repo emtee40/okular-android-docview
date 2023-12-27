@@ -365,6 +365,13 @@ public:
      */
     bool canExportToText() const;
 
+    /*
+     * Returns whether the document supports the export to Image. This is 
+     * always true as all documents are stored as images. Used here for 
+     * consistency.
+     */
+    bool canExportToImage() const;
+
     /**
      * Exports the document as ASCII text and saves it under @p fileName.
      */
