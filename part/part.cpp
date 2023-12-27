@@ -23,7 +23,7 @@
 #include "part.h"
 
 #include "config-okular.h"
-
+#include <iostream>
 // qt/kde includes
 #include <QApplication>
 #include <QContextMenuEvent>
@@ -122,6 +122,7 @@
 #include "signaturepanel.h"
 #include "thumbnaillist.h"
 #include "toc.h"
+#include "exportimagedialog.h"
 
 #include <memory>
 #include <type_traits>
@@ -751,6 +752,7 @@ void Part::setupViewerActions()
     m_exportAs = nullptr;
     m_exportAsMenu = nullptr;
     m_exportAsText = nullptr;
+    m_exportAsImage = nullptr;
     m_exportAsDocArchive = nullptr;
 
 #if HAVE_PURPOSE
@@ -875,9 +877,12 @@ void Part::setupActions()
     connect(m_exportAsMenu, &QMenu::triggered, this, &Part::slotExportAs);
     m_exportAs->setMenu(m_exportAsMenu);
     m_exportAsText = actionForExportFormat(Okular::ExportFormat::standardFormat(Okular::ExportFormat::PlainText), m_exportAsMenu);
+    m_exportAsImage = actionForExportFormat(Okular::ExportFormat::standardFormat(Okular::ExportFormat::Image), m_exportAsMenu);
     m_exportAsMenu->addAction(m_exportAsText);
+    m_exportAsMenu->addAction(m_exportAsImage);
     m_exportAs->setEnabled(false);
     m_exportAsText->setEnabled(false);
+    m_exportAsImage->setEnabled(false);
 
 #if HAVE_PURPOSE
     m_share = ac->addAction(QStringLiteral("file_share"));
@@ -1627,6 +1632,7 @@ bool Part::openFile()
             QList<Okular::ExportFormat>::ConstIterator itEnd = m_exportFormats.constEnd();
             QMenu *menu = m_exportAs->menu();
             for (; it != itEnd; ++it) {
+                std::cout << (*it).description().toStdString() << std::endl;
                 menu->addAction(actionForExportFormat(*it));
             }
         }
@@ -1653,6 +1659,9 @@ bool Part::openFile()
     }
     if (m_exportAsText) {
         m_exportAsText->setEnabled(ok && m_document->canExportToText());
+    }
+    if (m_exportAsImage) {
+        m_exportAsImage->setEnabled(ok && m_document->canExportToImage());
     }
     if (m_exportAs) {
         m_exportAs->setEnabled(ok);
@@ -1896,12 +1905,15 @@ bool Part::closeUrl(bool promptToSave)
     if (m_exportAsText) {
         m_exportAsText->setEnabled(false);
     }
+    if (m_exportAsImage) {
+        m_exportAsImage->setEnabled(false);
+    }
     m_exportFormats.clear();
     if (m_exportAs) {
         QMenu *menu = m_exportAs->menu();
         QList<QAction *> acts = menu->actions();
         int num = acts.count();
-        for (int i = 1; i < num; ++i) {
+        for (int i = 2 /*The initialized value represents the number of hardcoded actions*/; i < num; ++i) {
             menu->removeAction(acts.at(i));
             delete acts.at(i);
         }
@@ -3423,23 +3435,60 @@ void Part::slotExportAs(QAction *act)
 
     QMimeDatabase mimeDatabase;
     QMimeType mimeType;
+    QStringList allowedExtensions, extensionComments;
+
+    // Data objects for exporting images
+    int img_quality; 
+    QList<Okular::PixmapRequest *> pixmapRequestList;
+    ExportImageDocumentObserver exportImageDocumentObserver(&img_quality);
+    // Pick out mimeTypes
     switch (id) {
     case 0:
-        mimeType = mimeDatabase.mimeTypeForName(QStringLiteral("text/plain"));
-        break;
+        {
+            QMimeType mimeType = mimeDatabase.mimeTypeForName(QStringLiteral("text/plain"));
+            allowedExtensions << mimeType.globPatterns();
+            extensionComments << mimeType.comment();
+            break;
+        }
+    case 1:
+        {
+            break;
+        }
     default:
-        mimeType = m_exportFormats.at(id - 1).mimeType();
-        break;
+        {
+            QMimeType mimeType = m_exportFormats.at(id - 1).mimeType();
+            allowedExtensions << mimeType.globPatterns();
+            extensionComments << mimeType.comment();
+            break;
+        }
     }
-    QString filter = i18nc("File type name and pattern", "%1 (%2)", mimeType.comment(), mimeType.globPatterns().join(QLatin1Char(' ')));
+    
+    // Open Dialog boxes
+    QString filter = i18nc("File type name and pattern", "%1 (%2)", extensionComments.join(QLatin1Char(' ')), allowedExtensions.join(QLatin1Char(' ')));
+    QString fileName;
+    switch(id) {
+        case 0:
+            fileName = QFileDialog::getSaveFileName(widget(), QString(), QString(), filter);
+            break;
+        case 1:
+            {
+                ExportImageDialog exportImageDialog(widget(), m_document, &fileName, &pixmapRequestList, &exportImageDocumentObserver, &img_quality);
+                exportImageDialog.exec();
+                std::cout << img_quality << std::endl;
+                break;
+            }
+    }
 
-    QString fileName = QFileDialog::getSaveFileName(widget(), QString(), QString(), filter);
-
+    // Either export or cancel
     if (!fileName.isEmpty()) {
         bool saved = false;
         switch (id) {
         case 0:
             saved = m_document->exportToText(fileName);
+            break;
+        case 1:
+            std::cout << "Saving as Image" << std::endl;
+            saved = true;
             break;
         default:
             saved = m_document->exportTo(fileName, m_exportFormats.at(id - 1));

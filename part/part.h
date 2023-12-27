@@ -18,7 +18,7 @@
 #include <config-okular.h>
 
 #if HAVE_DBUS
-#include <QDBusAbstractAdaptor> // for Q_NOREPLY
+#include <QDBusAbstractAdaptor> // for Q_NOREPL
 #else                           // HAVE_DBUS
 #define Q_NOREPLY
 #endif // HAVE_DBUS
@@ -418,6 +418,7 @@ private:
     QAction *m_showEmbeddedFiles;
     QAction *m_exportAs;
     QAction *m_exportAsText;
+    QAction *m_exportAsImage;
     QAction *m_exportAsDocArchive;
 #if HAVE_PURPOSE
     QAction *m_share;
