@@ -24,13 +24,15 @@
 
 #include "core/observer.h"
 #include "core/document.h"
+#include "core/page.h"
 
-ExportImageDialog::ExportImageDialog(QWidget *parent, Okular::Document *document, QString *dirName, QList<Okular::PixmapRequest*> *pixmapRequestList, ExportImageDocumentObserver *observer)
+ExportImageDialog::ExportImageDialog(QWidget *parent, Okular::Document *document, QString *dirName, QList<Okular::PixmapRequest*> *pixmapRequestList, ExportImageDocumentObserver *observer, int *quality)
     : m_parentWidget(parent)
     , m_document(document)
     , m_dirName(dirName)
     , m_pixmapRequestList(pixmapRequestList)
     , m_observer(observer)
+    , m_quality(quality)
 {
     initUI();
 }
@@ -244,10 +246,15 @@ void ExportImageDialog::exportImage()
             }
         }
     }
-    int quality = qualitySlider->value();
+    *m_quality = defaultQualityRadioButton->isChecked() ? -1 : qualitySlider->value();
     for(const std::pair<int, int> &p : pageRanges)
     {
-        std::cout << p.first << " " << p.second << std::endl;
+        for(int i = p.first; i <= p.second; i++)
+        {
+            int width = (int) ((m_document->page(i-1))->width());
+            int height = (int) ((m_document->page(i-1))->height());
+            *m_pixmapRequestList << new Okular::PixmapRequest(m_observer, i, width, height,  1 /* dpr */, 1, Okular::PixmapRequest::Asynchronous);
+        }
     }
 }
 
@@ -270,7 +277,7 @@ void ExportImageDialog::setDefaults()
     defaultQualityRadioButton->setChecked(true);
 }
 
-ExportImageDocumentObserver::ExportImageDocumentObserver()
+ExportImageDocumentObserver::ExportImageDocumentObserver(int *quality)
 {
 
 }

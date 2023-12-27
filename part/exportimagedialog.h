@@ -22,7 +22,7 @@
 class ExportImageDocumentObserver : public Okular::DocumentObserver
 {
 public:
-    ExportImageDocumentObserver();
+    ExportImageDocumentObserver(int *quality);
     ~ExportImageDocumentObserver();
 
     void notifyPageChanged(int page, int flags) override;
@@ -32,7 +32,7 @@ class ExportImageDialog : public QDialog
 {
     Q_OBJECT
 public:
-    ExportImageDialog(QWidget *parent, Okular::Document *document, QString *dirName, QList<Okular::PixmapRequest*> *pixmapRequestList, ExportImageDocumentObserver *observer);
+    ExportImageDialog(QWidget *parent, Okular::Document *document, QString *dirName, QList<Okular::PixmapRequest*> *pixmapRequestList, ExportImageDocumentObserver *observer, int *quality);
     ~ExportImageDialog() override;
 
 private:
@@ -73,7 +73,7 @@ private:
     void initUI();
 
     // pixmap request members
-    int quality;
+    int *m_quality;
 
 private Q_SLOTS:
     void searchFileName();
