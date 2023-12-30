@@ -19,7 +19,6 @@
 #include <QString>
 #include <QUuid>
 #include <QVariant>
-
 #include <QDebug>
 
 // local includes
@@ -547,6 +546,21 @@ QList<FormField *> Page::formFields() const
 void Page::setPixmap(DocumentObserver *observer, QPixmap *pixmap, const NormalizedRect &rect)
 {
     d->setPixmap(observer, pixmap, rect, false /*isPartialPixmap*/);
+}
+
+const QPixmap *Page::getPixmap(DocumentObserver *observer) const
+{
+    return d->getPixmap(observer);
+}
+
+const QPixmap *PagePrivate::getPixmap(DocumentObserver *observer) const
+{
+    QMap<DocumentObserver *, PagePrivate::PixmapObject>::const_iterator it = m_pixmaps.find(observer);
+    if (it == m_pixmaps.end())
+    {
+        return nullptr;
+    }
+    return it.value().m_pixmap;
 }
 
 void PagePrivate::setPixmap(DocumentObserver *observer, QPixmap *pixmap, const NormalizedRect &rect, bool isPartialPixmap)

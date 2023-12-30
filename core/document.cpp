@@ -1477,7 +1477,6 @@ void DocumentPrivate::sendGeneratorPixmapRequest()
     if (pixmapBytes > (1024 * 1024)) {
         cleanupPixmapMemory(memoryToFree /* previously calculated value */);
     }
-
     // submit the request to the generator
     if (m_generator->canGeneratePixmap()) {
         QRect requestRect = !request->isTile() ? QRect(0, 0, request->width(), request->height()) : request->normalizedRect().geometry(request->width(), request->height());
@@ -2813,6 +2812,11 @@ void Document::removeObserver(DocumentObserver *pObserver)
     }
 }
 
+bool Document::hasObserver(DocumentObserver *pObserver)
+{
+    return d->m_observers.contains(pObserver);
+}
+
 void Document::reparseConfig()
 {
     // reparse generator config and if something changed clear Pages
@@ -3105,6 +3109,11 @@ bool Document::exportToText(const QString &fileName) const
     }
 
     return d->m_generator->exportTo(fileName, d->m_exportToText);
+}
+
+void Document::exportToImage(const QList<Okular::PixmapRequest *> &pixmapRequestList)
+{
+    requestPixmaps(pixmapRequestList, PixmapRequestFlag::RemoveAllPrevious);
 }
 
 ExportFormat::List Document::exportFormats() const

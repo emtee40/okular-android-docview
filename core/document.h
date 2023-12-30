@@ -234,6 +234,11 @@ public:
      */
     void removeObserver(DocumentObserver *observer);
 
+    /*
+     * Returns whether the given observer is registered for the document.    
+     */
+    bool hasObserver(DocumentObserver *observer);
+
     /**
      * Reparses and applies the configuration.
      */
@@ -377,6 +382,10 @@ public:
      */
     bool exportToText(const QString &fileName) const;
 
+    /*
+     * Exports the document pages as images and saves it.
+     */
+    void exportToImage(const QList<Okular::PixmapRequest *> &pixmapRequestList);
     /**
      * Returns the list of supported export formats.
      * @see ExportFormat
