@@ -22,32 +22,36 @@
 class ExportImageDocumentObserver : public Okular::DocumentObserver
 {
 public:
-    ExportImageDocumentObserver(int *quality);
-    ~ExportImageDocumentObserver();
-
     void notifyPageChanged(int page, int flags) override;
+    
+    Okular::Document *m_document;
+    int m_quality;
+    QString m_format;
+    QString m_dirPath;
 };
 
 class ExportImageDialog : public QDialog
 {
     Q_OBJECT
 public:
-    ExportImageDialog(QWidget *parent, Okular::Document *document, QString *dirName, QList<Okular::PixmapRequest*> *pixmapRequestList, ExportImageDocumentObserver *observer, int *quality);
+    ExportImageDialog(QWidget *parent, Okular::Document *document, QString *dirPath, QList<Okular::PixmapRequest*> *pixmapRequestList, ExportImageDocumentObserver *observer, int *quality, QString *format);
     ~ExportImageDialog() override;
 
 private:
 
     QWidget *m_parentWidget;
     Okular::Document *m_document;
-    QString *m_dirName;
+    QString *m_dirPath;
     QList<Okular::PixmapRequest*> *m_pixmapRequestList;
     ExportImageDocumentObserver *m_observer;
+    int *m_quality;
+    QString *m_format;
 
     QLabel *imageTypeLabel;
     QComboBox *imageTypeComboBox;
 
-    QLabel *dirNameLabel;
-    QLineEdit *dirNameLineEdit;
+    QLabel *dirPathLabel;
+    QLineEdit *dirPathLineEdit;
 
     QGroupBox *exportRangeGroupBox;
     QGroupBox *qualitySelectorGroupBox;
@@ -68,12 +72,9 @@ private:
     QPushButton *exportButton;
     QPushButton *cancelButton;
     QPushButton *defaultButton;
-    QPushButton *dirNameBrowseButton;
+    QPushButton *dirPathBrowseButton;
 
     void initUI();
-
-    // pixmap request members
-    int *m_quality;
 
 private Q_SLOTS:
     void searchFileName();
