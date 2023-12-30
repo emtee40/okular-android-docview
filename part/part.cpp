@@ -23,7 +23,6 @@
 #include "part.h"
 
 #include "config-okular.h"
-#include <iostream>
 // qt/kde includes
 #include <QApplication>
 #include <QContextMenuEvent>
@@ -1632,7 +1631,6 @@ bool Part::openFile()
             QList<Okular::ExportFormat>::ConstIterator itEnd = m_exportFormats.constEnd();
             QMenu *menu = m_exportAs->menu();
             for (; it != itEnd; ++it) {
-                std::cout << (*it).description().toStdString() << std::endl;
                 menu->addAction(actionForExportFormat(*it));
             }
         }
@@ -1950,6 +1948,13 @@ bool Part::closeUrl(bool promptToSave)
         m_formsMessage->setVisible(false);
         m_signatureMessage->setVisible(false);
     }
+
+    if (m_exportImageDocumentObserver != nullptr) {
+        m_document->removeObserver(m_exportImageDocumentObserver);
+        delete m_exportImageDocumentObserver;
+        m_exportImageDocumentObserver = nullptr;
+    }
+
 #ifdef OKULAR_KEEP_FILE_OPEN
     m_keeper->close();
 #endif
@@ -3439,9 +3444,10 @@ void Part::slotExportAs(QAction *act)
 
     // Data objects for exporting images
     int img_quality; 
+    QString format;
     QList<Okular::PixmapRequest *> pixmapRequestList;
-    ExportImageDocumentObserver exportImageDocumentObserver(&img_quality);
-    // Pick out mimeTypes
+    QString fileName;
+    // Pick out mimeTypes and set observers
     switch (id) {
     case 0:
         {
@@ -3452,6 +3458,15 @@ void Part::slotExportAs(QAction *act)
         }
     case 1:
         {
+            // Initialize an export image document observer
+            if(m_exportImageDocumentObserver == nullptr)
+            {
+                m_exportImageDocumentObserver = new ExportImageDocumentObserver();
+            }
+            if(!m_document->hasObserver(m_exportImageDocumentObserver))
+            {
+                m_document->addObserver(m_exportImageDocumentObserver);
+            }
             break;
         }
     default:
@@ -3465,16 +3480,19 @@ void Part::slotExportAs(QAction *act)
     
     // Open Dialog boxes
     QString filter = i18nc("File type name and pattern", "%1 (%2)", extensionComments.join(QLatin1Char(' ')), allowedExtensions.join(QLatin1Char(' ')));
-    QString fileName;
     switch(id) {
         case 0:
             fileName = QFileDialog::getSaveFileName(widget(), QString(), QString(), filter);
             break;
         case 1:
             {
-                ExportImageDialog exportImageDialog(widget(), m_document, &fileName, &pixmapRequestList, &exportImageDocumentObserver, &img_quality);
+                // In the context of image export, the fileName is actually dirName
+                ExportImageDialog exportImageDialog(widget(), m_document, &fileName, &pixmapRequestList, m_exportImageDocumentObserver, &img_quality, &format);
                 exportImageDialog.exec();
-                std::cout << img_quality << std::endl;
+                m_exportImageDocumentObserver->m_document = m_document;
+                m_exportImageDocumentObserver->m_quality = img_quality;
+                m_exportImageDocumentObserver->m_format = format;
+                m_exportImageDocumentObserver->m_dirPath = fileName;
                 break;
             }
     }
@@ -3487,7 +3505,7 @@ void Part::slotExportAs(QAction *act)
             saved = m_document->exportToText(fileName);
             break;
         case 1:
-            std::cout << "Saving as Image" << std::endl;
+            m_document->exportToImage(pixmapRequestList);
             saved = true;
             break;
         default:

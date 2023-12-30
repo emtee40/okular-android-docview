@@ -40,6 +40,7 @@
 #include "../kdocumentviewer.h"
 
 #include "okularpart_export.h"
+#include "exportimagedialog.h"
 
 class QAction;
 class QWidget;
@@ -350,6 +351,9 @@ private:
     bool m_documentOpenWithPassword;
     bool m_swapInsteadOfOpening; // if set, the next open operation will replace the backing file (used when reloading just saved files)
     bool m_warnedAboutModifyingUnsaveableDocument = false;
+
+    // relevant document observers
+    ExportImageDocumentObserver *m_exportImageDocumentObserver = nullptr;
 
     // main widgets
     Sidebar *m_sidebar;
