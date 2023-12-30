@@ -34,7 +34,7 @@ class ExportImageDialog : public QDialog
 {
     Q_OBJECT
 public:
-    ExportImageDialog(QWidget *parent, Okular::Document *document, QString *dirPath, QList<Okular::PixmapRequest*> *pixmapRequestList, ExportImageDocumentObserver *observer, int *quality, QString *format);
+    ExportImageDialog(QWidget *parent, Okular::Document *document, QString *dirPath, QList<Okular::PixmapRequest*> *pixmapRequestList, ExportImageDocumentObserver *observer, int *quality, QString *format, bool *exportCanceled);
     ~ExportImageDialog() override;
 
 private:
@@ -46,6 +46,7 @@ private:
     ExportImageDocumentObserver *m_observer;
     int *m_quality;
     QString *m_format;
+    bool *m_exportCanceled;
 
     QLabel *imageTypeLabel;
     QComboBox *imageTypeComboBox;
@@ -78,8 +79,8 @@ private:
 
 private Q_SLOTS:
     void searchFileName();
-    void accept() override;
     void reject() override;
+    void exportImage();
     void setDefaults();
 }; //
 

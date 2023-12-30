@@ -16,7 +16,6 @@
 #include <QFileDialog>
 #include <QDir>
 
-#include <iostream>
 #include <vector>
 #include <utility>
 
@@ -26,7 +25,7 @@
 #include "core/document.h"
 #include "core/page.h"
 
-ExportImageDialog::ExportImageDialog(QWidget *parent, Okular::Document *document, QString *dirPath, QList<Okular::PixmapRequest*> *pixmapRequestList, ExportImageDocumentObserver *observer, int *quality, QString *format)
+ExportImageDialog::ExportImageDialog(QWidget *parent, Okular::Document *document, QString *dirPath, QList<Okular::PixmapRequest*> *pixmapRequestList, ExportImageDocumentObserver *observer, int *quality, QString *format, bool *exportCanceled)
     : m_parentWidget(parent)
     , m_document(document)
     , m_dirPath(dirPath)
@@ -34,6 +33,7 @@ ExportImageDialog::ExportImageDialog(QWidget *parent, Okular::Document *document
     , m_observer(observer)
     , m_quality(quality)
     , m_format(format)
+    , m_exportCanceled(exportCanceled)
 {
     initUI();
 }
@@ -156,7 +156,7 @@ void ExportImageDialog::initUI()
     groupLayout->addWidget(qualitySelectorGroupBox);
     // Export button
     exportButton = new QPushButton(i18n("Export"), this);
-    connect(exportButton, &QPushButton::clicked, this, &ExportImageDialog::accept);
+    connect(exportButton, &QPushButton::clicked, this, &ExportImageDialog::exportImage);
     cancelButton = new QPushButton(i18n("Cancel"), this);
     connect(cancelButton, &QPushButton::clicked, this, &ExportImageDialog::reject);
     defaultButton = new QPushButton(i18n("Default"), this);
@@ -195,8 +195,9 @@ void ExportImageDialog::searchFileName()
     }
 }
 
-void ExportImageDialog::accept()
+void ExportImageDialog::exportImage()
 {
+    *m_exportCanceled = false;
     std::vector<std::pair<int, int>> pageRanges;
     if(allPagesRadioButton->isChecked())
     {
@@ -206,9 +207,9 @@ void ExportImageDialog::accept()
     {
         int start = pageStartSpinBox->value();
         int end = pageEndSpinBox->value();
-        if(start <= end)
+        if(start > end)
         {
-            pageRanges.push_back({pageStartSpinBox->value(), pageEndSpinBox->value()});
+            pageRanges.push_back({pageStartSpinBox->value(), pageStartSpinBox->value()});
         }
         else
         {
@@ -225,25 +226,40 @@ void ExportImageDialog::accept()
             if(range.size() == 1)
             {
                 int pageVal = range[0].toInt(&ok);
-                if(!ok)
+                if(!ok || pageVal < 1 || pageVal > m_document->pages())
                 {
                     reject();
+                    return;
                 }
                 pageRanges.push_back({pageVal, pageVal});
             }
             else if(range.size() == 2)
             {
                 int pageStart = range[0].toInt(&ok);
-                int pageEnd = range[1].toInt(&ok);
-                if(!ok)
+                if(!ok || pageStart < 1 || pageStart > m_document->pages())
                 {
                     reject();
+                    return;
                 }
-                pageRanges.push_back({pageStart, pageEnd});
+                int pageEnd = range[1].toInt(&ok);
+                if(!ok || pageEnd < 1 || pageEnd > m_document->pages())
+                {
+                    reject();
+                    return;
+                }
+                if(pageStart > pageEnd)
+                {
+                    pageRanges.push_back({pageStart, pageStart});
+                }
+                else
+                {
+                    pageRanges.push_back({pageStart, pageEnd});
+                }
             }
             else
             {
                 reject();
+                return;
             }
         }
     }
@@ -256,9 +272,10 @@ void ExportImageDialog::accept()
             *m_pixmapRequestList << new Okular::PixmapRequest(m_observer, i-1, width, height,  1 /* dpr */, 1, Okular::PixmapRequest::Asynchronous);
         }
     }
-    QDialog::accept();
     *m_quality = defaultQualityRadioButton->isChecked() ? -1 : qualitySlider->value();
     *m_format = imageTypeComboBox->currentText();
+    QDialog::accept();
+
 }
 
 void ExportImageDialog::reject()
@@ -286,11 +303,10 @@ void ExportImageDocumentObserver::notifyPageChanged(int page, int flags)
     {
         return;
     }
-    std::cout << "Hello " << page << std::endl;
     const QPixmap *pixmap = m_document->page(page)->getPixmap(this);
-    const char *format = m_format.toUtf8().constData();
-    // QFileInfo info(m_document->documentInfo().get(Okular::DocumentInfo::FilePath));
-    // QString fileName = info.baseName() + QStringLiteral(".") + m_format->toLower();
-    // std::cout << fileName.toStdString() << std::endl;
-    // pixmap->save(QStringLiteral("/home/pratham/test1.png"), format, *m_quality);
+    QFileInfo info(m_document->documentInfo().get(Okular::DocumentInfo::FilePath));
+    QString fileName = info.baseName() + QStringLiteral("_") + QString::number(page+1) + QStringLiteral(".") + m_format.toLower();
+    QDir dir(m_dirPath);
+    QString filePath = dir.filePath(fileName);
+    pixmap->save(filePath, m_format.toStdString().c_str(), m_quality);
 }
