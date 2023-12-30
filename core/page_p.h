@@ -136,6 +136,11 @@ public:
 
     void setPixmap(DocumentObserver *observer, QPixmap *pixmap, const NormalizedRect &rect, bool isPartialPixmap);
 
+    /*
+     * Gets the pixmap associated with the observer
+     */
+    const QPixmap *getPixmap(DocumentObserver *observer) const;
+
     class PixmapObject
     {
     public:
