@@ -46,32 +46,32 @@ private:
     QString *m_format;
     bool *m_exportCanceled;
 
-    QLabel *imageTypeLabel;
-    QComboBox *imageTypeComboBox;
+    QLabel *m_imageTypeLabel;
+    QComboBox *m_imageTypeComboBox;
 
-    QLabel *dirPathLabel;
-    QLineEdit *dirPathLineEdit;
+    QLabel *m_dirPathLabel;
+    QLineEdit *m_dirPathLineEdit;
 
-    QGroupBox *exportRangeGroupBox;
-    QGroupBox *qualitySelectorGroupBox;
-    QRadioButton *allPagesRadioButton;
-    QRadioButton *pageRangeRadioButton;
-    QRadioButton *customPageRadioButton;
-    QSpinBox *pageStartSpinBox;
-    QSpinBox *pageEndSpinBox;
-    QLabel *toLabel;
-    QLineEdit *customPageRangeLineEdit;
+    QGroupBox *m_exportRangeGroupBox;
+    QGroupBox *m_qualitySelectorGroupBox;
+    QRadioButton *m_allPagesRadioButton;
+    QRadioButton *m_pageRangeRadioButton;
+    QRadioButton *m_customPageRadioButton;
+    QSpinBox *m_pageStartSpinBox;
+    QSpinBox *m_pageEndSpinBox;
+    QLabel *m_toLabel;
+    QLineEdit *m_customPageRangeLineEdit;
 
-    QRadioButton *defaultQualityRadioButton;
-    QRadioButton *customQualityRadioButton;
-    QSlider *qualitySlider;
-    QLabel *sliderMin;
-    QLabel *sliderMax;
+    QRadioButton *m_defaultQualityRadioButton;
+    QRadioButton *m_customQualityRadioButton;
+    QSlider *m_qualitySlider;
+    QLabel *m_sliderMin;
+    QLabel *m_sliderMax;
 
-    QPushButton *exportButton;
-    QPushButton *cancelButton;
-    QPushButton *defaultButton;
-    QPushButton *dirPathBrowseButton;
+    QPushButton *m_exportButton;
+    QPushButton *m_cancelButton;
+    QPushButton *m_defaultButton;
+    QPushButton *m_dirPathBrowseButton;
 
     void initUI();
 
