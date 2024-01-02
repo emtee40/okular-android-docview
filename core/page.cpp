@@ -11,6 +11,7 @@
 #include "page_p.h"
 
 // qt/kde includes
+#include <QDebug>
 #include <QDomDocument>
 #include <QDomElement>
 #include <QHash>
@@ -19,7 +20,6 @@
 #include <QString>
 #include <QUuid>
 #include <QVariant>
-#include <QDebug>
 
 // local includes
 #include "action.h"
@@ -556,8 +556,7 @@ const QPixmap *Page::getPixmap(DocumentObserver *observer) const
 const QPixmap *PagePrivate::getPixmap(DocumentObserver *observer) const
 {
     QMap<DocumentObserver *, PagePrivate::PixmapObject>::const_iterator it = m_pixmaps.find(observer);
-    if (it == m_pixmaps.end())
-    {
+    if (it == m_pixmaps.end()) {
         return nullptr;
     }
     return it.value().m_pixmap;

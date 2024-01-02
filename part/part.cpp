@@ -102,6 +102,7 @@
 #include "core/printoptionswidget.h"
 #include "drawingtoolactions.h"
 #include "embeddedfilesdialog.h"
+#include "exportimagedialog.h"
 #include "extensions.h"
 #include "fileprinterpreview.h"
 #include "findbar.h"
@@ -121,7 +122,6 @@
 #include "signaturepanel.h"
 #include "thumbnaillist.h"
 #include "toc.h"
-#include "exportimagedialog.h"
 
 #include <memory>
 #include <type_traits>
@@ -3443,61 +3443,55 @@ void Part::slotExportAs(QAction *act)
     QStringList extensionComments;
 
     // Data objects for exporting images
-    int img_quality; 
+    int img_quality;
     QString format;
     QList<Okular::PixmapRequest *> pixmapRequestList;
     QString fileName;
     // Pick out mimeTypes and set observers
     switch (id) {
-    case 0:
-        {
-            QMimeType mimeType = mimeDatabase.mimeTypeForName(QStringLiteral("text/plain"));
-            allowedExtensions << mimeType.globPatterns();
-            extensionComments << mimeType.comment();
-            break;
-        }
-    case 1:
-        {
-            // Initialize an export image document observer
-            if(!m_exportImageDocumentObserver)
-            {
-                m_exportImageDocumentObserver = new ExportImageDocumentObserver();
-                m_document->addObserver(m_exportImageDocumentObserver);
-            }
-            break;
-        }
-    default:
-        {
-            QMimeType mimeType = m_exportFormats.at(id - 1).mimeType();
-            allowedExtensions << mimeType.globPatterns();
-            extensionComments << mimeType.comment();
-            break;
-        }
+    case 0: {
+        QMimeType mimeType = mimeDatabase.mimeTypeForName(QStringLiteral("text/plain"));
+        allowedExtensions << mimeType.globPatterns();
+        extensionComments << mimeType.comment();
+        break;
     }
-    
+    case 1: {
+        // Initialize an export image document observer
+        if (!m_exportImageDocumentObserver) {
+            m_exportImageDocumentObserver = new ExportImageDocumentObserver();
+            m_document->addObserver(m_exportImageDocumentObserver);
+        }
+        break;
+    }
+    default: {
+        QMimeType mimeType = m_exportFormats.at(id - 1).mimeType();
+        allowedExtensions << mimeType.globPatterns();
+        extensionComments << mimeType.comment();
+        break;
+    }
+    }
+
     // Open Dialog boxes
     QString filter = i18nc("File type name and pattern", "%1 (%2)", extensionComments.join(QLatin1Char(' ')), allowedExtensions.join(QLatin1Char(' ')));
-    switch(id) {
-        case 0:
-            fileName = QFileDialog::getSaveFileName(widget(), QString(), QString(), filter);
+    switch (id) {
+    case 0:
+        fileName = QFileDialog::getSaveFileName(widget(), QString(), QString(), filter);
+        break;
+    case 1: {
+        bool exportCanceled = true;
+        // In the context of image export, the fileName is actually dirName
+        ExportImageDialog exportImageDialog(m_document, &fileName, &pixmapRequestList, m_exportImageDocumentObserver, &img_quality, &format, &exportCanceled);
+        bool optionsInput = exportImageDialog.exec();
+        if (!optionsInput && !exportCanceled) {
+            KMessageBox::information(widget(), i18n("Invalid options have been received."));
             break;
-        case 1:
-            {
-                bool exportCanceled = true;
-                // In the context of image export, the fileName is actually dirName
-                ExportImageDialog exportImageDialog(m_document, &fileName, &pixmapRequestList, m_exportImageDocumentObserver, &img_quality, &format, &exportCanceled);
-                bool optionsInput = exportImageDialog.exec();
-                if(!optionsInput && !exportCanceled)
-                {
-                    KMessageBox::information(widget(), i18n("Invalid options have been received."));
-                    break;
-                }
-                m_exportImageDocumentObserver->m_document = m_document;
-                m_exportImageDocumentObserver->m_quality = img_quality;
-                m_exportImageDocumentObserver->m_format = format;
-                m_exportImageDocumentObserver->m_dirPath = fileName;
-                break;
-            }
+        }
+        m_exportImageDocumentObserver->m_document = m_document;
+        m_exportImageDocumentObserver->m_quality = img_quality;
+        m_exportImageDocumentObserver->m_format = format;
+        m_exportImageDocumentObserver->m_dirPath = fileName;
+        break;
+    }
     }
 
     // Either export or cancel

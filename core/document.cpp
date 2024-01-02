@@ -3106,14 +3106,10 @@ void Document::exportToImage(const QList<Okular::PixmapRequest *> &pixmapRequest
     // If a page had been requested for export earlier, it might already have an associated pixmap.
     // If this is the case, refresh the pixmaps.
     QList<Okular::PixmapRequest *> requestsToProcess;
-    for(Okular::PixmapRequest *r : pixmapRequestList)
-    {
-        if(page(r->pageNumber())->hasPixmap(r->observer(), r->width(), r->height(), r->normalizedRect()))
-        {
+    for (Okular::PixmapRequest *r : pixmapRequestList) {
+        if (page(r->pageNumber())->hasPixmap(r->observer(), r->width(), r->height(), r->normalizedRect())) {
             refreshPixmaps(r->pageNumber());
-        }
-        else
-        {
+        } else {
             requestsToProcess << r;
         }
     }

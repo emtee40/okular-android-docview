@@ -39,8 +39,8 @@
 #include "../interfaces/viewerinterface.h"
 #include "../kdocumentviewer.h"
 
-#include "okularpart_export.h"
 #include "exportimagedialog.h"
+#include "okularpart_export.h"
 
 class QAction;
 class QWidget;

@@ -2,28 +2,28 @@
 #ifndef _OKULAR_EXPORTIMAGEDIALOG_H_
 #define _OKULAR_EXPORTIMAGEDIALOG_H_
 
-#include "core/observer.h"
 #include "core/document.h"
 #include "core/generator.h"
+#include "core/observer.h"
 
-#include <QDialog>
-#include <QPixmap>
-#include <QLabel>
 #include <QComboBox>
-#include <QLineEdit>
-#include <QSlider>
-#include <QPushButton>
-#include <QWidget>
-#include <QSpinBox>
+#include <QDialog>
 #include <QGroupBox>
-#include <QRadioButton>
+#include <QLabel>
+#include <QLineEdit>
 #include <QList>
+#include <QPixmap>
+#include <QPushButton>
+#include <QRadioButton>
+#include <QSlider>
+#include <QSpinBox>
+#include <QWidget>
 
 class ExportImageDocumentObserver : public Okular::DocumentObserver
 {
 public:
     void notifyPageChanged(int page, int flags) override;
-    
+
     Okular::Document *m_document;
     int m_quality;
     QString m_format;
@@ -34,14 +34,13 @@ class ExportImageDialog : public QDialog
 {
     Q_OBJECT
 public:
-    ExportImageDialog(Okular::Document *document, QString *dirPath, QList<Okular::PixmapRequest*> *pixmapRequestList, ExportImageDocumentObserver *observer, int *quality, QString *format, bool *exportCanceled);
+    ExportImageDialog(Okular::Document *document, QString *dirPath, QList<Okular::PixmapRequest *> *pixmapRequestList, ExportImageDocumentObserver *observer, int *quality, QString *format, bool *exportCanceled);
     ~ExportImageDialog() override;
 
 private:
-
     Okular::Document *m_document;
     QString *m_dirPath;
-    QList<Okular::PixmapRequest*> *m_pixmapRequestList;
+    QList<Okular::PixmapRequest *> *m_pixmapRequestList;
     ExportImageDocumentObserver *m_observer;
     int *m_quality;
     QString *m_format;
