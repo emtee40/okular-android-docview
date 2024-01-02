@@ -34,12 +34,11 @@ class ExportImageDialog : public QDialog
 {
     Q_OBJECT
 public:
-    ExportImageDialog(QWidget *parent, Okular::Document *document, QString *dirPath, QList<Okular::PixmapRequest*> *pixmapRequestList, ExportImageDocumentObserver *observer, int *quality, QString *format, bool *exportCanceled);
+    ExportImageDialog(Okular::Document *document, QString *dirPath, QList<Okular::PixmapRequest*> *pixmapRequestList, ExportImageDocumentObserver *observer, int *quality, QString *format, bool *exportCanceled);
     ~ExportImageDialog() override;
 
 private:
 
-    QWidget *m_parentWidget;
     Okular::Document *m_document;
     QString *m_dirPath;
     QList<Okular::PixmapRequest*> *m_pixmapRequestList;

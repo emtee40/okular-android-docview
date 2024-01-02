@@ -3485,7 +3485,7 @@ void Part::slotExportAs(QAction *act)
             {
                 bool exportCanceled = true;
                 // In the context of image export, the fileName is actually dirName
-                ExportImageDialog exportImageDialog(widget(), m_document, &fileName, &pixmapRequestList, m_exportImageDocumentObserver, &img_quality, &format, &exportCanceled);
+                ExportImageDialog exportImageDialog(m_document, &fileName, &pixmapRequestList, m_exportImageDocumentObserver, &img_quality, &format, &exportCanceled);
                 bool optionsInput = exportImageDialog.exec();
                 if(!optionsInput && !exportCanceled)
                 {
