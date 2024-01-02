@@ -194,14 +194,14 @@ void ExportImageDialog::exportImage()
     *m_exportCanceled = false;
     std::vector<std::pair<int, int>> pageRanges;
     if (allPagesRadioButton->isChecked()) {
-        pageRanges.emplace_back({1, m_document->pages()});
+        pageRanges.emplace_back(1, m_document->pages());
     } else if (pageRangeRadioButton->isChecked()) {
         int start = pageStartSpinBox->value();
         int end = pageEndSpinBox->value();
         if (start > end) {
-            pageRanges.emplace_back({pageStartSpinBox->value(), pageStartSpinBox->value()});
+            pageRanges.emplace_back(pageStartSpinBox->value(), pageStartSpinBox->value());
         } else {
-            pageRanges.emplace_back({pageStartSpinBox->value(), pageEndSpinBox->value()});
+            pageRanges.emplace_back(pageStartSpinBox->value(), pageEndSpinBox->value());
         }
     } else if (customPageRadioButton->isChecked()) {
         QStringList separatePageRanges = customPageRangeLineEdit->text().split(QStringLiteral(","), Qt::SkipEmptyParts);
@@ -214,7 +214,7 @@ void ExportImageDialog::exportImage()
                     reject();
                     return;
                 }
-                pageRanges.emplace_back({pageVal, pageVal});
+                pageRanges.emplace_back(pageVal, pageVal);
             } else if (range.size() == 2) {
                 int pageStart = range[0].toInt(&ok);
                 if (!ok || pageStart < 1 || pageStart > static_cast<int>(m_document->pages())) {
@@ -227,9 +227,9 @@ void ExportImageDialog::exportImage()
                     return;
                 }
                 if (pageStart > pageEnd) {
-                    pageRanges.emplace_back({pageStart, pageStart});
+                    pageRanges.emplace_back(pageStart, pageStart);
                 } else {
-                    pageRanges.emplace_back({pageStart, pageEnd});
+                    pageRanges.emplace_back(pageStart, pageEnd);
                 }
             } else {
                 reject();
