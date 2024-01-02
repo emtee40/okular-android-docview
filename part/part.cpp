@@ -1659,7 +1659,7 @@ bool Part::openFile()
         m_exportAsText->setEnabled(ok && m_document->canExportToText());
     }
     if (m_exportAsImage) {
-        m_exportAsImage->setEnabled(ok && m_document->canExportToImage());
+        m_exportAsImage->setEnabled(ok);
     }
     if (m_exportAs) {
         m_exportAs->setEnabled(ok);
