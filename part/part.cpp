@@ -3459,7 +3459,7 @@ void Part::slotExportAs(QAction *act)
     case 1:
         {
             // Initialize an export image document observer
-            if(m_exportImageDocumentObserver == nullptr)
+            if(!m_exportImageDocumentObserver)
             {
                 m_exportImageDocumentObserver = new ExportImageDocumentObserver();
             }
