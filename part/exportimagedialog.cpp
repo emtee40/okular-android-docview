@@ -269,7 +269,8 @@ void ExportImageDialog::exportImage()
         {
             int width = (int) ((m_document->page(i-1))->width());
             int height = (int) ((m_document->page(i-1))->height());
-            *m_pixmapRequestList << new Okular::PixmapRequest(m_observer, i-1, width, height,  1 /* dpr */, 1, Okular::PixmapRequest::Asynchronous);
+            Okular::PixmapRequest *request = new Okular::PixmapRequest(m_observer, i-1, width, height,  1 /* dpr */, 1, Okular::PixmapRequest::Asynchronous);
+            *m_pixmapRequestList << request;
         }
     }
     *m_quality = defaultQualityRadioButton->isChecked() ? -1 : qualitySlider->value();
