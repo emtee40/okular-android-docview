@@ -225,7 +225,7 @@ void ExportImageDialog::exportImage()
             if(range.size() == 1)
             {
                 int pageVal = range[0].toInt(&ok);
-                if(!ok || pageVal < 1 || pageVal > m_document->pages())
+                if(!ok || pageVal < 1 || pageVal > static_cast<int>(m_document->pages()))
                 {
                     reject();
                     return;
@@ -235,13 +235,13 @@ void ExportImageDialog::exportImage()
             else if(range.size() == 2)
             {
                 int pageStart = range[0].toInt(&ok);
-                if(!ok || pageStart < 1 || pageStart > m_document->pages())
+                if(!ok || pageStart < 1 || pageStart > static_cast<int>(m_document->pages()))
                 {
                     reject();
                     return;
                 }
                 int pageEnd = range[1].toInt(&ok);
-                if(!ok || pageEnd < 1 || pageEnd > m_document->pages())
+                if(!ok || pageEnd < 1 || pageEnd > static_cast<int>(m_document->pages()))
                 {
                     reject();
                     return;

@@ -3439,7 +3439,6 @@ void Part::slotExportAs(QAction *act)
     }
 
     QMimeDatabase mimeDatabase;
-    QMimeType mimeType;
     QStringList allowedExtensions;
     QStringList extensionComments;
 
