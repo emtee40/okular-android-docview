@@ -2812,11 +2812,6 @@ void Document::removeObserver(DocumentObserver *pObserver)
     }
 }
 
-bool Document::hasObserver(DocumentObserver *pObserver)
-{
-    return d->m_observers.contains(pObserver);
-}
-
 void Document::reparseConfig()
 {
     // reparse generator config and if something changed clear Pages

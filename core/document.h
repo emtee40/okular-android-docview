@@ -234,11 +234,6 @@ public:
      */
     void removeObserver(DocumentObserver *observer);
 
-    /*
-     * Returns whether the given observer is registered for the document.    
-     */
-    bool hasObserver(DocumentObserver *observer);
-
     /**
      * Reparses and applies the configuration.
      */

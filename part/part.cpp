@@ -3462,9 +3462,6 @@ void Part::slotExportAs(QAction *act)
             if(!m_exportImageDocumentObserver)
             {
                 m_exportImageDocumentObserver = new ExportImageDocumentObserver();
-            }
-            if(!m_document->hasObserver(m_exportImageDocumentObserver))
-            {
                 m_document->addObserver(m_exportImageDocumentObserver);
             }
             break;
