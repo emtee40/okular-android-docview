@@ -3440,7 +3440,8 @@ void Part::slotExportAs(QAction *act)
 
     QMimeDatabase mimeDatabase;
     QMimeType mimeType;
-    QStringList allowedExtensions, extensionComments;
+    QStringList allowedExtensions;
+    QStringList extensionComments;
 
     // Data objects for exporting images
     int img_quality; 

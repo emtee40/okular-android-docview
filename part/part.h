@@ -18,7 +18,7 @@
 #include <config-okular.h>
 
 #if HAVE_DBUS
-#include <QDBusAbstractAdaptor> // for Q_NOREPL
+#include <QDBusAbstractAdaptor> // for Q_NOREPLY
 #else                           // HAVE_DBUS
 #define Q_NOREPLY
 #endif // HAVE_DBUS
