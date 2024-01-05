@@ -25,14 +25,7 @@
 #include "core/observer.h"
 #include "core/page.h"
 
-ExportImageDialog::ExportImageDialog(Okular::Document *document,
-                                     QString *dirPath,
-                                     QList<Okular::PixmapRequest *> *pixmapRequestList,
-                                     ExportImageDocumentObserver *observer,
-                                     int *quality,
-                                     QString *format,
-                                     bool *exportCanceled,
-                                     QWidget *parent)
+ExportImageDialog::ExportImageDialog(Okular::Document *document, QString *dirPath, QList<Okular::PixmapRequest *> *pixmapRequestList, ExportImageDocumentObserver *observer, int *quality, QString *format, QWidget *parent)
     : QDialog(parent)
     , m_document(document)
     , m_dirPath(dirPath)
@@ -40,7 +33,6 @@ ExportImageDialog::ExportImageDialog(Okular::Document *document,
     , m_observer(observer)
     , m_quality(quality)
     , m_format(format)
-    , m_exportCanceled(exportCanceled)
 {
     initUI();
 }
@@ -59,8 +51,7 @@ void ExportImageDialog::initUI()
     // Directory Name selection
     m_dirPathLabel = new QLabel(i18n("Output path:"), this);
     m_dirPathLineEdit = new QLineEdit(this);
-    *m_dirPath = QDir::homePath();
-    m_dirPathLineEdit->setText(*m_dirPath);
+    m_dirPathLineEdit->setText(QDir::homePath());
 
     m_dirPathBrowseButton = new QPushButton(i18n("..."), this);
     m_dirPathBrowseButton->setMaximumSize(30, 30);
@@ -160,7 +151,7 @@ void ExportImageDialog::initUI()
     m_exportButton = new QPushButton(i18n("Export"), this);
     connect(m_exportButton, &QPushButton::clicked, this, &ExportImageDialog::exportImage);
     m_cancelButton = new QPushButton(i18n("Cancel"), this);
-    connect(m_cancelButton, &QPushButton::clicked, this, &ExportImageDialog::reject);
+    connect(m_cancelButton, &QPushButton::clicked, this, [this] { QDialog::done(Canceled); });
     m_defaultButton = new QPushButton(i18n("Default"), this);
     connect(m_defaultButton, &QPushButton::clicked, this, &ExportImageDialog::setDefaults);
 
@@ -191,15 +182,14 @@ void ExportImageDialog::initUI()
 
 void ExportImageDialog::searchFileName()
 {
-    *m_dirPath = QFileDialog::getExistingDirectory(this, QString(), QDir::homePath(), QFileDialog::ShowDirsOnly);
-    if (!(m_dirPath->isEmpty())) {
-        m_dirPathLineEdit->setText(*m_dirPath);
+    QString dirPath = QFileDialog::getExistingDirectory(this, QString(), QDir::homePath(), QFileDialog::ShowDirsOnly);
+    if (!(dirPath.isEmpty())) {
+        m_dirPathLineEdit->setText(dirPath);
     }
 }
 
 void ExportImageDialog::exportImage()
 {
-    *m_exportCanceled = false;
     std::vector<std::pair<int, int>> pageRanges;
     if (m_allPagesRadioButton->isChecked()) {
         pageRanges.emplace_back(1, m_document->pages());
@@ -219,19 +209,19 @@ void ExportImageDialog::exportImage()
             if (range.size() == 1) {
                 int pageVal = range[0].toInt(&ok);
                 if (!ok || pageVal < 1 || pageVal > static_cast<int>(m_document->pages())) {
-                    reject();
+                    QDialog::done(InvalidOptions);
                     return;
                 }
                 pageRanges.emplace_back(pageVal, pageVal);
             } else if (range.size() == 2) {
                 int pageStart = range[0].toInt(&ok);
                 if (!ok || pageStart < 1 || pageStart > static_cast<int>(m_document->pages())) {
-                    reject();
+                    QDialog::done(InvalidOptions);
                     return;
                 }
                 int pageEnd = range[1].toInt(&ok);
                 if (!ok || pageEnd < 1 || pageEnd > static_cast<int>(m_document->pages())) {
-                    reject();
+                    QDialog::done(InvalidOptions);
                     return;
                 }
                 if (pageStart > pageEnd) {
@@ -240,7 +230,7 @@ void ExportImageDialog::exportImage()
                     pageRanges.emplace_back(pageStart, pageEnd);
                 }
             } else {
-                reject();
+                QDialog::done(InvalidOptions);
                 return;
             }
         }
@@ -255,13 +245,8 @@ void ExportImageDialog::exportImage()
     }
     *m_quality = m_defaultQualityRadioButton->isChecked() ? -1 : m_qualitySlider->value();
     *m_format = m_imageTypeComboBox->currentText();
-    QDialog::accept();
-}
-
-void ExportImageDialog::reject()
-{
-    *m_dirPath = QString();
-    QDialog::reject();
+    *m_dirPath = m_dirPathLineEdit->text();
+    QDialog::done(Accepted);
 }
 
 void ExportImageDialog::setDefaults()

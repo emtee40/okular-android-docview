@@ -3472,12 +3472,13 @@ void Part::slotExportAs(QAction *act)
         fileName = QFileDialog::getSaveFileName(widget(), QString(), QString(), filter);
         break;
     case 1: {
-        bool exportCanceled = true;
         // In the context of image export, the fileName is actually dirName
-        ExportImageDialog exportImageDialog(m_document, &fileName, &pixmapRequestList, m_exportImageDocumentObserver, &img_quality, &format, &exportCanceled, widget());
-        bool optionsInput = exportImageDialog.exec();
-        if (!optionsInput && !exportCanceled) {
+        ExportImageDialog exportImageDialog(m_document, &fileName, &pixmapRequestList, m_exportImageDocumentObserver, &img_quality, &format, widget());
+        int dialogResult = exportImageDialog.exec();
+        if (dialogResult == ExportImageDialog::InvalidOptions) {
             KMessageBox::information(widget(), i18n("Invalid options have been received."));
+            break;
+        } else if (dialogResult == ExportImageDialog::Canceled) {
             break;
         }
         m_exportImageDocumentObserver->m_document = m_document;
