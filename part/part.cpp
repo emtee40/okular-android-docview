@@ -3474,7 +3474,7 @@ void Part::slotExportAs(QAction *act)
     case 1: {
         bool exportCanceled = true;
         // In the context of image export, the fileName is actually dirName
-        ExportImageDialog exportImageDialog(m_document, &fileName, &pixmapRequestList, m_exportImageDocumentObserver, &img_quality, &format, &exportCanceled);
+        ExportImageDialog exportImageDialog(m_document, &fileName, &pixmapRequestList, m_exportImageDocumentObserver, &img_quality, &format, &exportCanceled, widget());
         bool optionsInput = exportImageDialog.exec();
         if (!optionsInput && !exportCanceled) {
             KMessageBox::information(widget(), i18n("Invalid options have been received."));

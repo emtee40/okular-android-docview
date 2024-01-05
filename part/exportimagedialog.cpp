@@ -25,8 +25,9 @@
 #include "core/observer.h"
 #include "core/page.h"
 
-ExportImageDialog::ExportImageDialog(Okular::Document *document, QString *dirPath, QList<Okular::PixmapRequest *> *pixmapRequestList, ExportImageDocumentObserver *observer, int *quality, QString *format, bool *exportCanceled)
-    : m_document(document)
+ExportImageDialog::ExportImageDialog(Okular::Document *document, QString *dirPath, QList<Okular::PixmapRequest *> *pixmapRequestList, ExportImageDocumentObserver *observer, int *quality, QString *format, bool *exportCanceled, QWidget *parent)
+    : QDialog(parent)
+    , m_document(document)
     , m_dirPath(dirPath)
     , m_pixmapRequestList(pixmapRequestList)
     , m_observer(observer)
