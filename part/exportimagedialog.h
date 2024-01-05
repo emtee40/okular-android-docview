@@ -57,9 +57,6 @@ private:
     QLabel *m_toLabel;
     QLineEdit *m_customPageRangeLineEdit;
 
-    QPushButton *m_exportButton;
-    QPushButton *m_cancelButton;
-    QPushButton *m_defaultButton;
     QPushButton *m_dirPathBrowseButton;
 
     void initUI();

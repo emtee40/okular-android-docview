@@ -1,6 +1,7 @@
 #include "exportimagedialog.h"
 
 #include <QDialog>
+#include <QDialogButtonBox>
 #include <QDir>
 #include <QFileDialog>
 #include <QFormLayout>
@@ -107,13 +108,15 @@ void ExportImageDialog::initUI()
     /// Group the export options and any other required setting in the future
     QHBoxLayout *groupLayout = new QHBoxLayout;
     groupLayout->addWidget(m_exportRangeGroupBox);
-    // Export button
-    m_exportButton = new QPushButton(i18n("Export"), this);
-    connect(m_exportButton, &QPushButton::clicked, this, &ExportImageDialog::exportImage);
-    m_cancelButton = new QPushButton(i18n("Cancel"), this);
-    connect(m_cancelButton, &QPushButton::clicked, this, [this] { QDialog::done(Canceled); });
-    m_defaultButton = new QPushButton(i18n("Default"), this);
-    connect(m_defaultButton, &QPushButton::clicked, this, &ExportImageDialog::setDefaults);
+    // Setup ButtonBox
+    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel | QDialogButtonBox::RestoreDefaults, this);
+
+    buttonBox->button(QDialogButtonBox::Ok)->setText(i18n("Export"));
+    buttonBox->button(QDialogButtonBox::Cancel)->setText(i18n("Cancel"));
+    buttonBox->button(QDialogButtonBox::RestoreDefaults)->setText(i18n("Default"));
+    connect(buttonBox->button(QDialogButtonBox::Ok), &QPushButton::clicked, this, &ExportImageDialog::exportImage);
+    connect(buttonBox->button(QDialogButtonBox::Cancel), &QPushButton::clicked, this, [this] { QDialog::done(Canceled); });
+    connect(buttonBox->button(QDialogButtonBox::RestoreDefaults), &QPushButton::clicked, this, &ExportImageDialog::setDefaults);
 
     QHBoxLayout *dirPathLayout = new QHBoxLayout;
     dirPathLayout->addWidget(m_dirPathLineEdit);
@@ -124,17 +127,10 @@ void ExportImageDialog::initUI()
     formLayout->addRow(m_dirPathLabel, dirPathLayout);
     formLayout->addRow(groupLayout);
 
-    // Layout for export and cancel buttons
-    QHBoxLayout *buttonLayout = new QHBoxLayout;
-    buttonLayout->addWidget(m_defaultButton);
-    buttonLayout->addStretch();
-    buttonLayout->addWidget(m_exportButton);
-    buttonLayout->addWidget(m_cancelButton);
-
     // Main Layout
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->addLayout(formLayout);
-    layout->addLayout(buttonLayout);
+    layout->addWidget(buttonBox);
 
     setLayout(layout);
     setWindowTitle(i18n("Export Image"));
