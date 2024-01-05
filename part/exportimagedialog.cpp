@@ -1,6 +1,5 @@
 #include "exportimagedialog.h"
 
-#include <QComboBox>
 #include <QDialog>
 #include <QDir>
 #include <QFileDialog>
@@ -25,14 +24,12 @@
 #include "core/observer.h"
 #include "core/page.h"
 
-ExportImageDialog::ExportImageDialog(Okular::Document *document, QString *dirPath, QList<Okular::PixmapRequest *> *pixmapRequestList, ExportImageDocumentObserver *observer, int *quality, QString *format, QWidget *parent)
+ExportImageDialog::ExportImageDialog(Okular::Document *document, QString *dirPath, QList<Okular::PixmapRequest *> *pixmapRequestList, ExportImageDocumentObserver *observer, QWidget *parent)
     : QDialog(parent)
     , m_document(document)
     , m_dirPath(dirPath)
     , m_pixmapRequestList(pixmapRequestList)
     , m_observer(observer)
-    , m_quality(quality)
-    , m_format(format)
 {
     initUI();
 }
@@ -43,10 +40,8 @@ ExportImageDialog::~ExportImageDialog()
 
 void ExportImageDialog::initUI()
 {
-    m_imageTypeLabel = new QLabel(i18n("Select Image Type:"), this);
-    m_imageTypeComboBox = new QComboBox(this);
-    m_imageTypeComboBox->addItem(i18n("PNG"));
-    m_imageTypeComboBox->addItem(i18n("JPEG"));
+    m_imageTypeLabel = new QLabel(i18n("Type:"), this);
+    m_PNGTypeLabel = new QLabel(i18n("PNG"), this);
 
     // Directory Name selection
     m_dirPathLabel = new QLabel(i18n("Output path:"), this);
@@ -59,7 +54,6 @@ void ExportImageDialog::initUI()
 
     // Options tab
     m_exportRangeGroupBox = new QGroupBox(i18n("Export range"), this);
-    m_qualitySelectorGroupBox = new QGroupBox(i18n("Quality select"), this);
 
     /// Setup Page Export Ranges
     m_allPagesRadioButton = new QRadioButton(i18n("Export all"), m_exportRangeGroupBox);
@@ -110,43 +104,9 @@ void ExportImageDialog::initUI()
     exportRangeLayout->addLayout(customPageRangeLayout);
     exportRangeLayout->addStretch();
 
-    /// Quality Selection
-    m_defaultQualityRadioButton = new QRadioButton(i18n("Default"), m_qualitySelectorGroupBox);
-    m_defaultQualityRadioButton->setChecked(true);
-
-    m_customQualityRadioButton = new QRadioButton(i18n("Custom"), m_qualitySelectorGroupBox);
-
-    m_sliderMin = new QLabel(i18n("0"), m_qualitySelectorGroupBox);
-    m_sliderMax = new QLabel(i18n("100"), m_qualitySelectorGroupBox);
-    m_qualitySlider = new QSlider(Qt::Horizontal, m_qualitySelectorGroupBox);
-    m_qualitySlider->setRange(0, 100);
-    m_qualitySlider->setValue(100);
-    m_qualitySlider->setEnabled(m_customQualityRadioButton->isChecked());
-    m_qualitySlider->setTickInterval(10);
-    m_qualitySlider->setTickPosition(QSlider::TicksBelow);
-
-    connect(m_defaultQualityRadioButton, &QRadioButton::toggled, this, [=]() { m_qualitySlider->setEnabled(false); });
-
-    connect(m_customQualityRadioButton, &QRadioButton::toggled, this, [=]() { m_qualitySlider->setEnabled(true); });
-
-    //// Quality Selector Layout
-    QVBoxLayout *qualitySelectorLayout = new QVBoxLayout(m_qualitySelectorGroupBox);
-    qualitySelectorLayout->addWidget(m_defaultQualityRadioButton);
-    qualitySelectorLayout->addWidget(m_customQualityRadioButton);
-    qualitySelectorLayout->addWidget(m_qualitySlider);
-
-    //// Quality slider values layout
-    QHBoxLayout *sliderValueLayout = new QHBoxLayout;
-    sliderValueLayout->addWidget(m_sliderMin);
-    sliderValueLayout->addStretch();
-    sliderValueLayout->addWidget(m_sliderMax);
-    qualitySelectorLayout->addLayout(sliderValueLayout);
-    qualitySelectorLayout->addStretch();
-
-    /// Group the export options and quality slider layouts
+    /// Group the export options and any other required setting in the future
     QHBoxLayout *groupLayout = new QHBoxLayout;
     groupLayout->addWidget(m_exportRangeGroupBox);
-    groupLayout->addWidget(m_qualitySelectorGroupBox);
     // Export button
     m_exportButton = new QPushButton(i18n("Export"), this);
     connect(m_exportButton, &QPushButton::clicked, this, &ExportImageDialog::exportImage);
@@ -160,7 +120,7 @@ void ExportImageDialog::initUI()
     dirPathLayout->addWidget(m_dirPathBrowseButton);
 
     QFormLayout *formLayout = new QFormLayout;
-    formLayout->addRow(m_imageTypeLabel, m_imageTypeComboBox);
+    formLayout->addRow(m_imageTypeLabel, m_PNGTypeLabel);
     formLayout->addRow(m_dirPathLabel, dirPathLayout);
     formLayout->addRow(groupLayout);
 
@@ -243,8 +203,6 @@ void ExportImageDialog::exportImage()
             *m_pixmapRequestList << request;
         }
     }
-    *m_quality = m_defaultQualityRadioButton->isChecked() ? -1 : m_qualitySlider->value();
-    *m_format = m_imageTypeComboBox->currentText();
     *m_dirPath = m_dirPathLineEdit->text();
     QDialog::done(Accepted);
 }
@@ -257,9 +215,6 @@ void ExportImageDialog::setDefaults()
     m_pageStartSpinBox->setEnabled(false);
     m_pageEndSpinBox->setEnabled(false);
     m_customPageRangeLineEdit->setText(QStringLiteral(""));
-    m_qualitySlider->setValue(100);
-    m_qualitySlider->setEnabled(false);
-    m_defaultQualityRadioButton->setChecked(true);
 }
 
 void ExportImageDocumentObserver::notifyPageChanged(int page, int flags)
@@ -269,8 +224,8 @@ void ExportImageDocumentObserver::notifyPageChanged(int page, int flags)
     }
     const QPixmap *pixmap = m_document->page(page)->getPixmap(this);
     QFileInfo info(m_document->documentInfo().get(Okular::DocumentInfo::FilePath));
-    QString fileName = info.baseName() + QStringLiteral("_") + QString::number(page + 1) + QStringLiteral(".") + m_format.toLower();
+    QString fileName = info.baseName() + QStringLiteral("_") + QString::number(page + 1) + QStringLiteral(".png");
     QDir dir(m_dirPath);
     QString filePath = dir.filePath(fileName);
-    pixmap->save(filePath, m_format.toStdString().c_str(), m_quality);
+    pixmap->save(filePath, "PNG");
 }

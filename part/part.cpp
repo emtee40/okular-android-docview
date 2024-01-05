@@ -3442,8 +3442,6 @@ void Part::slotExportAs(QAction *act)
     QStringList extensionComments;
 
     // Data objects for exporting images
-    int img_quality;
-    QString format;
     QList<Okular::PixmapRequest *> pixmapRequestList;
     QString fileName;
     // Pick out mimeTypes and set observers
@@ -3473,7 +3471,7 @@ void Part::slotExportAs(QAction *act)
         break;
     case 1: {
         // In the context of image export, the fileName is actually dirName
-        ExportImageDialog exportImageDialog(m_document, &fileName, &pixmapRequestList, m_exportImageDocumentObserver, &img_quality, &format, widget());
+        ExportImageDialog exportImageDialog(m_document, &fileName, &pixmapRequestList, m_exportImageDocumentObserver, widget());
         int dialogResult = exportImageDialog.exec();
         if (dialogResult == ExportImageDialog::InvalidOptions) {
             KMessageBox::information(widget(), i18n("Invalid options have been received."));
@@ -3482,8 +3480,6 @@ void Part::slotExportAs(QAction *act)
             break;
         }
         m_exportImageDocumentObserver->m_document = m_document;
-        m_exportImageDocumentObserver->m_quality = img_quality;
-        m_exportImageDocumentObserver->m_format = format;
         m_exportImageDocumentObserver->m_dirPath = fileName;
         break;
     }

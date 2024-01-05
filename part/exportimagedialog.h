@@ -6,7 +6,6 @@
 #include "core/generator.h"
 #include "core/observer.h"
 
-#include <QComboBox>
 #include <QDialog>
 #include <QGroupBox>
 #include <QLabel>
@@ -25,8 +24,6 @@ public:
     void notifyPageChanged(int page, int flags) override;
 
     Okular::Document *m_document;
-    int m_quality;
-    QString m_format;
     QString m_dirPath;
 };
 
@@ -36,7 +33,7 @@ class ExportImageDialog : public QDialog
 public:
     enum DialogCloseCode { Accepted, Canceled, InvalidOptions };
 
-    ExportImageDialog(Okular::Document *document, QString *dirPath, QList<Okular::PixmapRequest *> *pixmapRequestList, ExportImageDocumentObserver *observer, int *quality, QString *format, QWidget *parent = nullptr);
+    ExportImageDialog(Okular::Document *document, QString *dirPath, QList<Okular::PixmapRequest *> *pixmapRequestList, ExportImageDocumentObserver *observer, QWidget *parent = nullptr);
     ~ExportImageDialog() override;
 
 private:
@@ -44,17 +41,14 @@ private:
     QString *m_dirPath;
     QList<Okular::PixmapRequest *> *m_pixmapRequestList;
     ExportImageDocumentObserver *m_observer;
-    int *m_quality;
-    QString *m_format;
 
     QLabel *m_imageTypeLabel;
-    QComboBox *m_imageTypeComboBox;
+    QLabel *m_PNGTypeLabel;
 
     QLabel *m_dirPathLabel;
     QLineEdit *m_dirPathLineEdit;
 
     QGroupBox *m_exportRangeGroupBox;
-    QGroupBox *m_qualitySelectorGroupBox;
     QRadioButton *m_allPagesRadioButton;
     QRadioButton *m_pageRangeRadioButton;
     QRadioButton *m_customPageRadioButton;
@@ -62,12 +56,6 @@ private:
     QSpinBox *m_pageEndSpinBox;
     QLabel *m_toLabel;
     QLineEdit *m_customPageRangeLineEdit;
-
-    QRadioButton *m_defaultQualityRadioButton;
-    QRadioButton *m_customQualityRadioButton;
-    QSlider *m_qualitySlider;
-    QLabel *m_sliderMin;
-    QLabel *m_sliderMax;
 
     QPushButton *m_exportButton;
     QPushButton *m_cancelButton;
