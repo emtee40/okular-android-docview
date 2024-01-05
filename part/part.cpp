@@ -508,6 +508,9 @@ Part::Part(QObject *parent, const QVariantList &args)
 
     connect(m_reviewsWidget.data(), &Reviews::openAnnotationWindow, m_pageView.data(), &PageView::openAnnotationWindow);
 
+    // Initialize an image export document observer
+    m_exportImageDocumentObserver = new ExportImageDocumentObserver;
+
     // add document observers
     m_document->addObserver(this);
     m_document->addObserver(m_thumbnailList);
@@ -522,6 +525,7 @@ Part::Part(QObject *parent, const QVariantList &args)
     m_document->addObserver(m_pageSizeLabel);
     m_document->addObserver(m_bookmarkList);
     m_document->addObserver(m_signaturePanel);
+    m_document->addObserver(m_exportImageDocumentObserver);
 
     connect(m_document->bookmarkManager(), &BookmarkManager::saved, this, &Part::slotRebuildBookmarkMenu);
 
@@ -970,6 +974,7 @@ Part::~Part()
     delete m_bookmarkList;
     delete m_infoTimer;
     delete m_signaturePanel;
+    delete m_exportImageDocumentObserver;
 
     delete m_document;
 
@@ -1947,12 +1952,6 @@ bool Part::closeUrl(bool promptToSave)
         m_topMessage->setVisible(false);
         m_formsMessage->setVisible(false);
         m_signatureMessage->setVisible(false);
-    }
-
-    if (m_exportImageDocumentObserver != nullptr) {
-        m_document->removeObserver(m_exportImageDocumentObserver);
-        delete m_exportImageDocumentObserver;
-        m_exportImageDocumentObserver = nullptr;
     }
 
 #ifdef OKULAR_KEEP_FILE_OPEN
@@ -3456,11 +3455,6 @@ void Part::slotExportAs(QAction *act)
         break;
     }
     case 1: {
-        // Initialize an export image document observer
-        if (!m_exportImageDocumentObserver) {
-            m_exportImageDocumentObserver = new ExportImageDocumentObserver();
-            m_document->addObserver(m_exportImageDocumentObserver);
-        }
         break;
     }
     default: {
