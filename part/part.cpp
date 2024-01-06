@@ -3497,10 +3497,21 @@ void Part::slotExportAs(QAction *act)
         case ExportFormat::PlainText:
             saved = m_document->exportToText(fileName);
             break;
-        case ExportFormat::Image:
-            m_document->exportToImage(pixmapRequestList);
+        case ExportFormat::Image: {
+            QList<Okular::PixmapRequest *> requestsToProcess;
+            for (Okular::PixmapRequest *r : pixmapRequestList) {
+                // If a page had been requested for export earlier, it might already have an associated pixmap pointer.
+                // If this is the case, directly get the pixmap pointed to by the same pointer.
+                if (m_document->page(r->pageNumber())->hasPixmap(r->observer(), r->width(), r->height(), r->normalizedRect())) {
+                    m_exportImageDocumentObserver->getPixmapAndSave(r->pageNumber());
+                } else {
+                    requestsToProcess << r;
+                }
+            }
+            m_document->requestPixmaps(requestsToProcess, Document::PixmapRequestFlag::RemoveAllPrevious);
             saved = true;
             break;
+        }
         default:
             saved = m_document->exportTo(fileName, m_exportFormats.at(id - 1));
             break;

@@ -22,6 +22,7 @@ class ExportImageDocumentObserver : public Okular::DocumentObserver
 {
 public:
     void notifyPageChanged(int page, int flags) override;
+    void getPixmapAndSave(int page);
 
     Okular::Document *m_document;
     QString m_dirPath;

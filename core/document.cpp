@@ -3101,21 +3101,6 @@ bool Document::exportToText(const QString &fileName) const
     return d->m_generator->exportTo(fileName, d->m_exportToText);
 }
 
-void Document::exportToImage(const QList<Okular::PixmapRequest *> &pixmapRequestList)
-{
-    // If a page had been requested for export earlier, it might already have an associated pixmap.
-    // If this is the case, refresh the pixmaps.
-    QList<Okular::PixmapRequest *> requestsToProcess;
-    for (Okular::PixmapRequest *r : pixmapRequestList) {
-        if (page(r->pageNumber())->hasPixmap(r->observer(), r->width(), r->height(), r->normalizedRect())) {
-            refreshPixmaps(r->pageNumber());
-        } else {
-            requestsToProcess << r;
-        }
-    }
-    requestPixmaps(requestsToProcess, PixmapRequestFlag::RemoveAllPrevious);
-}
-
 ExportFormat::List Document::exportFormats() const
 {
     if (!d->m_generator) {

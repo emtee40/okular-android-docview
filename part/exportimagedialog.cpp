@@ -218,6 +218,11 @@ void ExportImageDocumentObserver::notifyPageChanged(int page, int flags)
     if (!(flags & Okular::DocumentObserver::Pixmap)) {
         return;
     }
+    getPixmapAndSave(page);
+}
+
+void ExportImageDocumentObserver::getPixmapAndSave(int page)
+{
     const QPixmap *pixmap = m_document->page(page)->getPixmap(this);
     QFileInfo info(m_document->documentInfo().get(Okular::DocumentInfo::FilePath));
     QString fileName = info.baseName() + QStringLiteral("_") + QString::number(page + 1) + QStringLiteral(".png");
