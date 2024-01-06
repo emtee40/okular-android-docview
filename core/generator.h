@@ -146,6 +146,7 @@ public:
      * Type of standard export format.
      */
     enum StandardExportFormat {
+        Undefined,
         PlainText,        ///< Plain text
         PDF,              ///< PDF, aka Portable Document Format
         OpenDocumentText, ///< OpenDocument Text format @since 0.8 (KDE 4.2)
