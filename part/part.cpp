@@ -880,9 +880,9 @@ void Part::setupActions()
     connect(m_exportAsMenu, &QMenu::triggered, this, &Part::slotExportAs);
     m_exportAs->setMenu(m_exportAsMenu);
     m_exportAsText = actionForExportFormat(Okular::ExportFormat::standardFormat(Okular::ExportFormat::PlainText), m_exportAsMenu);
-    actionExportFormatMapping[m_exportAsText] = ExportFormat::PlainText;
+    m_exportAsText->setData(Okular::ExportFormat::PlainText);
     m_exportAsImage = actionForExportFormat(Okular::ExportFormat::standardFormat(Okular::ExportFormat::Image), m_exportAsMenu);
-    actionExportFormatMapping[m_exportAsImage] = ExportFormat::Image;
+    m_exportAsImage->setData(Okular::ExportFormat::Image);
     m_exportAsMenu->addAction(m_exportAsText);
     m_exportAsMenu->addAction(m_exportAsImage);
     m_exportAs->setEnabled(false);
@@ -3446,8 +3446,9 @@ void Part::slotExportAs(QAction *act)
     // Data objects for exporting images
     QList<Okular::PixmapRequest *> pixmapRequestList;
     QString fileName;
+    Okular::ExportFormat::StandardExportFormat actionType = act->data().value<Okular::ExportFormat::StandardExportFormat>();
     // Pick out mimeTypes and set observers
-    switch (actionExportFormatMapping.value(act)) {
+    switch (actionType) {
     case ExportFormat::PlainText: {
         QMimeType mimeType = mimeDatabase.mimeTypeForName(QStringLiteral("text/plain"));
         allowedExtensions << mimeType.globPatterns();
@@ -3467,7 +3468,7 @@ void Part::slotExportAs(QAction *act)
 
     // Open Dialog boxes
     QString filter = i18nc("File type name and pattern", "%1 (%2)", extensionComments.join(QLatin1Char(' ')), allowedExtensions.join(QLatin1Char(' ')));
-    switch (actionExportFormatMapping.value(act)) {
+    switch (actionType) {
     case ExportFormat::PlainText:
         fileName = QFileDialog::getSaveFileName(widget(), QString(), QString(), filter);
         break;
@@ -3481,8 +3482,6 @@ void Part::slotExportAs(QAction *act)
         } else if (dialogResult == ExportImageDialog::Canceled) {
             break;
         }
-        m_exportImageDocumentObserver->m_document = m_document;
-        m_exportImageDocumentObserver->m_dirPath = fileName;
         break;
     }
     default: {
@@ -3493,7 +3492,7 @@ void Part::slotExportAs(QAction *act)
     // Either export or cancel
     if (!fileName.isEmpty()) {
         bool saved = false;
-        switch (actionExportFormatMapping.value(act)) {
+        switch (actionType) {
         case ExportFormat::PlainText:
             saved = m_document->exportToText(fileName);
             break;

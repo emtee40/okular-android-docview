@@ -112,8 +112,8 @@ void ExportImageDialog::initUI()
     QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel | QDialogButtonBox::RestoreDefaults, this);
 
     buttonBox->button(QDialogButtonBox::Ok)->setText(i18n("Export"));
-    buttonBox->button(QDialogButtonBox::Cancel)->setText(i18n("Cancel"));
-    buttonBox->button(QDialogButtonBox::RestoreDefaults)->setText(i18n("Default"));
+    buttonBox->button(QDialogButtonBox::Cancel);
+    buttonBox->button(QDialogButtonBox::RestoreDefaults);
     connect(buttonBox->button(QDialogButtonBox::Ok), &QPushButton::clicked, this, &ExportImageDialog::exportImage);
     connect(buttonBox->button(QDialogButtonBox::Cancel), &QPushButton::clicked, this, [this] { QDialog::done(Canceled); });
     connect(buttonBox->button(QDialogButtonBox::RestoreDefaults), &QPushButton::clicked, this, &ExportImageDialog::setDefaults);
@@ -200,6 +200,8 @@ void ExportImageDialog::exportImage()
         }
     }
     *m_dirPath = m_dirPathLineEdit->text();
+    m_observer->m_document = m_document;
+    m_observer->m_dirPath = *m_dirPath;
     QDialog::done(Accepted);
 }
 

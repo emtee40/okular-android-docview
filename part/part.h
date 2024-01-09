@@ -473,8 +473,6 @@ private:
     // if we're opening http://localhost/foo#bar.pdf and the filename contains an # we can open it after trying to open foo fails
     QUrl m_urlWithFragment;
 
-    QHash<QAction *, ExportFormat::StandardExportFormat> actionExportFormatMapping;
-
 private Q_SLOTS:
     void slotAccessibilityPreferences();
     void slotAnnotationPreferences();
