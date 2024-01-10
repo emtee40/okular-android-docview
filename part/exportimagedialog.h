@@ -23,9 +23,12 @@ class ExportImageDocumentObserver : public Okular::DocumentObserver
 public:
     void notifyPageChanged(int page, int flags) override;
     void getPixmapAndSave(int page);
+    void addToPixmapRequestList(Okular::PixmapRequest *request);
+    bool getOrRequestPixmaps();
 
     Okular::Document *m_document;
     QString m_dirPath;
+    QList<Okular::PixmapRequest *> m_pixmapRequestList;
 };
 
 class ExportImageDialog : public QDialog
@@ -34,13 +37,12 @@ class ExportImageDialog : public QDialog
 public:
     enum DialogCloseCode { Accepted, Canceled, InvalidOptions };
 
-    ExportImageDialog(Okular::Document *document, QString *dirPath, QList<Okular::PixmapRequest *> *pixmapRequestList, ExportImageDocumentObserver *observer, QWidget *parent = nullptr);
+    ExportImageDialog(Okular::Document *document, QString *dirPath, ExportImageDocumentObserver *observer, QWidget *parent = nullptr);
     ~ExportImageDialog() override;
 
 private:
     Okular::Document *m_document;
     QString *m_dirPath;
-    QList<Okular::PixmapRequest *> *m_pixmapRequestList;
     ExportImageDocumentObserver *m_observer;
 
     QLabel *m_imageTypeLabel;

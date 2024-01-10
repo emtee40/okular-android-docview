@@ -25,11 +25,10 @@
 #include "core/observer.h"
 #include "core/page.h"
 
-ExportImageDialog::ExportImageDialog(Okular::Document *document, QString *dirPath, QList<Okular::PixmapRequest *> *pixmapRequestList, ExportImageDocumentObserver *observer, QWidget *parent)
+ExportImageDialog::ExportImageDialog(Okular::Document *document, QString *dirPath, ExportImageDocumentObserver *observer, QWidget *parent)
     : QDialog(parent)
     , m_document(document)
     , m_dirPath(dirPath)
-    , m_pixmapRequestList(pixmapRequestList)
     , m_observer(observer)
 {
     initUI();
@@ -196,7 +195,7 @@ void ExportImageDialog::exportImage()
             int width = (int)((m_document->page(i - 1))->width());
             int height = (int)((m_document->page(i - 1))->height());
             Okular::PixmapRequest *request = new Okular::PixmapRequest(m_observer, i - 1, width, height, 1 /* dpr */, 1, Okular::PixmapRequest::Asynchronous);
-            *m_pixmapRequestList << request;
+            m_observer->addToPixmapRequestList(request);
         }
     }
     *m_dirPath = m_dirPathLineEdit->text();
@@ -231,4 +230,29 @@ void ExportImageDocumentObserver::getPixmapAndSave(int page)
     QDir dir(m_dirPath);
     QString filePath = dir.filePath(fileName);
     pixmap->save(filePath, "PNG");
+}
+
+void ExportImageDocumentObserver::addToPixmapRequestList(Okular::PixmapRequest *request)
+{
+    m_pixmapRequestList << request;
+}
+
+bool ExportImageDocumentObserver::getOrRequestPixmaps()
+{
+    QList<Okular::PixmapRequest *> requestsToProcess;
+    for (Okular::PixmapRequest *r : m_pixmapRequestList) {
+        // If a page had been requested for export earlier, it might already have an associated pixmap pointer.
+        // If this is the case, directly get the pixmap pointed to by the same pointer.
+        if (m_document->page(r->pageNumber())->hasPixmap(r->observer(), r->width(), r->height(), r->normalizedRect())) {
+            getPixmapAndSave(r->pageNumber());
+            delete r;
+        } else {
+            requestsToProcess << r;
+            // Request delete not required in this case since Document::requestPixmaps internally does delete the request
+            // both in case of success and failure.
+        }
+    }
+    m_document->requestPixmaps(requestsToProcess, Okular::Document::PixmapRequestFlag::RemoveAllPrevious);
+    m_pixmapRequestList.clear();
+    return true;
 }

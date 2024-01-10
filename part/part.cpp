@@ -3444,7 +3444,6 @@ void Part::slotExportAs(QAction *act)
     QStringList extensionComments;
 
     // Data objects for exporting images
-    QList<Okular::PixmapRequest *> pixmapRequestList;
     QString fileName;
     Okular::ExportFormat::StandardExportFormat actionType = act->data().value<Okular::ExportFormat::StandardExportFormat>();
     // Pick out mimeTypes and set observers
@@ -3474,7 +3473,7 @@ void Part::slotExportAs(QAction *act)
         break;
     case ExportFormat::Image: {
         // In the context of image export, the fileName is actually dirName
-        ExportImageDialog exportImageDialog(m_document, &fileName, &pixmapRequestList, m_exportImageDocumentObserver, widget());
+        ExportImageDialog exportImageDialog(m_document, &fileName, m_exportImageDocumentObserver, widget());
         int dialogResult = exportImageDialog.exec();
         if (dialogResult == ExportImageDialog::InvalidOptions) {
             KMessageBox::information(widget(), i18n("Invalid options have been received."));
@@ -3485,6 +3484,7 @@ void Part::slotExportAs(QAction *act)
         break;
     }
     default: {
+        fileName = QFileDialog::getSaveFileName(widget(), QString(), QString(), filter);
         break;
     }
     }
@@ -3497,18 +3497,7 @@ void Part::slotExportAs(QAction *act)
             saved = m_document->exportToText(fileName);
             break;
         case ExportFormat::Image: {
-            QList<Okular::PixmapRequest *> requestsToProcess;
-            for (Okular::PixmapRequest *r : pixmapRequestList) {
-                // If a page had been requested for export earlier, it might already have an associated pixmap pointer.
-                // If this is the case, directly get the pixmap pointed to by the same pointer.
-                if (m_document->page(r->pageNumber())->hasPixmap(r->observer(), r->width(), r->height(), r->normalizedRect())) {
-                    m_exportImageDocumentObserver->getPixmapAndSave(r->pageNumber());
-                } else {
-                    requestsToProcess << r;
-                }
-            }
-            m_document->requestPixmaps(requestsToProcess, Document::PixmapRequestFlag::RemoveAllPrevious);
-            saved = true;
+            saved = m_exportImageDocumentObserver->getOrRequestPixmaps();
             break;
         }
         default:
