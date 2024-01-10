@@ -3434,11 +3434,13 @@ void Part::slotAboutBackend()
 void Part::slotExportAs(QAction *act)
 {
     QList<QAction *> acts = m_exportAs->menu() ? m_exportAs->menu()->actions() : QList<QAction *>();
-    int id = acts.indexOf(act);
-    if ((id < 0) || (id >= acts.count())) {
+    int menuActionId = acts.indexOf(act);
+    // We first check whether the correct action is passed to the slot
+    if ((menuActionId < 0) || (menuActionId >= acts.count())) {
         return;
     }
-
+    // Store an id for dynamically created actions
+    int dynamicActionId = menuActionId - 2; // This number is the number of hardcoded actions
     QMimeDatabase mimeDatabase;
     QStringList allowedExtensions;
     QStringList extensionComments;
@@ -3458,7 +3460,7 @@ void Part::slotExportAs(QAction *act)
         break;
     }
     default: {
-        QMimeType mimeType = m_exportFormats.at(id - 1).mimeType();
+        QMimeType mimeType = m_exportFormats.at(dynamicActionId).mimeType();
         allowedExtensions << mimeType.globPatterns();
         extensionComments << mimeType.comment();
         break;
@@ -3501,7 +3503,7 @@ void Part::slotExportAs(QAction *act)
             break;
         }
         default:
-            saved = m_document->exportTo(fileName, m_exportFormats.at(id - 1));
+            saved = m_document->exportTo(fileName, m_exportFormats.at(dynamicActionId));
             break;
         }
         if (!saved) {
