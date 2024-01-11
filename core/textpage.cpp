@@ -1042,6 +1042,7 @@ static WordsWithCharacters makeWordFromCharacters(const TextEntity::List &charac
         }
     }
 
+    wordsWithCharacters.shrink_to_fit();
     return wordsWithCharacters;
 }
 
@@ -1115,9 +1116,7 @@ QList<QPair<WordsWithCharacters, QRect>> makeAndSortLines(const WordsWithCharact
            only one element and append it to the lines
          */
         if (!found) {
-            WordsWithCharacters tmp;
-            tmp.append((*it));
-            lines.append(QPair<WordsWithCharacters, QRect>(tmp, elementArea));
+            lines.append(QPair<WordsWithCharacters, QRect>({*it}, elementArea));
         }
     }
 
@@ -1126,6 +1125,7 @@ QList<QPair<WordsWithCharacters, QRect>> makeAndSortLines(const WordsWithCharact
         WordsWithCharacters &list = line.first;
         std::sort(list.begin(), list.end(), compareTinyTextEntityX);
     }
+    lines.shrink_to_fit();
 
     return lines;
 }
@@ -1557,13 +1557,14 @@ static RegionTextList XYCutForBoundingBoxes(const QList<WordWithCharacters> &wor
         }
     }
 
+    tree.shrink_to_fit();
     return tree;
 }
 
 /**
  * Add spaces in between words in a line. It reuses the pointers passed in tree and might add new ones. You will need to take care of deleting them if needed
  */
-WordsWithCharacters addNecessarySpace(RegionTextList tree, int pageWidth, int pageHeight)
+TextEntity::List addNecessarySpace(RegionTextList tree, int pageWidth, int pageHeight)
 {
     /**
      * 1. Call makeAndSortLines before adding spaces in between words in a line
@@ -1571,10 +1572,12 @@ WordsWithCharacters addNecessarySpace(RegionTextList tree, int pageWidth, int pa
      * 3. Finally, extract all the space separated texts from each region and return it
      */
 
+    TextEntity::List res;
     // Only change the texts under RegionTexts, not the area
-    for (RegionText &tmpRegion : tree) {
+    for (const RegionText &tmpRegion : std::as_const(tree)) {
         // Step 01
         QList<QPair<WordsWithCharacters, QRect>> sortedLines = makeAndSortLines(tmpRegion.text(), pageWidth, pageHeight);
+        int counter = 0;
 
         // Step 02
         for (QPair<WordsWithCharacters, QRect> &sortedLine : sortedLines) {
@@ -1607,21 +1610,20 @@ WordsWithCharacters addNecessarySpace(RegionTextList tree, int pageWidth, int pa
                     k++;
                 }
             }
+            counter += list.length();
         }
+        res.reserve(res.length() + counter);
 
-        WordsWithCharacters tmpList;
         for (const QPair<WordsWithCharacters, QRect> &sortedLine : std::as_const(sortedLines)) {
-            tmpList += sortedLine.first;
+            for (const WordWithCharacters &word : sortedLine.first) {
+                res += word.characters;
+            }
         }
-        tmpRegion.setText(tmpList);
     }
 
     // Step 03
-    WordsWithCharacters tmp;
-    for (const RegionText &tmpRegion : std::as_const(tree)) {
-        tmp += tmpRegion.text();
-    }
-    return tmp;
+    res.shrink_to_fit();
+    return res;
 }
 
 /**
@@ -1652,20 +1654,13 @@ void TextPagePrivate::correctTextOrder()
     /**
      * Make a XY Cut tree for segmentation of the texts
      */
-    const RegionTextList tree = XYCutForBoundingBoxes(wordsWithCharacters, pageWidth, pageHeight);
+    RegionTextList tree = XYCutForBoundingBoxes(wordsWithCharacters, pageWidth, pageHeight);
 
     /**
      * Add spaces to the word
      */
-    const WordsWithCharacters listWithWordsAndSpaces = addNecessarySpace(tree, pageWidth, pageHeight);
+    const auto listOfCharacters = addNecessarySpace(std::move(tree), pageWidth, pageHeight);
 
-    /**
-     * Break the words into characters
-     */
-    TextEntity::List listOfCharacters;
-    for (const WordWithCharacters &word : listWithWordsAndSpaces) {
-        listOfCharacters.append(word.characters);
-    }
     setWordList(listOfCharacters);
 }
 
