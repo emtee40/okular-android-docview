@@ -14,6 +14,7 @@
 #include "misc.h"
 #include "page.h"
 #include "page_p.h"
+#include <unordered_set>
 
 #include <cstring>
 
@@ -21,6 +22,30 @@
 #include <QtAlgorithms>
 
 using namespace Okular;
+
+
+// Many of the strings are being reused; especially
+// those less than 4 letters are very common
+// Use the implicit shared bits from QString to
+// not keep multiple same strings around, but just up the
+// refcount a bit
+// The main reason for '4' is that most calls here happens
+// in auxillary threads that are following a document
+// and keeping the pool thread_local gives quite a bit
+// of advantage here.
+// Some calls though comes from the main thread, so we
+// shouldn't keep all the long strings allocated in the main
+// thread around forever.
+// '4' has been chosen by random testing, and guesswork.
+static QString fromPool(const QString& str) {
+    if (str.length() > 4) {
+       return str;
+    }
+
+    thread_local std::unordered_set<QString> pool;
+    auto [iterator, success] = pool.insert(str);
+    return *iterator;
+}
 
 class SearchPoint
 {
@@ -107,7 +132,7 @@ static bool doesConsumeY(const NormalizedRect &first, const NormalizedRect &seco
 }
 
 TextEntity::TextEntity(const QString &text, const NormalizedRect &area)
-    : m_text(text)
+    : m_text(fromPool(text))
     , m_area(area)
 {
 }
