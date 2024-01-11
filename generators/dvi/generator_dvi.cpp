@@ -228,35 +228,34 @@ Okular::TextPage *DviGenerator::textPage(Okular::TextRequest *request)
     const Okular::Page *page = request->page();
 
     qCDebug(OkularDviDebug);
-    dviPageInfo *pageInfo = new dviPageInfo();
+    dviPageInfo pageInfo;
 
-    pageInfo->width = page->width();
-    pageInfo->height = page->height();
+    pageInfo.width = page->width();
+    pageInfo.height = page->height();
 
-    pageInfo->pageNumber = page->number() + 1;
+    pageInfo.pageNumber = page->number() + 1;
 
-    pageInfo->resolution = m_resolution;
+    pageInfo.resolution = m_resolution;
 
     QMutexLocker lock(userMutex());
 
     // get page text from m_dviRenderer
     Okular::TextPage *ktp = nullptr;
     if (m_dviRenderer) {
-        SimplePageSize s = m_dviRenderer->sizeOfPage(pageInfo->pageNumber);
-        pageInfo->resolution = (double)(pageInfo->width) / s.width().getLength_in_inch();
+        SimplePageSize s = m_dviRenderer->sizeOfPage(pageInfo.pageNumber);
+        pageInfo.resolution = (double)(pageInfo.width) / s.width().getLength_in_inch();
 
-        m_dviRenderer->getText(pageInfo);
+        m_dviRenderer->getText(&pageInfo);
         lock.unlock();
 
-        ktp = extractTextFromPage(pageInfo);
+        ktp = extractTextFromPage(&pageInfo);
     }
-    delete pageInfo;
     return ktp;
 }
 
 Okular::TextPage *DviGenerator::extractTextFromPage(dviPageInfo *pageInfo)
 {
-    QList<Okular::TextEntity *> textOfThePage;
+    QList<Okular::TextEntity> textOfThePage;
 
     QVector<TextBox>::ConstIterator it = pageInfo->textBoxList.constBegin();
     QVector<TextBox>::ConstIterator itEnd = pageInfo->textBoxList.constEnd();
@@ -265,7 +264,7 @@ Okular::TextPage *DviGenerator::extractTextFromPage(dviPageInfo *pageInfo)
 
     for (; it != itEnd; ++it) {
         TextBox curTB = *it;
-        textOfThePage.push_back(new Okular::TextEntity(curTB.text, new Okular::NormalizedRect(curTB.box, pageWidth, pageHeight)));
+        textOfThePage.push_back(Okular::TextEntity(curTB.text, Okular::NormalizedRect(curTB.box, pageWidth, pageHeight)));
     }
 
     Okular::TextPage *ktp = new Okular::TextPage(textOfThePage);
