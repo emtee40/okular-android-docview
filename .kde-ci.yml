@@ -23,7 +23,7 @@ Dependencies:
 
 - 'on': ['Linux', 'FreeBSD']
   'require':
-    'plasma/plasma-activities': '@same'
+    'plasma/plasma-activities': '@latest-kf6'
     'frameworks/kpty': '@latest-kf6'
 
 - 'on': ['Android']
