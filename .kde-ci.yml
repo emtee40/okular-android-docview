@@ -12,7 +12,7 @@ Dependencies:
     'frameworks/kparts': '@latest-kf6'
     'frameworks/ktextwidgets': '@latest-kf6'
     'frameworks/kxmlgui': '@latest-kf6'
-    'libraries/phonon': '@same'
+    'libraries/phonon': '@latest-kf6'
     'graphics/kdegraphics-mobipocket': '@same'
 
 - 'on': ['Linux', 'FreeBSD', 'Windows']
