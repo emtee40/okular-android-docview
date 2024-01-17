@@ -9,6 +9,7 @@
 */
 
 #include "formwidgets.h"
+#include "core/page.h"
 #include "pageview.h"
 #include "pageviewutils.h"
 #include "revisionviewer.h"
@@ -212,6 +213,7 @@ void FormWidgetsController::slotButtonClicked(QAbstractButton *button)
 
 void FormWidgetsController::slotFormButtonsChangedByUndoRedo(int pageNumber, const QList<Okular::FormFieldButton *> &formButtons)
 {
+    QList<int> extraPages;
     for (const Okular::FormFieldButton *formButton : formButtons) {
         int id = formButton->id();
         QAbstractButton *button = m_buttons[id];
@@ -228,8 +230,14 @@ void FormWidgetsController::slotFormButtonsChangedByUndoRedo(int pageNumber, con
         button->setChecked(checked);
         button->group()->setExclusive(wasExclusive);
         button->setFocus();
+        if (formButton->page()->number() != pageNumber) {
+            extraPages << formButton->page()->number();
+        }
     }
     Q_EMIT changed(pageNumber);
+    for (auto page : extraPages) {
+        Q_EMIT changed(page);
+    }
 }
 
 Okular::Document *FormWidgetsController::document() const
