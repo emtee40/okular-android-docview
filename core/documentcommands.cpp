@@ -608,26 +608,14 @@ EditFormButtonsCommand::EditFormButtonsCommand(Okular::DocumentPrivate *docPriv,
 void EditFormButtonsCommand::undo()
 {
     clearFormButtonStates();
+    QList<int> extraPages;
     for (int i = 0; i < m_formButtons.size(); i++) {
         bool checked = m_prevButtonStates.at(i);
         if (checked) {
             m_formButtons.at(i)->setState(checked);
         }
-    }
-
-    Okular::NormalizedRect boundingRect = buildBoundingRectangleForButtons(m_formButtons);
-    moveViewportIfBoundingRectNotFullyVisible(boundingRect, m_docPriv, m_pageNumber);
-    Q_EMIT m_docPriv->m_parent->formButtonsChangedByUndoRedo(m_pageNumber, m_formButtons);
-    m_docPriv->notifyFormChanges(m_pageNumber);
-}
-
-void EditFormButtonsCommand::redo()
-{
-    clearFormButtonStates();
-    for (int i = 0; i < m_formButtons.size(); i++) {
-        bool checked = m_newButtonStates.at(i);
-        if (checked) {
-            m_formButtons.at(i)->setState(checked);
+        if (m_formButtons.at(i)->page()->number() != m_pageNumber)  {
+            extraPages << m_formButtons.at(i)->page()->number();
         }
     }
 
@@ -635,6 +623,32 @@ void EditFormButtonsCommand::redo()
     moveViewportIfBoundingRectNotFullyVisible(boundingRect, m_docPriv, m_pageNumber);
     Q_EMIT m_docPriv->m_parent->formButtonsChangedByUndoRedo(m_pageNumber, m_formButtons);
     m_docPriv->notifyFormChanges(m_pageNumber);
+    for (auto page : extraPages) {
+        m_docPriv->notifyFormChanges(page);
+    }
+}
+
+void EditFormButtonsCommand::redo()
+{
+    clearFormButtonStates();
+    QList<int> extraPages;
+    for (int i = 0; i < m_formButtons.size(); i++) {
+        bool checked = m_newButtonStates.at(i);
+        if (checked) {
+            m_formButtons.at(i)->setState(checked);
+        }
+        if (m_formButtons.at(i)->page()->number() != m_pageNumber)  {
+            extraPages << m_formButtons.at(i)->page()->number();
+        }
+    }
+
+    Okular::NormalizedRect boundingRect = buildBoundingRectangleForButtons(m_formButtons);
+    moveViewportIfBoundingRectNotFullyVisible(boundingRect, m_docPriv, m_pageNumber);
+    Q_EMIT m_docPriv->m_parent->formButtonsChangedByUndoRedo(m_pageNumber, m_formButtons);
+    m_docPriv->notifyFormChanges(m_pageNumber);
+    for (auto page : extraPages) {
+        m_docPriv->notifyFormChanges(page);
+    }
 }
 
 bool EditFormButtonsCommand::refreshInternalPageReferences(const QVector<Okular::Page *> &newPagesVector)
@@ -642,7 +656,7 @@ bool EditFormButtonsCommand::refreshInternalPageReferences(const QVector<Okular:
     const QList<FormFieldButton *> oldFormButtons = m_formButtons;
     m_formButtons.clear();
     for (FormFieldButton *oldFormButton : oldFormButtons) {
-        FormFieldButton *button = dynamic_cast<FormFieldButton *>(Okular::PagePrivate::findEquivalentForm(newPagesVector[m_pageNumber], oldFormButton));
+        FormFieldButton *button = dynamic_cast<FormFieldButton *>(Okular::PagePrivate::findEquivalentForm(newPagesVector[oldFormButton->page()->number()], oldFormButton));
         if (!button) {
             return false;
         }
