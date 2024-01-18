@@ -602,20 +602,21 @@ EditFormButtonsCommand::EditFormButtonsCommand(Okular::DocumentPrivate *docPriv,
     setText(i18nc("Edit the state of a group of form buttons", "edit form button states"));
     for (const FormFieldButton *formButton : std::as_const(m_formButtons)) {
         m_prevButtonStates.append(formButton->state());
+        m_pageNumbers.append(formButton->page()->number());
     }
 }
 
 void EditFormButtonsCommand::undo()
 {
     clearFormButtonStates();
-    QList<int> extraPages;
+    QSet<int> extraPages;
     for (int i = 0; i < m_formButtons.size(); i++) {
         bool checked = m_prevButtonStates.at(i);
         if (checked) {
             m_formButtons.at(i)->setState(checked);
         }
-        if (m_formButtons.at(i)->page()->number() != m_pageNumber)  {
-            extraPages << m_formButtons.at(i)->page()->number();
+        if (m_pageNumbers.at(i) != m_pageNumber) {
+            extraPages << m_pageNumbers.at(i);
         }
     }
 
@@ -631,14 +632,14 @@ void EditFormButtonsCommand::undo()
 void EditFormButtonsCommand::redo()
 {
     clearFormButtonStates();
-    QList<int> extraPages;
+    QSet<int> extraPages;
     for (int i = 0; i < m_formButtons.size(); i++) {
         bool checked = m_newButtonStates.at(i);
         if (checked) {
             m_formButtons.at(i)->setState(checked);
         }
-        if (m_formButtons.at(i)->page()->number() != m_pageNumber)  {
-            extraPages << m_formButtons.at(i)->page()->number();
+        if (m_pageNumbers.at(i) != m_pageNumber) {
+            extraPages << m_pageNumbers.at(i);
         }
     }
 
@@ -655,8 +656,8 @@ bool EditFormButtonsCommand::refreshInternalPageReferences(const QVector<Okular:
 {
     const QList<FormFieldButton *> oldFormButtons = m_formButtons;
     m_formButtons.clear();
-    for (FormFieldButton *oldFormButton : oldFormButtons) {
-        FormFieldButton *button = dynamic_cast<FormFieldButton *>(Okular::PagePrivate::findEquivalentForm(newPagesVector[oldFormButton->page()->number()], oldFormButton));
+    for (int i = 0; i < oldFormButtons.size(); i++) {
+        FormFieldButton *button = dynamic_cast<FormFieldButton *>(Okular::PagePrivate::findEquivalentForm(newPagesVector[m_pageNumbers[i]], oldFormButtons[i]));
         if (!button) {
             return false;
         }

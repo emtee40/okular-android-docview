@@ -217,9 +217,12 @@ void FormWidgetsController::slotFormButtonsChangedByUndoRedo(int pageNumber, con
     for (const Okular::FormFieldButton *formButton : formButtons) {
         int id = formButton->id();
         QAbstractButton *button = m_buttons[id];
-        CheckBoxEdit *check = qobject_cast<CheckBoxEdit *>(button);
-        if (check) {
+        int itemPageNumber = -1;
+        if (CheckBoxEdit *check = qobject_cast<CheckBoxEdit *>(button)) {
+            itemPageNumber = check->pageItem()->pageNumber();
             Q_EMIT refreshFormWidget(check->formField());
+        } else if (RadioButtonEdit *radio = qobject_cast<RadioButtonEdit *>(button)) {
+            itemPageNumber = radio->pageItem()->pageNumber();
         }
         // temporarily disable exclusiveness of the button group
         // since it breaks doing/redoing steps into which all the checkboxes
@@ -230,8 +233,8 @@ void FormWidgetsController::slotFormButtonsChangedByUndoRedo(int pageNumber, con
         button->setChecked(checked);
         button->group()->setExclusive(wasExclusive);
         button->setFocus();
-        if (formButton->page()->number() != pageNumber) {
-            extraPages << formButton->page()->number();
+        if (itemPageNumber != -1 && itemPageNumber != pageNumber) {
+            extraPages << itemPageNumber;
         }
     }
     Q_EMIT changed(pageNumber);
