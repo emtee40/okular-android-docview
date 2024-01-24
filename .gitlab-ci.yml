@@ -1,5 +1,6 @@
 variables:
   DEBIAN_FRONTEND: "noninteractive"
+  QT_MESSAGE_PATTERN: "[%{time yyyyMMdd h:mm:ss.zzz t}] %{if-category}%{category}: %{endif}%{message}"
 
 include:
   - project: sysadmin/ci-utilities
