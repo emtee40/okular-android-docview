@@ -3135,42 +3135,40 @@ void PageView::guessTableDividers()
         // get the words in this part
         Okular::RegularAreaRect rects;
         rects.append(tsp.rectInItem);
-        {
-            const Okular::TextEntity::List words = tsp.item->page()->words(&rects, Okular::TextPage::CentralPixelTextAreaInclusionBehaviour);
+        const Okular::TextEntity::List words = tsp.item->page()->words(&rects, Okular::TextPage::CentralPixelTextAreaInclusionBehaviour);
 
-            for (const Okular::TextEntity &te : words) {
-                if (te.text().isEmpty()) {
-                    continue;
-                }
-
-                Okular::NormalizedRect wordArea = te.area();
-
-                // convert it from item coordinates to part coordinates
-                wordArea.left -= tsp.rectInItem.left;
-                wordArea.left /= (tsp.rectInItem.right - tsp.rectInItem.left);
-                wordArea.right -= tsp.rectInItem.left;
-                wordArea.right /= (tsp.rectInItem.right - tsp.rectInItem.left);
-                wordArea.top -= tsp.rectInItem.top;
-                wordArea.top /= (tsp.rectInItem.bottom - tsp.rectInItem.top);
-                wordArea.bottom -= tsp.rectInItem.top;
-                wordArea.bottom /= (tsp.rectInItem.bottom - tsp.rectInItem.top);
-
-                // convert from part coordinates to table coordinates
-                wordArea.left *= (tsp.rectInSelection.right - tsp.rectInSelection.left);
-                wordArea.left += tsp.rectInSelection.left;
-                wordArea.right *= (tsp.rectInSelection.right - tsp.rectInSelection.left);
-                wordArea.right += tsp.rectInSelection.left;
-                wordArea.top *= (tsp.rectInSelection.bottom - tsp.rectInSelection.top);
-                wordArea.top += tsp.rectInSelection.top;
-                wordArea.bottom *= (tsp.rectInSelection.bottom - tsp.rectInSelection.top);
-                wordArea.bottom += tsp.rectInSelection.top;
-
-                // add to the ticks arrays...
-                colTicks.append(qMakePair(wordArea.left, +1));
-                colTicks.append(qMakePair(wordArea.right, -1));
-                rowTicks.append(qMakePair(wordArea.top, +1));
-                rowTicks.append(qMakePair(wordArea.bottom, -1));
+        for (const Okular::TextEntity &te : words) {
+            if (te.text().isEmpty()) {
+                continue;
             }
+
+            Okular::NormalizedRect wordArea = te.area();
+
+            // convert it from item coordinates to part coordinates
+            wordArea.left -= tsp.rectInItem.left;
+            wordArea.left /= (tsp.rectInItem.right - tsp.rectInItem.left);
+            wordArea.right -= tsp.rectInItem.left;
+            wordArea.right /= (tsp.rectInItem.right - tsp.rectInItem.left);
+            wordArea.top -= tsp.rectInItem.top;
+            wordArea.top /= (tsp.rectInItem.bottom - tsp.rectInItem.top);
+            wordArea.bottom -= tsp.rectInItem.top;
+            wordArea.bottom /= (tsp.rectInItem.bottom - tsp.rectInItem.top);
+
+            // convert from part coordinates to table coordinates
+            wordArea.left *= (tsp.rectInSelection.right - tsp.rectInSelection.left);
+            wordArea.left += tsp.rectInSelection.left;
+            wordArea.right *= (tsp.rectInSelection.right - tsp.rectInSelection.left);
+            wordArea.right += tsp.rectInSelection.left;
+            wordArea.top *= (tsp.rectInSelection.bottom - tsp.rectInSelection.top);
+            wordArea.top += tsp.rectInSelection.top;
+            wordArea.bottom *= (tsp.rectInSelection.bottom - tsp.rectInSelection.top);
+            wordArea.bottom += tsp.rectInSelection.top;
+
+            // add to the ticks arrays...
+            colTicks.append(qMakePair(wordArea.left, +1));
+            colTicks.append(qMakePair(wordArea.right, -1));
+            rowTicks.append(qMakePair(wordArea.top, +1));
+            rowTicks.append(qMakePair(wordArea.bottom, -1));
         }
     }
 
