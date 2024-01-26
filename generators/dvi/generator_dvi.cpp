@@ -248,22 +248,18 @@ Okular::TextPage *DviGenerator::textPage(Okular::TextRequest *request)
         m_dviRenderer->getText(&pageInfo);
         lock.unlock();
 
-        ktp = extractTextFromPage(&pageInfo);
+        ktp = extractTextFromPage(pageInfo);
     }
     return ktp;
 }
 
-Okular::TextPage *DviGenerator::extractTextFromPage(dviPageInfo *pageInfo)
+Okular::TextPage *DviGenerator::extractTextFromPage(const dviPageInfo &pageInfo)
 {
     QList<Okular::TextEntity> textOfThePage;
 
-    QVector<TextBox>::ConstIterator it = pageInfo->textBoxList.constBegin();
-    QVector<TextBox>::ConstIterator itEnd = pageInfo->textBoxList.constEnd();
+    int pageWidth = pageInfo.width, pageHeight = pageInfo.height;
 
-    int pageWidth = pageInfo->width, pageHeight = pageInfo->height;
-
-    for (; it != itEnd; ++it) {
-        TextBox curTB = *it;
+    for (const TextBox& curTB : std::as_const(pageInfo.textBoxList)) {
         textOfThePage.push_back(Okular::TextEntity(curTB.text, Okular::NormalizedRect(curTB.box, pageWidth, pageHeight)));
     }
 
