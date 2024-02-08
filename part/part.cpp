@@ -66,6 +66,7 @@
 #include <KIO/FileCopyJob>
 #include <KIO/Global>
 #include <KIO/OpenFileManagerWindowJob>
+#include <KIO/RenameFileDialog>
 #include <KIO/StatJob>
 #include <KJobWidgets>
 #include <KMainWindow>
@@ -921,6 +922,12 @@ void Part::setupActions()
     importPS->setIcon(QIcon::fromTheme(QStringLiteral("document-import")));
     connect(importPS, &QAction::triggered, this, &Part::slotImportPSFile);
 
+    QAction *renameFile = ac->addAction(QStringLiteral("file_rename"));
+    renameFile->setText(i18n("Re&name File"));
+    renameFile->setIcon(QIcon::fromTheme(QStringLiteral("edit-rename")));
+    ac->setDefaultShortcut(renameFile, QKeySequence(Qt::Key_F2));
+    connect(renameFile, &QAction::triggered, this, &Part::slotRenameFile);
+
     KToggleAction *blackscreenAction = new KToggleAction(i18n("Switch Blackscreen Mode"), ac);
     ac->addAction(QStringLiteral("switch_blackscreen_mode"), blackscreenAction);
     ac->setDefaultShortcut(blackscreenAction, QKeySequence(Qt::Key_B));
@@ -1302,6 +1309,47 @@ QString Part::documentMetaData(const QString &metaData) const
 {
     const Okular::DocumentInfo info = m_document->documentInfo();
     return info.get(metaData);
+}
+
+void Part::slotRenameFile()
+{
+    if (isModified()) {
+        int res = KMessageBox::warningContinueCancel(widget(),
+                                                     xi18nc("@info", "You are renaming a file with some unsaved changes. Do you want to continue? <br />Your changes will be lost if you don't save them."),
+                                                     i18n("File Changed"),
+                                                     KStandardGuiItem::cont(),
+                                                     KStandardGuiItem::cancel());
+        if (res != KMessageBox::Continue) {
+            return;
+        }
+    }
+    if (m_documentOpenWithPassword) {
+        const int res = KMessageBox::warningContinueCancel(
+            widget(),
+            i18n("The current document is protected with a password.<br />In order to save, the file needs to be reloaded. You will be asked for the password again and your undo/redo history will be lost.<br />Do you want to continue?"),
+            i18n("Save - Warning"),
+            KStandardGuiItem::cont(),
+            KStandardGuiItem::cancel());
+        if (res != KMessageBox::Continue) {
+            return;
+        }
+    }
+    QUrl url(m_document->documentInfo().get(Okular::DocumentInfo::FilePath));
+    const QList items({KFileItem(url)});
+    KFileItemList itemList(items);
+    renameDialog = new KIO::RenameFileDialog(itemList, widget());
+    connect(renameDialog, &KIO::RenameFileDialog::renamingFinished, this, [&](const QList<QUrl> &urls) {
+        bool status = slotAttemptReload(true, urls[0]);
+        if (!status) {
+            KMessageBox::error(widget(), i18n("Rename was successful but failed to reload the file."), i18n("Reload Failure"));
+        }
+        delete renameDialog;
+    });
+    QObject::connect(renameDialog, &KIO::RenameFileDialog::error, this, [&](KJob *error) {
+        KMessageBox::error(widget(), error->errorString(), i18n("Rename Failure"));
+        delete renameDialog;
+    });
+    renameDialog->exec();
 }
 
 bool Part::slotImportPSFile()
