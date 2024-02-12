@@ -141,11 +141,24 @@ DlgGeneral::DlgGeneral(QWidget *parent, Okular::EmbedMode embedMode)
 #endif
 
     if (embedMode != Okular::ViewerWidgetMode) {
+        QHBoxLayout *hbox = new QHBoxLayout(this);
+
         // Checkbox: watch file for changes
         QCheckBox *watchFile = new QCheckBox(this);
         watchFile->setText(i18nc("@option:check Config dialog, general page", "Reload document on file change"));
         watchFile->setObjectName(QStringLiteral("kcfg_WatchFile"));
-        layout->addRow(programFeaturesLabel(), watchFile);
+        hbox->addWidget(watchFile);
+
+        QSpinBox *watchFileDebounce = new QSpinBox(this);
+        watchFileDebounce->setRange(0, 10000);
+        watchFileDebounce->setSingleStep(50);
+        watchFileDebounce->setPrefix(QStringLiteral("Delay: "));
+        watchFileDebounce->setSuffix(QStringLiteral(" ms"));
+        watchFileDebounce->setObjectName(QStringLiteral("kcfg_WatchFileDelay"));
+        connect(watchFile, &QCheckBox::toggled, watchFileDebounce, &QWidget::setEnabled);
+
+        hbox->addWidget(watchFileDebounce);
+        layout->addRow(programFeaturesLabel(), hbox);
     }
 
     // Checkbox: show backend selection dialog
