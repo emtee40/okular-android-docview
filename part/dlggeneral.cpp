@@ -154,8 +154,7 @@ DlgGeneral::DlgGeneral(QWidget *parent, Okular::EmbedMode embedMode)
         watchFileDelay->setSingleStep(50);
         watchFileDelay->setPrefix(i18nc("File-watch delay spinbox prefix", "Wait for "));
         watchFileDelay->setSuffix(i18nc("File-watch delay spinbox suffix (milliseconds)", " ms"));
-        watchFileDelay->setToolTip(i18nc("@info:tooltip Config dialog, general page",
-                                            "Defines the time to wait before triggering a reload following changes to a document"));
+        watchFileDelay->setToolTip(i18nc("@info:tooltip Config dialog, general page", "Defines the time to wait before triggering a reload following changes to a document"));
         watchFileDelay->setObjectName(QStringLiteral("kcfg_WatchFileDelay"));
         connect(watchFile, &QCheckBox::toggled, watchFileDelay, &QWidget::setEnabled);
 
