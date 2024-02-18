@@ -2101,7 +2101,7 @@ void DocumentPrivate::loadSyncFile(const QString &filePath)
     QString line;
     while (!ts.atEnd()) {
         line = ts.readLine();
-        const QStringList tokens = line.split(spaceChar, Qt::SkipEmptyParts);
+        const QList<QStringView> tokens = QStringView(line).split(spaceChar, Qt::SkipEmptyParts);
         const int tokenSize = tokens.count();
         if (tokenSize < 1) {
             continue;

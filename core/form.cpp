@@ -243,9 +243,9 @@ public:
     void setValue(const QString &v) override
     {
         Q_Q(FormFieldChoice);
-        const QStringList choices = v.split(QLatin1Char(';'), Qt::SkipEmptyParts);
+        const QList<QStringView> choices = QStringView(v).split(QLatin1Char(';'), Qt::SkipEmptyParts);
         QList<int> newchoices;
-        for (const QString &str : choices) {
+        for (const QStringView str : choices) {
             bool ok = true;
             int val = str.toInt(&ok);
             if (ok) {

@@ -299,18 +299,19 @@ QPair<Okular::Movie *, Okular::EmbeddedFile *> createMovieFromPopplerRichMedia(c
         return emptyResult;
     }
 
-    QString sourceId;
+    QStringView sourceId;
     bool playbackLoops = false;
 
-    const QStringList flashVars = params->flashVars().split(QLatin1Char('&'));
-    for (const QString &flashVar : flashVars) {
+    const QString flashVarStr = params->flashVars();
+    const QList<QStringView> flashVars = QStringView(flashVarStr).split(QLatin1Char('&'));
+    for (const QStringView flashVar : flashVars) {
         const int pos = flashVar.indexOf(QLatin1Char('='));
         if (pos == -1) {
             continue;
         }
 
-        const QString key = flashVar.left(pos);
-        const QString value = flashVar.mid(pos + 1);
+        const QStringView key = flashVar.left(pos);
+        const QStringView value = flashVar.mid(pos + 1);
 
         if (key == QLatin1String("source")) {
             sourceId = value;

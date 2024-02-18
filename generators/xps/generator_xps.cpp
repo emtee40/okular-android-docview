@@ -73,9 +73,9 @@ static QColor hexToRgba(const QByteArray &name)
     return QColor(r, g, b, a);
 }
 
-static QRectF stringToRectF(const QString &data)
+static QRectF stringToRectF(QStringView data)
 {
-    QStringList numbers = data.split(QLatin1Char(','));
+    const QList<QStringView> numbers = data.split(QLatin1Char(','));
     QPointF origin(numbers.at(0).toDouble(), numbers.at(1).toDouble());
     QSizeF size(numbers.at(2).toDouble(), numbers.at(3).toDouble());
     return QRectF(origin, size);
@@ -789,10 +789,10 @@ void XpsPage::processGlyph(QPainter *painter, XpsRenderNode &node)
     att = node.attributes.value(QStringLiteral("Indices")).toString();
     QList<qreal> advanceWidths;
     if (!att.isEmpty()) {
-        const QStringList indicesElements = att.split(QLatin1Char(';'));
-        for (const QString &indicesElement : indicesElements) {
+        const QList<QStringView> indicesElements = QStringView(att).split(QLatin1Char(';'));
+        for (const QStringView indicesElement : indicesElements) {
             if (indicesElements.contains(QStringLiteral(","))) {
-                const QStringList parts = indicesElement.split(QLatin1Char(','));
+                const QList<QStringView> parts = indicesElement.split(QLatin1Char(','));
                 if (parts.size() == 2) {
                     // regular advance case, no offsets
                     advanceWidths.append(parts.at(1).toDouble() * fontSize / 100.0);
@@ -952,7 +952,7 @@ void XpsPage::processPath(QPainter *painter, XpsRenderNode &node)
     }
     att = node.attributes.value(QStringLiteral("StrokeDashArray")).toString();
     if (!att.isEmpty()) {
-        const QStringList pieces = att.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+        const QList<QStringView> pieces = QStringView(att).split(QLatin1Char(' '), Qt::SkipEmptyParts);
         QVector<qreal> dashPattern(pieces.count());
         bool ok = false;
         for (int i = 0; i < pieces.count(); ++i) {
@@ -1114,8 +1114,8 @@ void XpsPage::processPathFigure(XpsRenderNode &node)
         if (child.name == QLatin1String("PolyLineSegment")) {
             att = child.attributes.value(QStringLiteral("Points")).toString();
             if (!att.isEmpty()) {
-                const QStringList points = att.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-                for (const QString &p : points) {
+                const QList<QStringView> points = QStringView(att).split(QLatin1Char(' '), Qt::SkipEmptyParts);
+                for (const QStringView p : points) {
                     QPointF point = getPointFromString(p);
                     path.lineTo(point);
                 }
@@ -1125,7 +1125,7 @@ void XpsPage::processPathFigure(XpsRenderNode &node)
         else if (child.name == QLatin1String("PolyBezierSegment")) {
             att = child.attributes.value(QStringLiteral("Points")).toString();
             if (!att.isEmpty()) {
-                const QStringList points = att.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+                const QList<QStringView> points = QStringView(att).split(QLatin1Char(' '), Qt::SkipEmptyParts);
                 if (points.count() % 3 == 0) {
                     for (int i = 0; i < points.count();) {
                         QPointF firstControl = getPointFromString(points.at(i++));
@@ -1140,7 +1140,7 @@ void XpsPage::processPathFigure(XpsRenderNode &node)
         else if (child.name == QLatin1String("PolyQuadraticBezierSegment")) {
             att = child.attributes.value(QStringLiteral("Points")).toString();
             if (!att.isEmpty()) {
-                const QStringList points = att.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+                const QList<QStringView> points = QStringView(att).split(QLatin1Char(' '), Qt::SkipEmptyParts);
                 if (points.count() % 2 == 0) {
                     for (int i = 0; i < points.count();) {
                         QPointF point1 = getPointFromString(points.at(i++));
