@@ -39,7 +39,7 @@ static QString popplerEnumToUserString(Poppler::CryptoSignBackend backend)
     case Poppler::CryptoSignBackend::NSS:
         return QStringLiteral("NSS");
     case Poppler::CryptoSignBackend::GPG:
-        return QStringLiteral("GnuPG (S/Mime)");
+        return QStringLiteral("GnuPG (S/MIME)");
     }
     return {};
 }
