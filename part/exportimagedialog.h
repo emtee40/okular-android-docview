@@ -1,3 +1,8 @@
+/*
+    SPDX-FileCopyrightText: 2024 Pratham Gandhi <ppg.1382@gmail.com>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 
 #ifndef _OKULAR_EXPORTIMAGEDIALOG_H_
 #define _OKULAR_EXPORTIMAGEDIALOG_H_
@@ -29,6 +34,7 @@ public:
     Okular::Document *m_document;
     QString m_dirPath;
     QList<Okular::PixmapRequest *> m_pixmapRequestList;
+    QWidget *m_parent;
 };
 
 class ExportImageDialog : public QDialog
@@ -44,6 +50,7 @@ private:
     Okular::Document *m_document;
     QString *m_dirPath;
     ExportImageDocumentObserver *m_observer;
+    QWidget *m_parent;
 
     QLabel *m_imageTypeLabel;
     QLabel *m_PNGTypeLabel;
@@ -67,7 +74,6 @@ private:
 private Q_SLOTS:
     void searchFileName();
     void exportImage();
-    void setDefaults();
 }; //
 
 #endif // _OKULAR_EXPORTIMAGEDIALOG_H_

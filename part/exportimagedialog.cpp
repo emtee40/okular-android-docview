@@ -1,3 +1,9 @@
+/*
+    SPDX-FileCopyrightText: 2024 Pratham Gandhi <ppg.1382@gmail.com>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
+
 #include "exportimagedialog.h"
 
 #include <QDialog>
@@ -20,6 +26,7 @@
 #include <vector>
 
 #include <KLocalizedString>
+#include <KMessageBox>
 
 #include "core/document.h"
 #include "core/observer.h"
@@ -30,6 +37,7 @@ ExportImageDialog::ExportImageDialog(Okular::Document *document, QString *dirPat
     , m_document(document)
     , m_dirPath(dirPath)
     , m_observer(observer)
+    , m_parent(parent)
 {
     initUI();
 }
@@ -108,14 +116,12 @@ void ExportImageDialog::initUI()
     QHBoxLayout *groupLayout = new QHBoxLayout;
     groupLayout->addWidget(m_exportRangeGroupBox);
     // Setup ButtonBox
-    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel | QDialogButtonBox::RestoreDefaults, this);
+    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
 
     buttonBox->button(QDialogButtonBox::Ok)->setText(i18n("Export"));
     buttonBox->button(QDialogButtonBox::Cancel);
-    buttonBox->button(QDialogButtonBox::RestoreDefaults);
     connect(buttonBox->button(QDialogButtonBox::Ok), &QPushButton::clicked, this, &ExportImageDialog::exportImage);
     connect(buttonBox->button(QDialogButtonBox::Cancel), &QPushButton::clicked, this, [this] { QDialog::done(Canceled); });
-    connect(buttonBox->button(QDialogButtonBox::RestoreDefaults), &QPushButton::clicked, this, &ExportImageDialog::setDefaults);
 
     QHBoxLayout *dirPathLayout = new QHBoxLayout;
     dirPathLayout->addWidget(m_dirPathLineEdit);
@@ -201,17 +207,8 @@ void ExportImageDialog::exportImage()
     *m_dirPath = m_dirPathLineEdit->text();
     m_observer->m_document = m_document;
     m_observer->m_dirPath = *m_dirPath;
+    m_observer->m_parent = m_parent;
     QDialog::done(Accepted);
-}
-
-void ExportImageDialog::setDefaults()
-{
-    m_allPagesRadioButton->setChecked(true);
-    m_pageStartSpinBox->setValue(1);
-    m_pageEndSpinBox->setValue(m_document->pages());
-    m_pageStartSpinBox->setEnabled(false);
-    m_pageEndSpinBox->setEnabled(false);
-    m_customPageRangeLineEdit->setText(QStringLiteral(""));
 }
 
 void ExportImageDocumentObserver::notifyPageChanged(int page, int flags)
@@ -226,10 +223,13 @@ void ExportImageDocumentObserver::getPixmapAndSave(int page)
 {
     const QPixmap *pixmap = m_document->page(page)->getPixmap(this);
     QFileInfo info(m_document->documentInfo().get(Okular::DocumentInfo::FilePath));
-    QString fileName = info.baseName() + QStringLiteral("_") + QString::number(page + 1) + QStringLiteral(".png");
+    QString fileName = QString::number(page + 1) + QStringLiteral(".png");
     QDir dir(m_dirPath);
     QString filePath = dir.filePath(fileName);
-    pixmap->save(filePath, "PNG");
+    bool status = pixmap->save(filePath, "PNG");
+    if (!status) {
+        KMessageBox::error(m_parent, i18n("Failed to save a file ") + fileName, i18n("Failed"));
+    }
 }
 
 void ExportImageDocumentObserver::addToPixmapRequestList(Okular::PixmapRequest *request)
@@ -239,6 +239,19 @@ void ExportImageDocumentObserver::addToPixmapRequestList(Okular::PixmapRequest *
 
 bool ExportImageDocumentObserver::getOrRequestPixmaps()
 {
+    QFileInfo info(m_document->documentInfo().get(Okular::DocumentInfo::FilePath));
+    QString baseDirPath = m_dirPath + QDir::separator() + info.baseName();
+    m_dirPath = baseDirPath;
+    QDir dir;
+    int count = 1;
+    while (dir.exists(m_dirPath)) {
+        m_dirPath = baseDirPath + QStringLiteral(" (") + QString::number(count) + QStringLiteral(")");
+        count++;
+    }
+    bool status = dir.mkpath(m_dirPath);
+    if (!status) {
+        return false;
+    }
     QList<Okular::PixmapRequest *> requestsToProcess;
     for (Okular::PixmapRequest *r : m_pixmapRequestList) {
         // If a page had been requested for export earlier, it might already have an associated pixmap pointer.

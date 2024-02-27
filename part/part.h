@@ -56,6 +56,7 @@ class KToggleFullScreenAction;
 class QTemporaryFile;
 class QAction;
 class QJsonObject;
+
 namespace KParts
 {
 class GUIActivateEvent;

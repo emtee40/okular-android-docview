@@ -755,9 +755,6 @@ ExportFormat ExportFormat::standardFormat(StandardExportFormat type)
 {
     QMimeDatabase db;
     switch (type) {
-    case Undefined:
-        return ExportFormat();
-        break;
     case PlainText:
         return ExportFormat(QIcon::fromTheme(QStringLiteral("text-x-generic")), i18n("Plain &Text..."), db.mimeTypeForName(QStringLiteral("text/plain")));
         break;

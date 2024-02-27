@@ -3448,63 +3448,67 @@ void Part::slotExportAs(QAction *act)
     // Data objects for exporting images
     QString fileName;
     Okular::ExportFormat::StandardExportFormat actionType = act->data().value<Okular::ExportFormat::StandardExportFormat>();
-    // Pick out mimeTypes and set observers
-    switch (actionType) {
-    case ExportFormat::PlainText: {
-        QMimeType mimeType = mimeDatabase.mimeTypeForName(QStringLiteral("text/plain"));
-        allowedExtensions << mimeType.globPatterns();
-        extensionComments << mimeType.comment();
-        break;
-    }
-    case ExportFormat::Image: {
-        break;
-    }
-    default: {
+    if (!act->data().isNull()) {
+        switch (actionType) {
+        case ExportFormat::PlainText: {
+            QMimeType mimeType = mimeDatabase.mimeTypeForName(QStringLiteral("text/plain"));
+            allowedExtensions << mimeType.globPatterns();
+            extensionComments << mimeType.comment();
+            break;
+        }
+        default: {
+            break;
+        }
+        }
+    } else {
         QMimeType mimeType = m_exportFormats.at(dynamicActionId).mimeType();
         allowedExtensions << mimeType.globPatterns();
         extensionComments << mimeType.comment();
-        break;
-    }
     }
 
     // Open Dialog boxes
     QString filter = i18nc("File type name and pattern", "%1 (%2)", extensionComments.join(QLatin1Char(' ')), allowedExtensions.join(QLatin1Char(' ')));
-    switch (actionType) {
-    case ExportFormat::PlainText:
-        fileName = QFileDialog::getSaveFileName(widget(), QString(), QString(), filter);
-        break;
-    case ExportFormat::Image: {
-        // In the context of image export, the fileName is actually dirName
-        ExportImageDialog exportImageDialog(m_document, &fileName, m_exportImageDocumentObserver, widget());
-        int dialogResult = exportImageDialog.exec();
-        if (dialogResult == ExportImageDialog::InvalidOptions) {
-            KMessageBox::information(widget(), i18n("Invalid options have been received."));
+    if (!act->data().isNull()) {
+        switch (actionType) {
+        case ExportFormat::PlainText:
+            fileName = QFileDialog::getSaveFileName(widget(), QString(), QString(), filter);
             break;
-        } else if (dialogResult == ExportImageDialog::Canceled) {
+        case ExportFormat::Image: {
+            // In the context of image export, the fileName is actually dirName
+            ExportImageDialog exportImageDialog(m_document, &fileName, m_exportImageDocumentObserver, widget());
+            int dialogResult = exportImageDialog.exec();
+            if (dialogResult == ExportImageDialog::InvalidOptions) {
+                KMessageBox::information(widget(), i18n("Invalid options have been received."));
+                break;
+            } else if (dialogResult == ExportImageDialog::Canceled) {
+                break;
+            }
             break;
         }
-        break;
-    }
-    default: {
+        default:
+            break;
+        }
+    } else {
         fileName = QFileDialog::getSaveFileName(widget(), QString(), QString(), filter);
-        break;
-    }
     }
 
     // Either export or cancel
     if (!fileName.isEmpty()) {
         bool saved = false;
-        switch (actionType) {
-        case ExportFormat::PlainText:
-            saved = m_document->exportToText(fileName);
-            break;
-        case ExportFormat::Image: {
-            saved = m_exportImageDocumentObserver->getOrRequestPixmaps();
-            break;
-        }
-        default:
+        if (!act->data().isNull()) {
+            switch (actionType) {
+            case ExportFormat::PlainText:
+                saved = m_document->exportToText(fileName);
+                break;
+            case ExportFormat::Image: {
+                saved = m_exportImageDocumentObserver->getOrRequestPixmaps();
+                break;
+            }
+            default:
+                break;
+            }
+        } else {
             saved = m_document->exportTo(fileName, m_exportFormats.at(dynamicActionId));
-            break;
         }
         if (!saved) {
             KMessageBox::information(widget(), i18n("File could not be saved in '%1'. Try to save it to another location.", fileName));
