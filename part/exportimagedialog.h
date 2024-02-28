@@ -16,15 +16,20 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QList>
+#include <QMutex>
 #include <QPixmap>
+#include <QProgressDialog>
 #include <QPushButton>
 #include <QRadioButton>
 #include <QSlider>
 #include <QSpinBox>
 #include <QWidget>
 
-class ExportImageDocumentObserver : public Okular::DocumentObserver
+#include <atomic>
+
+class ExportImageDocumentObserver : public QObject, public Okular::DocumentObserver
 {
+    Q_OBJECT
 public:
     void notifyPageChanged(int page, int flags) override;
     void getPixmapAndSave(int page);
@@ -35,6 +40,12 @@ public:
     QString m_dirPath;
     QList<Okular::PixmapRequest *> m_pixmapRequestList;
     QWidget *m_parent;
+    QProgressDialog *m_progressDialog;
+    std::atomic<int> m_progressValue;
+    bool m_progressCanceled;
+    QMutex m_progressCanceledMutex;
+private Q_SLOTS:
+    void progressDialogCanceled();
 };
 
 class ExportImageDialog : public QDialog

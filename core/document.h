@@ -494,6 +494,11 @@ public:
      */
     void requestPixmaps(const QList<PixmapRequest *> &requests, PixmapRequestFlags reqOptions);
 
+    /*
+     *  Cancel pixmap generation requests
+     */
+    void cancelPixmapRequests(DocumentObserver *observer);
+
     /**
      * Sends a request for text page generation for the given page @p pageNumber.
      */

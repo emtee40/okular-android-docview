@@ -22,6 +22,7 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
+#include <atomic>
 #include <utility>
 #include <vector>
 
@@ -119,7 +120,6 @@ void ExportImageDialog::initUI()
     QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
 
     buttonBox->button(QDialogButtonBox::Ok)->setText(i18n("Export"));
-    buttonBox->button(QDialogButtonBox::Cancel);
     connect(buttonBox->button(QDialogButtonBox::Ok), &QPushButton::clicked, this, &ExportImageDialog::exportImage);
     connect(buttonBox->button(QDialogButtonBox::Cancel), &QPushButton::clicked, this, [this] { QDialog::done(Canceled); });
 
@@ -221,15 +221,27 @@ void ExportImageDocumentObserver::notifyPageChanged(int page, int flags)
 
 void ExportImageDocumentObserver::getPixmapAndSave(int page)
 {
+    m_progressCanceledMutex.lock();
+    if (m_progressCanceled) {
+        m_progressCanceledMutex.unlock();
+        return;
+    }
     const QPixmap *pixmap = m_document->page(page)->getPixmap(this);
-    QFileInfo info(m_document->documentInfo().get(Okular::DocumentInfo::FilePath));
     QString fileName = QString::number(page + 1) + QStringLiteral(".png");
     QDir dir(m_dirPath);
     QString filePath = dir.filePath(fileName);
     bool status = pixmap->save(filePath, "PNG");
     if (!status) {
         KMessageBox::error(m_parent, i18n("Failed to save a file ") + fileName, i18n("Failed"));
+    } else {
+        m_progressValue.fetch_add(1);
+        int value = m_progressValue.load();
+        m_progressDialog->setValue(value);
+        if (value == m_progressDialog->maximum()) {
+            delete m_progressDialog;
+        }
     }
+    m_progressCanceledMutex.unlock();
 }
 
 void ExportImageDocumentObserver::addToPixmapRequestList(Okular::PixmapRequest *request)
@@ -239,6 +251,9 @@ void ExportImageDocumentObserver::addToPixmapRequestList(Okular::PixmapRequest *
 
 bool ExportImageDocumentObserver::getOrRequestPixmaps()
 {
+    m_progressCanceledMutex.lock();
+    m_progressCanceled = false;
+    m_progressCanceledMutex.unlock();
     QFileInfo info(m_document->documentInfo().get(Okular::DocumentInfo::FilePath));
     QString baseDirPath = m_dirPath + QDir::separator() + info.baseName();
     m_dirPath = baseDirPath;
@@ -253,6 +268,10 @@ bool ExportImageDocumentObserver::getOrRequestPixmaps()
         return false;
     }
     QList<Okular::PixmapRequest *> requestsToProcess;
+    m_progressDialog = new QProgressDialog(i18n("Exporting images"), i18n("Cancel"), 0, m_document->pages(), m_parent);
+    connect(m_progressDialog, &QProgressDialog::canceled, this, &ExportImageDocumentObserver::progressDialogCanceled);
+    m_progressDialog->show();
+    m_progressValue.store(0);
     for (Okular::PixmapRequest *r : m_pixmapRequestList) {
         // If a page had been requested for export earlier, it might already have an associated pixmap pointer.
         // If this is the case, directly get the pixmap pointed to by the same pointer.
@@ -268,4 +287,14 @@ bool ExportImageDocumentObserver::getOrRequestPixmaps()
     m_document->requestPixmaps(requestsToProcess, Okular::Document::PixmapRequestFlag::RemoveAllPrevious);
     m_pixmapRequestList.clear();
     return true;
+}
+
+void ExportImageDocumentObserver::progressDialogCanceled()
+{
+    m_document->cancelPixmapRequests(this);
+    m_progressCanceledMutex.lock();
+    m_progressDialog->cancel();
+    m_progressCanceled = true;
+    delete m_progressDialog;
+    m_progressCanceledMutex.unlock();
 }

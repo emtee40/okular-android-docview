@@ -3446,6 +3446,20 @@ void Document::requestPixmaps(const QList<PixmapRequest *> &requests, PixmapRequ
     }
 }
 
+void Document::cancelPixmapRequests(DocumentObserver *observer)
+{
+    d->m_pixmapRequestsMutex.lock();
+    std::list<PixmapRequest *>::const_iterator sIt = d->m_pixmapRequestsStack.begin();
+    std::list<PixmapRequest *>::const_iterator sEnd = d->m_pixmapRequestsStack.end();
+    for (; sIt != sEnd; ++sIt) {
+        if ((*sIt)->observer() == observer) {
+            delete *sIt;
+        }
+    }
+    d->m_pixmapRequestsStack.clear();
+    d->m_pixmapRequestsMutex.unlock();
+}
+
 void Document::requestTextPage(uint pageNumber)
 {
     Page *kp = d->m_pagesVector[pageNumber];
