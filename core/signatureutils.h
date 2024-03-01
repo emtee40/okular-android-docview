@@ -340,7 +340,8 @@ public:
         CertificateRevoked,         ///< The certificate was revoked by the issuing certificate authority.
         CertificateExpired,         ///< The signing time is outside the validity bounds of this certificate.
         CertificateGenericError,    ///< The certificate could not be verified.
-        CertificateNotVerified      ///< The certificate is not yet verified.
+        CertificateNotVerified,     ///< The certificate is not yet verified.
+        CertificateVerificationInProgress
     };
 
     /**
