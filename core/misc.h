@@ -46,18 +46,6 @@ public:
     TextSelection(const TextSelection &) = delete;
     TextSelection &operator=(const TextSelection &) = delete;
 
-    /**
-     * Changes the end point of the selection to the given @p point.
-     */
-    void end(const NormalizedPoint &point);
-
-    void itE(int pos);
-    void itB(int pos);
-
-    /**
-     * Returns the direction of the selection.
-     */
-    int direction() const;
 
     /**
      * Returns the start point of the selection.
@@ -69,12 +57,9 @@ public:
      */
     NormalizedPoint end() const;
 
-    int itB() const;
-    int itE() const;
-
 private:
     class Private;
-    Private *const d;
+    std::unique_ptr<Private> d;
 };
 
 }
