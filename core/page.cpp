@@ -242,7 +242,9 @@ bool Page::hasPixmap(DocumentObserver *observer, int width, int height, const No
 
     const QPixmap *pixmap = it.value().m_pixmap;
 
-    return (pixmap->width() == width && pixmap->height() == height);
+    // With fractional dpr, the generator might round the image slightly differently
+    // than we do
+    return (abs(pixmap->width() - width) <= 1 && abs(pixmap->height() - height) <= 1);
 }
 
 void Page::setPageSize(DocumentObserver *observer, int width, int height)
