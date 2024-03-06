@@ -7,6 +7,7 @@
 
     SPDX-License-Identifier: GPL-2.0-or-later
 */
+/*dummy test*/
 
 #ifndef _OKULAR_DOCUMENT_H_
 #define _OKULAR_DOCUMENT_H_
