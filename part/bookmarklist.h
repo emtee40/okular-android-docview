@@ -45,6 +45,7 @@ private Q_SLOTS:
     void slotChanged(QTreeWidgetItem *item);
     void slotContextMenu(const QPoint p);
     void slotBookmarksChanged(const QUrl &url);
+    void slotAllBookmarksChanged();
 
 private:
     void rebuildTree(bool showAll);
