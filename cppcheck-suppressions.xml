@@ -45,7 +45,4 @@
 <id>useStlAlgorithm</id>
 </suppress>
 <!-- embedded 3rdparty -->
-<suppress>
-<fileName>core/synctex/syntex_parser.c</fileName>
-</suppress>
 </suppressions>
