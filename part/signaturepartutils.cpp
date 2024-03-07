@@ -294,7 +294,7 @@ std::optional<SigningInformation> getCertificateAndPasswordForSigning(PageView *
     QFontMetrics fm = dialog.fontMetrics();
     dialog.ui->list->setMinimumWidth(fm.averageCharWidth() * (minWidth + 5));
     dialog.ui->list->setModel(&items);
-    dialog.ui->list->selectionModel()->select(items.index(selectIndex, 0), QItemSelectionModel::Rows | QItemSelectionModel::ClearAndSelect);
+    dialog.ui->list->selectionModel()->setCurrentIndex(items.index(selectIndex, 0), QItemSelectionModel::Rows | QItemSelectionModel::ClearAndSelect);
     if (items.rowCount() < 3) {
         auto rowHeight = dialog.ui->list->sizeHintForRow(0);
         dialog.ui->list->setFixedHeight(rowHeight * items.rowCount() + (items.rowCount() - 1) * dialog.ui->list->spacing() + dialog.ui->list->contentsMargins().top() + dialog.ui->list->contentsMargins().bottom());
