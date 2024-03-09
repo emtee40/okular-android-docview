@@ -539,6 +539,7 @@ bool FormLineEdit::event(QEvent *e)
             bool ok = false;
             m_controller->document()->processValidateAction(action, static_cast<Okular::FormFieldText *>(m_ff), ok);
         }
+        m_controller->document()->recalculateForms();
         if (const Okular::Action *action = m_ff->additionalAction(Okular::FormField::FormatField)) {
             m_controller->document()->processFormatAction(action, static_cast<Okular::FormFieldText *>(m_ff));
         }

@@ -1206,6 +1206,13 @@ void DocumentPrivate::recalculateForms()
                                 if (newVal != oldVal) {
                                     fft->setText(newVal);
                                     fft->setAppearanceText(newVal);
+                                    if (fft->additionalAction(Okular::FormField::FieldModified) && !fft->isReadOnly()) {
+                                        m_parent->processKeystrokeCommitAction(fft->additionalAction(Okular::FormField::FieldModified), fft);
+                                    }
+                                    if (const Okular::Action *action = fft->additionalAction(Okular::FormField::ValidateField)) {
+                                        bool ok = false;
+                                        m_parent->processValidateAction(action, fft, ok);
+                                    }
                                     if (const Okular::Action *action = fft->additionalAction(Okular::FormField::FormatField)) {
                                         // The format action handles the refresh.
                                         m_parent->processFormatAction(action, fft);
@@ -3466,6 +3473,11 @@ void DocumentPrivate::notifyAnnotationChanges(int page)
 void DocumentPrivate::notifyFormChanges(int /*page*/)
 {
     recalculateForms();
+}
+
+void Document::recalculateForms()
+{
+    d->recalculateForms();
 }
 
 void Document::addPageAnnotation(int page, Annotation *annotation)
