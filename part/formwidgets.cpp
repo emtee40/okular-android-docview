@@ -542,6 +542,7 @@ bool FormLineEdit::event(QEvent *e)
         if (const Okular::Action *action = m_ff->additionalAction(Okular::FormField::FormatField)) {
             m_controller->document()->processFormatAction(action, static_cast<Okular::FormFieldText *>(m_ff));
         }
+        m_controller->document()->recalculateForms();
     }
     return QLineEdit::event(e);
 }

@@ -452,7 +452,7 @@ void EditFormTextCommand::undo()
     moveViewportIfBoundingRectNotFullyVisible(m_form->rect(), m_docPriv, m_pageNumber);
     m_form->setText(m_prevContents);
     Q_EMIT m_docPriv->m_parent->formTextChangedByUndoRedo(m_pageNumber, m_form, m_prevContents, m_prevCursorPos, m_prevAnchorPos);
-    m_docPriv->notifyFormChanges(m_pageNumber);
+    // m_docPriv->notifyFormChanges(m_pageNumber);
 }
 
 void EditFormTextCommand::redo()
@@ -460,7 +460,7 @@ void EditFormTextCommand::redo()
     moveViewportIfBoundingRectNotFullyVisible(m_form->rect(), m_docPriv, m_pageNumber);
     m_form->setText(m_newContents);
     Q_EMIT m_docPriv->m_parent->formTextChangedByUndoRedo(m_pageNumber, m_form, m_newContents, m_newCursorPos, m_newCursorPos);
-    m_docPriv->notifyFormChanges(m_pageNumber);
+    // m_docPriv->notifyFormChanges(m_pageNumber);
 }
 
 int EditFormTextCommand::id() const
@@ -501,7 +501,7 @@ void EditFormListCommand::undo()
     moveViewportIfBoundingRectNotFullyVisible(m_form->rect(), m_docPriv, m_pageNumber);
     m_form->setCurrentChoices(m_prevChoices);
     Q_EMIT m_docPriv->m_parent->formListChangedByUndoRedo(m_pageNumber, m_form, m_prevChoices);
-    m_docPriv->notifyFormChanges(m_pageNumber);
+    // m_docPriv->notifyFormChanges(m_pageNumber);
 }
 
 void EditFormListCommand::redo()
@@ -509,7 +509,7 @@ void EditFormListCommand::redo()
     moveViewportIfBoundingRectNotFullyVisible(m_form->rect(), m_docPriv, m_pageNumber);
     m_form->setCurrentChoices(m_newChoices);
     Q_EMIT m_docPriv->m_parent->formListChangedByUndoRedo(m_pageNumber, m_form, m_newChoices);
-    m_docPriv->notifyFormChanges(m_pageNumber);
+    // m_docPriv->notifyFormChanges(m_pageNumber);
 }
 
 bool EditFormListCommand::refreshInternalPageReferences(const QVector<Page *> &newPagesVector)
