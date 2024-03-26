@@ -17,6 +17,7 @@
 #include <QPixmap>
 #include <QSet>
 #include <QString>
+#include <QThread>
 #include <QUuid>
 #include <QVariant>
 
@@ -26,6 +27,7 @@
 #include "action.h"
 #include "annotations.h"
 #include "annotations_p.h"
+#include "core/recolor.h"
 #include "debug_p.h"
 #include "document.h"
 #include "document_p.h"
@@ -80,6 +82,8 @@ PagePrivate::PagePrivate(Page *page, uint n, double w, double h, Rotation o)
     , m_closingAction(nullptr)
     , m_duration(-1)
     , m_isBoundingBoxKnown(false)
+    , recolorThread(nullptr)
+    , recolorIsPartial(false)
 {
     // avoid Division-By-Zero problems in the program
     if (m_width <= 0) {
@@ -544,9 +548,65 @@ QList<FormField *> Page::formFields() const
     return d->formfields;
 }
 
+void Page::setImage(DocumentObserver *observer, const QImage &image, const NormalizedRect &rect, bool isPartial)
+{
+    // Here we must recolor the image if the appropriate accessibility settings are turned on.
+
+    QThread *oldThread = d->recolorThread;
+    // Thread interruptions don't work amazingly, so avoid creating a new thread for partial updates if there's an old one running
+    // (sometimes partial updates can come faster than recolors)
+    if (oldThread != nullptr && isPartial) {
+        return;
+    }
+    // cancel the old thread if it was just recoloring a partial pixmap
+    if (oldThread != nullptr && d->recolorIsPartial) {
+        // Remove the finished listener below, which sets
+        oldThread->disconnect(this);
+        // When the thread has finished executing, delete it and clear the pointer.
+        QObject::connect(oldThread, &QThread::finished, this, [this, oldThread]() {
+            // Clear the pointer only if it hasn't been set to something else already.
+            if (oldThread == d->recolorThread) {
+                d->recolorThread = nullptr;
+            }
+            oldThread->deleteLater();
+        });
+        oldThread->requestInterruption();
+    }
+
+    // A thread is essentially being used as a future here because QFuture doesn't support cancellation
+    RecolorThread *newThread = Okular::Recolor::recolorThread(image);
+    d->recolorThread = newThread;
+    d->recolorIsPartial = isPartial;
+
+    if (newThread == nullptr) { // if there is no recoloring to be done
+        d->setPixmap(observer, new QPixmap(QPixmap::fromImage(image)), rect, isPartial);
+    } else {
+        QObject::connect(
+            newThread,
+            &QThread::finished,
+            this,
+            [this, observer, rect, isPartial, newThread] {
+                d->setPixmap(observer, new QPixmap(QPixmap::fromImage(newThread->image)), rect, isPartial);
+
+                newThread->deleteLater();
+                if (d->recolorThread == newThread) {
+                    d->recolorThread = nullptr;
+                }
+            },
+            Qt::QueuedConnection);
+
+        newThread->start();
+    }
+}
+
 void Page::setPixmap(DocumentObserver *observer, QPixmap *pixmap, const NormalizedRect &rect)
 {
-    d->setPixmap(observer, pixmap, rect, false /*isPartialPixmap*/);
+    if (Okular::Recolor::settingEnabled()) {
+        setImage(observer, QImage(pixmap->toImage()), rect);
+        delete pixmap;
+    } else {
+        d->setPixmap(observer, pixmap, rect, false /*isPartialPixmap*/);
+    }
 }
 
 void PagePrivate::setPixmap(DocumentObserver *observer, QPixmap *pixmap, const NormalizedRect &rect, bool isPartialPixmap)
@@ -556,18 +616,17 @@ void PagePrivate::setPixmap(DocumentObserver *observer, QPixmap *pixmap, const N
         if (tm) {
             tm->setPixmap(pixmap, rect, isPartialPixmap);
             delete pixmap;
-            return;
-        }
-
-        QMap<DocumentObserver *, PagePrivate::PixmapObject>::iterator it = m_pixmaps.find(observer);
-        if (it != m_pixmaps.end()) {
-            delete it.value().m_pixmap;
         } else {
-            it = m_pixmaps.insert(observer, PagePrivate::PixmapObject());
+            QMap<DocumentObserver *, PagePrivate::PixmapObject>::iterator it = m_pixmaps.find(observer);
+            if (it != m_pixmaps.end()) {
+                delete it.value().m_pixmap;
+            } else {
+                it = m_pixmaps.insert(observer, PagePrivate::PixmapObject());
+            }
+            it.value().m_pixmap = pixmap;
+            it.value().m_rotation = m_rotation;
+            it.value().m_isPartialPixmap = isPartialPixmap;
         }
-        it.value().m_pixmap = pixmap;
-        it.value().m_rotation = m_rotation;
-        it.value().m_isPartialPixmap = isPartialPixmap;
     } else {
         // it can happen that we get a setPixmap while closing and thus the page controller is gone
         if (m_doc->m_pageController) {
@@ -580,6 +639,8 @@ void PagePrivate::setPixmap(DocumentObserver *observer, QPixmap *pixmap, const N
 
         delete pixmap;
     }
+
+    observer->notifyPageChanged(m_number, DocumentObserver::Pixmap);
 }
 
 void Page::setTextPage(TextPage *textPage)

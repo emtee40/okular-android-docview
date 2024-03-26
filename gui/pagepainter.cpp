@@ -24,10 +24,9 @@
 #include "core/annotations.h"
 #include "core/observer.h"
 #include "core/page.h"
-#include "core/page_p.h"
+#include "core/recolor.h"
 #include "core/tile.h"
 #include "core/utils.h"
-#include "debug_ui.h"
 #include "guiutils.h"
 #include "settings.h"
 #include "settings_core.h"
@@ -230,8 +229,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
     }
 
     /** 3 - ENABLE BACKBUFFERING IF DIRECT IMAGE MANIPULATION IS NEEDED **/
-    bool bufferAccessibility = (flags & Accessibility) && Okular::SettingsCore::changeColors() && (Okular::SettingsCore::renderMode() != Okular::SettingsCore::EnumRenderMode::Paper);
-    bool useBackBuffer = bufferAccessibility || bufferedHighlights || bufferedAnnotations || viewPortPoint;
+    bool useBackBuffer = bufferedHighlights || bufferedAnnotations || viewPortPoint;
     QPixmap *backPixmap = nullptr;
     QPainter *mixedPainter = nullptr;
     QRect limitsInPixmap = limits.translated(scaledCrop.topLeft());
@@ -311,37 +309,6 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
 
         p.end();
 
-        // 4B.2. modify pixmap following accessibility settings
-        if (bufferAccessibility) {
-            switch (Okular::SettingsCore::renderMode()) {
-            case Okular::SettingsCore::EnumRenderMode::Inverted:
-                // Invert image pixels using QImage internal function
-                backImage.invertPixels(QImage::InvertRgb);
-                break;
-            case Okular::SettingsCore::EnumRenderMode::Recolor:
-                recolor(&backImage, Okular::Settings::recolorForeground(), Okular::Settings::recolorBackground());
-                break;
-            case Okular::SettingsCore::EnumRenderMode::BlackWhite:
-                blackWhite(&backImage, Okular::Settings::bWContrast(), Okular::Settings::bWThreshold());
-                break;
-            case Okular::SettingsCore::EnumRenderMode::InvertLightness:
-                invertLightness(&backImage);
-                break;
-            case Okular::SettingsCore::EnumRenderMode::InvertLuma:
-                invertLuma(&backImage, 0.2126, 0.7152, 0.0722); // sRGB / Rec. 709 luma coefficients
-                break;
-            case Okular::SettingsCore::EnumRenderMode::InvertLumaSymmetric:
-                invertLuma(&backImage, 0.3333, 0.3334, 0.3333); // Symmetric coefficients, to keep colors saturated.
-                break;
-            case Okular::SettingsCore::EnumRenderMode::HueShiftPositive:
-                hueShiftPositive(&backImage);
-                break;
-            case Okular::SettingsCore::EnumRenderMode::HueShiftNegative:
-                hueShiftNegative(&backImage);
-                break;
-            }
-        }
-
         // 4B.3. highlight rects in page
         if (bufferedHighlights) {
             // draw highlights that are inside the 'limits' paint region
@@ -385,7 +352,8 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                 if (!acolor.isValid()) {
                     acolor = Qt::yellow;
                 }
-                acolor.setAlphaF(a->style().opacity());
+                // honor accessibility recoloring settings
+                acolor = Okular::Recolor::applyCurrentRecolorModeToColor(acolor);
 
                 // draw LineAnnotation MISSING: caption, dash pattern, endings for multipoint lines
                 if (type == Okular::Annotation::ALine) {
@@ -397,6 +365,8 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                     // get the annotation
                     Okular::HighlightAnnotation *ha = (Okular::HighlightAnnotation *)a;
                     Okular::HighlightAnnotation::HighlightType type = ha->highlightType();
+
+                    RasterOperation multOp = (backgroundColor == Qt::black) ? Screen : Multiply;
 
                     // draw each quad of the annotation
                     int quads = ha->highlightQuads().size();
@@ -414,7 +384,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                         switch (type) {
                         // highlight the whole rect
                         case Okular::HighlightAnnotation::Highlight:
-                            drawShapeOnImage(backImage, path, true, Qt::NoPen, acolor, pageScale, Multiply);
+                            drawShapeOnImage(backImage, path, true, Qt::NoPen, acolor, pageScale, multOp);
                             break;
                         // highlight the bottom part of the rect
                         case Okular::HighlightAnnotation::Squiggly:
@@ -422,7 +392,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                             path[3].y = (path[0].y + path[3].y) / 2.0;
                             path[2].x = (path[1].x + path[2].x) / 2.0;
                             path[2].y = (path[1].y + path[2].y) / 2.0;
-                            drawShapeOnImage(backImage, path, true, Qt::NoPen, acolor, pageScale, Multiply);
+                            drawShapeOnImage(backImage, path, true, Qt::NoPen, acolor, pageScale, multOp);
                             break;
                         // make a line at 3/4 of the height
                         case Okular::HighlightAnnotation::Underline:
@@ -472,6 +442,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                 }
             } // end current annotation drawing
         }
+        // 6.3. viewport point -- for "Show cursor position in Viewer" in Kile
         if (viewPortPoint) {
             QPainter painter(&backImage);
             painter.translate(-limits.left(), -limits.top());
@@ -545,7 +516,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                     image.fill(acolor.rgba());
                     QPainter painter(&image);
                     painter.setFont(text->textFont());
-                    painter.setPen(text->textColor());
+                    painter.setPen(Okular::Recolor::applyCurrentRecolorModeToColor(text->textColor()));
                     Qt::AlignmentFlag halign = (text->inplaceAlignment() == 1 ? Qt::AlignHCenter : (text->inplaceAlignment() == 2 ? Qt::AlignRight : Qt::AlignLeft));
                     const double invXScale = (double)page->width() / scaledWidth;
                     const double invYScale = (double)page->height() / scaledHeight;
@@ -557,7 +528,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                     // Required as asking for a zero width pen results
                     // in a default width pen (1.0) being created
                     if (borderWidth != 0) {
-                        QPen pen(Qt::black, borderWidth);
+                        QPen pen(Okular::Recolor::applyCurrentRecolorModeToColor(Qt::black), borderWidth);
                         painter.setPen(pen);
                         painter.drawRect(0, 0, image.width() - 1, image.height() - 1);
                     }
@@ -576,7 +547,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                     // use it to colorize the icon, otherwise the icon will be
                     // "gray"
                     if (a->style().color().isValid()) {
-                        GuiUtils::colorizeImage(scaledCroppedImage, a->style().color(), opacity);
+                        GuiUtils::colorizeImage(scaledCroppedImage, acolor, opacity);
                     }
                     pixmap = QPixmap::fromImage(scaledCroppedImage);
 
@@ -590,9 +561,17 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                 Okular::StampAnnotation *stamp = (Okular::StampAnnotation *)a;
 
                 // get pixmap and alpha blend it if needed
+                // The performance of doing it like this (re-rendering the svg every frame) is terrible,
+                // but painted annotations happen rarely enough that it's fine
                 QPixmap pixmap = Okular::AnnotationUtils::loadStamp(stamp->stampIconName(), qMax(annotBoundary.width(), annotBoundary.height()) * dpr);
                 if (!pixmap.isNull()) // should never happen but can happen on huge sizes
                 {
+                    if (Okular::Recolor::settingEnabled()) {
+                        QImage annotImg = pixmap.toImage();
+                        Okular::Recolor::applyCurrentRecolorModeToImage(&annotImg);
+                        pixmap = QPixmap::fromImage(annotImg);
+                    }
+
                     // Draw pixmap with opacity:
                     mixedPainter->save();
                     mixedPainter->setOpacity(mixedPainter->opacity() * opacity / 255.0);
@@ -614,7 +593,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                     r.translate(annotBoundary.topLeft());
                     if (geom->geometricalInnerColor().isValid()) {
                         r.adjust(width, width, -width, -width);
-                        const QColor color = geom->geometricalInnerColor();
+                        const QColor color = Okular::Recolor::applyCurrentRecolorModeToColor(geom->geometricalInnerColor());
                         mixedPainter->setPen(Qt::NoPen);
                         mixedPainter->setBrush(QColor(color.red(), color.green(), color.blue(), opacity));
                         if (geom->geometricalType() == Okular::GeomAnnotation::InscribedSquare) {
@@ -640,7 +619,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
 
             // draw extents rectangle
             if (Okular::Settings::debugDrawAnnotationRect()) {
-                mixedPainter->setPen(a->style().color());
+                mixedPainter->setPen(acolor);
                 mixedPainter->drawRect(annotBoundary);
             }
         }
@@ -673,7 +652,6 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
         mixedPainter->restore();
     }
 
-    /** 7 -- BUFFERED FLOW. Copy BACKPIXMAP on DESTINATION PAINTER **/
     if (useBackBuffer) {
         delete mixedPainter;
         destPainter->drawPixmap(limits.left(), limits.top(), *backPixmap);
@@ -684,263 +662,6 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
     delete bufferedHighlights;
     delete bufferedAnnotations;
     delete unbufferedAnnotations;
-}
-
-void PagePainter::recolor(QImage *image, const QColor &foreground, const QColor &background)
-{
-    if (image->format() != QImage::Format_ARGB32_Premultiplied) {
-        qCWarning(OkularUiDebug) << "Wrong image format! Converting...";
-        *image = image->convertToFormat(QImage::Format_ARGB32_Premultiplied);
-    }
-
-    Q_ASSERT(image->format() == QImage::Format_ARGB32_Premultiplied);
-
-    const float scaleRed = background.redF() - foreground.redF();
-    const float scaleGreen = background.greenF() - foreground.greenF();
-    const float scaleBlue = background.blueF() - foreground.blueF();
-
-    const int foreground_red = foreground.red();
-    const int foreground_green = foreground.green();
-    const int foreground_blue = foreground.blue();
-
-    QRgb *data = reinterpret_cast<QRgb *>(image->bits());
-    const int pixels = image->width() * image->height();
-
-    for (int i = 0; i < pixels; ++i) {
-        const int lightness = qGray(data[i]);
-
-        const float r = scaleRed * lightness + foreground_red;
-        const float g = scaleGreen * lightness + foreground_green;
-        const float b = scaleBlue * lightness + foreground_blue;
-
-        const unsigned a = qAlpha(data[i]);
-        data[i] = qRgba(r, g, b, a);
-    }
-}
-
-void PagePainter::blackWhite(QImage *image, int contrast, int threshold)
-{
-    unsigned int *data = reinterpret_cast<unsigned int *>(image->bits());
-    int con = contrast;
-    int thr = 255 - threshold;
-
-    int pixels = image->width() * image->height();
-    for (int i = 0; i < pixels; ++i) {
-        // Piecewise linear function of val, through (0, 0), (thr, 128), (255, 255)
-        int val = qGray(data[i]);
-        if (val > thr) {
-            val = 128 + (127 * (val - thr)) / (255 - thr);
-        } else if (val < thr) {
-            val = (128 * val) / thr;
-        }
-
-        // Linear contrast stretching through (thr, thr)
-        if (con > 2) {
-            val = thr + (val - thr) * con / 2;
-            val = qBound(0, val, 255);
-        }
-
-        const unsigned a = qAlpha(data[i]);
-        data[i] = qRgba(val, val, val, a);
-    }
-}
-
-void PagePainter::invertLightness(QImage *image)
-{
-    if (image->format() != QImage::Format_ARGB32_Premultiplied) {
-        qCWarning(OkularUiDebug) << "Wrong image format! Converting...";
-        *image = image->convertToFormat(QImage::Format_ARGB32_Premultiplied);
-    }
-
-    Q_ASSERT(image->format() == QImage::Format_ARGB32_Premultiplied);
-
-    QRgb *data = reinterpret_cast<QRgb *>(image->bits());
-    int pixels = image->width() * image->height();
-    for (int i = 0; i < pixels; ++i) {
-        // Invert lightness of the pixel using the cylindric HSL color model.
-        // Algorithm is based on https://en.wikipedia.org/wiki/HSL_and_HSV#HSL_to_RGB (2019-03-17).
-        // Important simplifications are that inverting lightness does not change chroma and hue.
-        // This means the sector (of the chroma/hue plane) is not changed,
-        // so we can use a linear calculation after determining the sector using qMin() and qMax().
-        uchar R = qRed(data[i]);
-        uchar G = qGreen(data[i]);
-        uchar B = qBlue(data[i]);
-
-        // Get only the needed HSL components. These are chroma C and the common component m.
-        // Get common component m
-        uchar m = qMin(R, qMin(G, B));
-        // Remove m from color components
-        R -= m;
-        G -= m;
-        B -= m;
-        // Get chroma C
-        uchar C = qMax(R, qMax(G, B));
-
-        // Get common component m' after inverting lightness L.
-        // Hint: Lightness L = m + C / 2; L' = 255 - L = 255 - (m + C / 2) => m' = 255 - C - m
-        uchar m_ = 255 - C - m;
-
-        // Add m' to color compontents
-        R += m_;
-        G += m_;
-        B += m_;
-
-        // Save new color
-        const unsigned A = qAlpha(data[i]);
-        data[i] = qRgba(R, G, B, A);
-    }
-}
-
-void PagePainter::invertLuma(QImage *image, float Y_R, float Y_G, float Y_B)
-{
-    if (image->format() != QImage::Format_ARGB32_Premultiplied) {
-        qCWarning(OkularUiDebug) << "Wrong image format! Converting...";
-        *image = image->convertToFormat(QImage::Format_ARGB32_Premultiplied);
-    }
-
-    Q_ASSERT(image->format() == QImage::Format_ARGB32_Premultiplied);
-
-    QRgb *data = reinterpret_cast<QRgb *>(image->bits());
-    int pixels = image->width() * image->height();
-    for (int i = 0; i < pixels; ++i) {
-        uchar R = qRed(data[i]);
-        uchar G = qGreen(data[i]);
-        uchar B = qBlue(data[i]);
-
-        invertLumaPixel(R, G, B, Y_R, Y_G, Y_B);
-
-        // Save new color
-        const unsigned A = qAlpha(data[i]);
-        data[i] = qRgba(R, G, B, A);
-    }
-}
-
-void PagePainter::invertLumaPixel(uchar &R, uchar &G, uchar &B, float Y_R, float Y_G, float Y_B)
-{
-    // Invert luma of the pixel using the bicone HCY color model, stretched to cylindric HSY.
-    // Algorithm is based on https://en.wikipedia.org/wiki/HSL_and_HSV#Luma,_chroma_and_hue_to_RGB (2019-03-19).
-    // For an illustration see https://experilous.com/1/product/make-it-colorful/ (2019-03-19).
-
-    // Special case: The algorithm does not work when hue is undefined.
-    if (R == G && G == B) {
-        R = 255 - R;
-        G = 255 - G;
-        B = 255 - B;
-        return;
-    }
-
-    // Get input and output luma Y, Y_inv in range 0..255
-    float Y = R * Y_R + G * Y_G + B * Y_B;
-    float Y_inv = 255 - Y;
-
-    // Get common component m and remove from color components.
-    // This moves us to the bottom faces of the HCY bicone, i. e. we get C and X in R, G, B.
-    uint_fast8_t m = qMin(R, qMin(G, B));
-    R -= m;
-    G -= m;
-    B -= m;
-
-    // We operate in a hue plane of the luma/chroma/hue bicone.
-    // The hue plane is a triangle.
-    // This bicone is distorted, so we can not simply mirror the triangle.
-    // We need to stretch it to a luma/saturation rectangle, so we need to stretch chroma C and the proportional X.
-
-    // First, we need to calculate luma Y_full_C for the outer corner of the triangle.
-    // Then we can interpolate the max chroma C_max, C_inv_max for our luma Y, Y_inv.
-    // Then we calculate C_inv and X_inv by scaling them by the ratio of C_max and C_inv_max.
-
-    // Calculate luma Y_full_C (in range equivalent to gray 0..255) for chroma = 1 at this hue.
-    // Piecewise linear, with the corners of the bicone at the sum of one or two luma coefficients.
-    float Y_full_C;
-    if (R >= B && B >= G) {
-        Y_full_C = 255 * Y_R + 255 * Y_B * B / R;
-    } else if (R >= G && G >= B) {
-        Y_full_C = 255 * Y_R + 255 * Y_G * G / R;
-    } else if (G >= R && R >= B) {
-        Y_full_C = 255 * Y_G + 255 * Y_R * R / G;
-    } else if (G >= B && B >= R) {
-        Y_full_C = 255 * Y_G + 255 * Y_B * B / G;
-    } else if (B >= G && G >= R) {
-        Y_full_C = 255 * Y_B + 255 * Y_G * G / B;
-    } else {
-        Y_full_C = 255 * Y_B + 255 * Y_R * R / B;
-    }
-
-    // Calculate C_max, C_inv_max, to scale C and X.
-    float C_max, C_inv_max;
-    if (Y >= Y_full_C) {
-        C_max = Y_inv / (255 - Y_full_C);
-    } else {
-        C_max = Y / Y_full_C;
-    }
-    if (Y_inv >= Y_full_C) {
-        C_inv_max = Y / (255 - Y_full_C);
-    } else {
-        C_inv_max = Y_inv / Y_full_C;
-    }
-
-    // Scale C and X. C and X already lie in R, G, B.
-    float C_scale = C_inv_max / C_max;
-    float R_ = R * C_scale;
-    float G_ = G * C_scale;
-    float B_ = B * C_scale;
-
-    // Calculate missing luma (in range 0..255), to get common component m_inv
-    float m_inv = Y_inv - (Y_R * R_ + Y_G * G_ + Y_B * B_);
-
-    // Add m_inv to color compontents
-    R_ += m_inv;
-    G_ += m_inv;
-    B_ += m_inv;
-
-    // Return colors rounded
-    R = R_ + 0.5;
-    G = G_ + 0.5;
-    B = B_ + 0.5;
-}
-
-void PagePainter::hueShiftPositive(QImage *image)
-{
-    if (image->format() != QImage::Format_ARGB32_Premultiplied) {
-        qCWarning(OkularUiDebug) << "Wrong image format! Converting...";
-        *image = image->convertToFormat(QImage::Format_ARGB32_Premultiplied);
-    }
-
-    Q_ASSERT(image->format() == QImage::Format_ARGB32_Premultiplied);
-
-    QRgb *data = reinterpret_cast<QRgb *>(image->bits());
-    int pixels = image->width() * image->height();
-    for (int i = 0; i < pixels; ++i) {
-        uchar R = qRed(data[i]);
-        uchar G = qGreen(data[i]);
-        uchar B = qBlue(data[i]);
-
-        // Save new color
-        const unsigned A = qAlpha(data[i]);
-        data[i] = qRgba(B, R, G, A);
-    }
-}
-
-void PagePainter::hueShiftNegative(QImage *image)
-{
-    if (image->format() != QImage::Format_ARGB32_Premultiplied) {
-        qCWarning(OkularUiDebug) << "Wrong image format! Converting...";
-        *image = image->convertToFormat(QImage::Format_ARGB32_Premultiplied);
-    }
-
-    Q_ASSERT(image->format() == QImage::Format_ARGB32_Premultiplied);
-
-    QRgb *data = reinterpret_cast<QRgb *>(image->bits());
-    int pixels = image->width() * image->height();
-    for (int i = 0; i < pixels; ++i) {
-        uchar R = qRed(data[i]);
-        uchar G = qGreen(data[i]);
-        uchar B = qBlue(data[i]);
-
-        // Save new color
-        const unsigned A = qAlpha(data[i]);
-        data[i] = qRgba(G, B, R, A);
-    }
 }
 
 void PagePainter::drawShapeOnImage(QImage &image, const NormalizedPath &normPath, bool closeShape, const QPen &pen, const QBrush &brush, double penWidthMultiplier, RasterOperation op
@@ -966,8 +687,16 @@ void PagePainter::drawShapeOnImage(QImage &image, const NormalizedPath &normPath
     painter.setPen(pen2);
     painter.setBrush(brush);
 
-    if (op == Multiply) {
+    switch (op) {
+    case Normal:
+        painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+        break;
+    case Multiply:
         painter.setCompositionMode(QPainter::CompositionMode_Multiply);
+        break;
+    case Screen:
+        painter.setCompositionMode(QPainter::CompositionMode_Screen);
+        break;
     }
 
     if (brush.style() == Qt::NoBrush) {
@@ -1033,7 +762,7 @@ LineAnnotPainter::LineAnnotPainter(const Okular::LineAnnotation *a, QSizeF pageS
     , pageScale {pageScale}
     , toNormalizedImage {toNormalizedImage}
     , aspectRatio {pageSize.height() / pageSize.width()}
-    , linePen {buildPen(a, a->style().width(), a->style().color())}
+    , linePen {buildPen(a, a->style().width(), Okular::Recolor::applyCurrentRecolorModeToColor(a->style().color()))}
 {
     if ((la->lineClosed() || la->transformedLinePoints().count() == 2) && la->lineInnerColor().isValid()) {
         fillBrush = QBrush(la->lineInnerColor());

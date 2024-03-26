@@ -66,6 +66,34 @@
    <emit signal="colorModesChanged" />
   </entry>
  </group>
+ <group name="Dlg Accessibility" >
+  <entry key="HighlightImages" type="Bool" >
+   <default>false</default>
+  </entry>
+  <entry key="HighlightLinks" type="Bool" >
+   <default>false</default>
+  </entry>
+  <entry key="RecolorForeground" type="Color" >
+   <default code="true" >0x600000</default>
+   <emit signal="colorModesChanged" />
+  </entry>
+  <entry key="RecolorBackground" type="Color" >
+   <default code="true" >0xF0F0F0</default>
+   <emit signal="colorModesChanged" />
+  </entry>
+  <entry key="BWThreshold" type="UInt" >
+   <default>127</default>
+   <min>2</min>
+   <max>253</max>
+   <emit signal="colorModesChanged" />
+  </entry>
+  <entry key="BWContrast" type="UInt" >
+   <default>2</default>
+   <min>2</min>
+   <max>6</max>
+   <emit signal="colorModesChanged" />
+  </entry>
+ </group>
  <group name="Core General" >
   <entry key="ObeyDRM" type="Bool" >
    <default>true</default>

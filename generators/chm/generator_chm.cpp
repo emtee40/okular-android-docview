@@ -214,7 +214,7 @@ void CHMGenerator::slotCompleted()
     if (!req->page()->isBoundingBoxKnown()) {
         updatePageBoundingBox(req->page()->number(), Okular::Utils::imageBoundingBox(&image));
     }
-    req->page()->setPixmap(req->observer(), new QPixmap(QPixmap::fromImage(image)));
+    req->page()->setImage(req->observer(), image);
     signalPixmapRequestDone(req);
 }
 

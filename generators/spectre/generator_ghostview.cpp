@@ -155,7 +155,7 @@ bool GSGenerator::doCloseDocument()
     return true;
 }
 
-void GSGenerator::slotImageGenerated(QImage *img, Okular::PixmapRequest *request)
+void GSGenerator::slotImageGenerated(const QImage &img, Okular::PixmapRequest *request)
 {
     // This can happen as GSInterpreterCMD is a singleton and on creation signals all the slots
     // of all the generators attached to it
@@ -164,13 +164,11 @@ void GSGenerator::slotImageGenerated(QImage *img, Okular::PixmapRequest *request
     }
 
     if (!request->page()->isBoundingBoxKnown()) {
-        updatePageBoundingBox(request->page()->number(), Okular::Utils::imageBoundingBox(img));
+        updatePageBoundingBox(request->page()->number(), Okular::Utils::imageBoundingBox(&img));
     }
 
     m_request = nullptr;
-    QPixmap *pix = new QPixmap(QPixmap::fromImage(*img));
-    delete img;
-    request->page()->setPixmap(request->observer(), pix);
+    request->page()->setImage(request->observer(), img);
     signalPixmapRequestDone(request);
 }
 

@@ -7,6 +7,7 @@
 #ifndef _OKULAR_GENERATOR_GHOSTVIEW_H_
 #define _OKULAR_GENERATOR_GHOSTVIEW_H_
 
+#include <QImage>
 #include <core/generator.h>
 #include <interfaces/configinterface.h>
 
@@ -52,7 +53,7 @@ public:
     ~GSGenerator() override;
 
 public Q_SLOTS:
-    void slotImageGenerated(QImage *img, Okular::PixmapRequest *request);
+    void slotImageGenerated(const QImage &img, Okular::PixmapRequest *request);
 
 protected:
     bool doCloseDocument() override;

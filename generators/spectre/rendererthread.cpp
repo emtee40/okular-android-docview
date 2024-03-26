@@ -6,8 +6,6 @@
 
 #include "rendererthread.h"
 
-#include <QImage>
-
 #include "spectre_debug.h"
 
 #include "core/generator.h"
@@ -106,18 +104,15 @@ void GSRendererThread::run()
             }
             }
 
-            QImage *image = new QImage(img.copy());
             free(data);
 
-            if (image->width() != req.request->width() || image->height() != req.request->height()) {
+            if (img.width() != req.request->width() || img.height() != req.request->height()) {
                 qCWarning(OkularSpectreDebug).nospace() << "Generated image does not match wanted size: "
-                                                        << "[" << image->width() << "x" << image->height() << "] vs requested "
+                                                        << "[" << img.width() << "x" << img.height() << "] vs requested "
                                                         << "[" << req.request->width() << "x" << req.request->height() << "]";
-                QImage aux = image->scaled(wantedWidth, wantedHeight);
-                delete image;
-                image = new QImage(aux);
+                img = img.scaled(wantedWidth, wantedHeight);
             }
-            Q_EMIT imageDone(image, req.request);
+            Q_EMIT imageDone(img, req.request);
 
             spectre_page_free(req.spectrePage);
         }
