@@ -364,6 +364,7 @@ public:
      * Returns whether the document supports the export to ASCII text.
      */
     bool canExportToText() const;
+
     /**
      * Exports the document as ASCII text and saves it under @p fileName.
      */
@@ -494,8 +495,11 @@ public:
      */
     void requestPixmaps(const QList<PixmapRequest *> &requests, PixmapRequestFlags reqOptions);
 
-    /*
-     *  Cancel pixmap generation requests
+    /**
+     * Cancel pixmap generation request
+     * @param observer the observer whose requests need to be canceled
+     *
+     * @since 24.05
      */
     void cancelPixmapRequests(DocumentObserver *observer);
 

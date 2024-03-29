@@ -59,6 +59,7 @@ void ExportImageDialog::initUI()
 
     m_dirPathBrowseButton = new QPushButton(i18n("..."), this);
     m_dirPathBrowseButton->setMaximumSize(30, 30);
+    m_dirPathBrowseButton->setToolTip(i18n("The images would be exported in a subfolder in this path of the same name as the file"));
     connect(m_dirPathBrowseButton, &QPushButton::clicked, this, &ExportImageDialog::searchFileName);
 
     // Options tab
@@ -165,7 +166,7 @@ void ExportImageDialog::exportImage()
     } else if (m_customPageRadioButton->isChecked()) {
         QStringList separatePageRanges = m_customPageRangeLineEdit->text().split(QStringLiteral(","), Qt::SkipEmptyParts);
         bool ok;
-        for (const QString &part : separatePageRanges) {
+        for (const QString &part : std::as_const(separatePageRanges)) {
             QStringList range = part.split(QStringLiteral("-"));
             if (range.size() == 1) {
                 int pageVal = range[0].toInt(&ok);
@@ -272,7 +273,7 @@ bool ExportImageDocumentObserver::getOrRequestPixmaps()
     connect(m_progressDialog, &QProgressDialog::canceled, this, &ExportImageDocumentObserver::progressDialogCanceled);
     m_progressDialog->show();
     m_progressValue.store(0);
-    for (Okular::PixmapRequest *r : m_pixmapRequestList) {
+    for (Okular::PixmapRequest *r : std::as_const(m_pixmapRequestList)) {
         // If a page had been requested for export earlier, it might already have an associated pixmap pointer.
         // If this is the case, directly get the pixmap pointed to by the same pointer.
         if (m_document->page(r->pageNumber())->hasPixmap(r->observer(), r->width(), r->height(), r->normalizedRect())) {

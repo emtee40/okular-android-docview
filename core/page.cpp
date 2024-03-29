@@ -11,7 +11,6 @@
 #include "page_p.h"
 
 // qt/kde includes
-#include <QDebug>
 #include <QDomDocument>
 #include <QDomElement>
 #include <QHash>

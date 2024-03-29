@@ -1477,6 +1477,7 @@ void DocumentPrivate::sendGeneratorPixmapRequest()
     if (pixmapBytes > (1024 * 1024)) {
         cleanupPixmapMemory(memoryToFree /* previously calculated value */);
     }
+
     // submit the request to the generator
     if (m_generator->canGeneratePixmap()) {
         QRect requestRect = !request->isTile() ? QRect(0, 0, request->width(), request->height()) : request->normalizedRect().geometry(request->width(), request->height());
@@ -3449,14 +3450,18 @@ void Document::requestPixmaps(const QList<PixmapRequest *> &requests, PixmapRequ
 void Document::cancelPixmapRequests(DocumentObserver *observer)
 {
     d->m_pixmapRequestsMutex.lock();
+
     std::list<PixmapRequest *>::const_iterator sIt = d->m_pixmapRequestsStack.begin();
     std::list<PixmapRequest *>::const_iterator sEnd = d->m_pixmapRequestsStack.end();
-    for (; sIt != sEnd; ++sIt) {
+    while (sIt != sEnd) {
         if ((*sIt)->observer() == observer) {
+            // delete request and remove it from stack
             delete *sIt;
+            sIt = d->m_pixmapRequestsStack.erase(sIt);
+        } else {
+            ++sIt;
         }
     }
-    d->m_pixmapRequestsStack.clear();
     d->m_pixmapRequestsMutex.unlock();
 }
 
