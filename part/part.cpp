@@ -1313,10 +1313,17 @@ QString Part::documentMetaData(const QString &metaData) const
 
 void Part::slotRenameFile()
 {
+    const QString dontAskAgainName = QStringLiteral("ShowRenameUndoRedoWarning");
+    int undoredocheck = KMessageBox::warningContinueCancel(
+        widget(), i18n("Your undo/redo history will be lost when renaming.<br />Do you want to continue?"), i18n("Rename - Warning"), KStandardGuiItem::cont(), KStandardGuiItem::cancel(), dontAskAgainName);
+    if (undoredocheck != KMessageBox::Continue) {
+        return;
+    }
+
     if (isModified()) {
         int res = KMessageBox::warningContinueCancel(widget(),
-                                                     xi18nc("@info", "You are renaming a file with some unsaved changes. Do you want to continue? <br />Your changes will be lost if you don't save them."),
-                                                     i18n("File Changed"),
+                                                     i18n("You are renaming a file with some unsaved changes. Your changes will be lost if you don't save them. <br />Do you want to continue?"),
+                                                     i18n("Rename - Warning"),
                                                      KStandardGuiItem::cont(),
                                                      KStandardGuiItem::cancel());
         if (res != KMessageBox::Continue) {
@@ -1324,12 +1331,12 @@ void Part::slotRenameFile()
         }
     }
     if (m_documentOpenWithPassword) {
-        const int res = KMessageBox::warningContinueCancel(
-            widget(),
-            i18n("The current document is protected with a password.<br />In order to save, the file needs to be reloaded. You will be asked for the password again and your undo/redo history will be lost.<br />Do you want to continue?"),
-            i18n("Save - Warning"),
-            KStandardGuiItem::cont(),
-            KStandardGuiItem::cancel());
+        const int res =
+            KMessageBox::warningContinueCancel(widget(),
+                                               i18n("The current document is protected with a password.<br />In order to rename, the file needs to be reloaded. You will be asked for the password again.<br />Do you want to continue?"),
+                                               i18n("Rename - Warning"),
+                                               KStandardGuiItem::cont(),
+                                               KStandardGuiItem::cancel());
         if (res != KMessageBox::Continue) {
             return;
         }
@@ -1339,9 +1346,9 @@ void Part::slotRenameFile()
     KFileItemList itemList(items);
     renameDialog = new KIO::RenameFileDialog(itemList, widget());
     connect(renameDialog, &KIO::RenameFileDialog::renamingFinished, this, [&](const QList<QUrl> &urls) {
-        bool status = slotAttemptReload(true, urls[0]);
+        bool status = closeUrl(false) && openUrl(urls[0]);
         if (!status) {
-            KMessageBox::error(widget(), i18n("Rename was successful but failed to reload the file."), i18n("Reload Failure"));
+            KMessageBox::error(widget(), i18n("Rename was successful but failed to reload the file."), i18n("Reload Error"));
         }
         delete renameDialog;
     });
