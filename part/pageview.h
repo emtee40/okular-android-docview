@@ -27,6 +27,8 @@
 #include <QList>
 #include <QVector>
 
+#include "signaturepartutils.h"
+
 class QMenu;
 class QMimeData;
 class KActionCollection;
@@ -41,6 +43,7 @@ class FormFieldSignature;
 class Annotation;
 class MovieAction;
 class RenditionAction;
+class SignatureAnnotation;
 }
 
 class PageViewPrivate;
@@ -121,6 +124,8 @@ public:
 
     Okular::Document *document() const;
 
+    void startSigning(Okular::SignatureAnnotation *signatureAnnotation);
+
 public Q_SLOTS:
     void copyTextSelection() const;
     void selectAll();
@@ -135,6 +140,9 @@ public Q_SLOTS:
     void slotFormChanged(int pageNumber);
 
     void externalKeyPressEvent(QKeyEvent *e);
+#if HAVE_NEW_SIGNATURE_API
+    void finishSigning();
+#endif
 
 Q_SIGNALS:
     void rightClick(const Okular::Page *, const QPoint);
@@ -149,6 +157,8 @@ Q_SIGNALS:
      * \param pageNumber page to show (1-indexed)
      */
     void requestOpenNewlySignedFile(const QString &filePath, int pageNumber);
+    void signingStarted();
+    void signingFinished();
 
 protected:
     bool event(QEvent *event) override;
