@@ -466,6 +466,14 @@ Part::Part(QObject *parent, const QVariantList &args)
     m_signatureMessage->setVisible(false);
     m_signatureMessage->setWordWrap(true);
     rightLayout->addWidget(m_signatureMessage);
+    m_signatureInProgressMessage = new KMessageWidget(rightContainer);
+    m_signatureInProgressMessage->setVisible(false);
+    m_signatureInProgressMessage->setWordWrap(true);
+    m_signatureInProgressMessage->setText(i18n("Signing in progress. You can adjust the position and size of the signature"));
+    QAction *finishSigningAction = new QAction(QIcon::fromTheme(QStringLiteral("dialog-ok-apply")), i18n("Finish Signing"), this);
+    connect(finishSigningAction, &QAction::triggered, this, &Part::finishSigning);
+    m_signatureInProgressMessage->addAction(finishSigningAction);
+    rightLayout->addWidget(m_signatureInProgressMessage);
     m_pageView = new PageView(rightContainer, m_document);
     rightContainer->setFocusProxy(m_pageView);
     QMetaObject::invokeMethod(m_pageView, "setFocus", Qt::QueuedConnection); // usability setting
@@ -505,6 +513,7 @@ Part::Part(QObject *parent, const QVariantList &args)
     connect(m_pageView.data(), &PageView::escPressed, m_findBar, &FindBar::resetSearch);
     connect(m_pageNumberTool, &MiniBar::forwardKeyPressEvent, m_pageView, &PageView::externalKeyPressEvent);
     connect(m_pageView.data(), &PageView::requestOpenNewlySignedFile, this, &Part::requestOpenNewlySignedFile);
+    connect(m_pageView.data(), &PageView::signingStarted, this, [this] { m_signatureInProgressMessage->setVisible(true); });
 
     connect(m_reviewsWidget.data(), &Reviews::openAnnotationWindow, m_pageView.data(), &PageView::openAnnotationWindow);
 
@@ -828,8 +837,7 @@ void Part::setupActions()
     connect(m_selectCurrentPage, &QAction::triggered, m_pageView, &PageView::slotSelectPage);
     m_selectCurrentPage->setEnabled(false);
 
-    m_save = KStandardAction::save(
-        this, [this] { saveFile(); }, ac);
+    m_save = KStandardAction::save(this, [this] { saveFile(); }, ac);
     m_save->setEnabled(false);
 
     m_saveAs = KStandardAction::saveAs(this, SLOT(slotSaveFileAs()), ac);
@@ -3625,6 +3633,11 @@ void Part::noticeMessage(const QString &message, int duration)
 void Part::moveSplitter(int sideWidgetSize)
 {
     m_sidebar->moveSplitter(sideWidgetSize);
+}
+
+void Part::finishSigning()
+{
+    m_pageView->finishSigning();
 }
 
 void Part::unsetDummyMode()
