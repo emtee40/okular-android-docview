@@ -463,5 +463,7 @@ bool PopplerFormFieldSignature::sign(const Okular::NewSignatureData &oData, cons
 {
     Poppler::PDFConverter::NewSignatureData pData;
     PDFGenerator::okularToPoppler(oData, &pData);
+    pData.setFontSize(0);
+    pData.setLeftFontSize(0);
     return m_field->sign(newPath, pData) == Poppler::FormFieldSignature::SigningSuccess;
 }
