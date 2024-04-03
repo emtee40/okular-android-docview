@@ -99,6 +99,7 @@
 #include "magnifierview.h"
 #include "settings.h"
 #include "settings_core.h"
+#include "signaturepartutils.h"
 #include "url_utils.h"
 #include "videowidget.h"
 
@@ -270,6 +271,8 @@ public:
     bool pinchZoomActive = false;
     // The remaining scroll from the previous zoom event
     QPointF remainingScroll;
+    SignaturePartUtils::SigningInformation signingInfo;
+    Okular::SignatureAnnotation *signatureAnnotation = nullptr;
 };
 
 PageViewPrivate::PageViewPrivate(PageView *qq)
@@ -5142,6 +5145,12 @@ Okular::Document *PageView::document() const
     return d->document;
 }
 
+void PageView::startSigning(Okular::SignatureAnnotation *form)
+{
+    d->signatureAnnotation = form;
+    Q_EMIT signingStarted();
+}
+
 void PageView::slotSignature()
 {
     if (!d->document->isHistoryClean()) {
@@ -5161,9 +5170,16 @@ void PageView::slotSignature()
         return;
     }
 
+    auto signInfo = SignaturePartUtils::getCertificateAndPasswordForSigning(this, d->document, SignaturePartUtils::SigningInformationOption::BackgroundImage);
+    if (!signInfo) {
+        return;
+    }
+
+    d->signingInfo = std::move(*signInfo);
+
     d->messageWindow->display(i18n("Draw a rectangle to insert the signature field"), QString(), PageViewMessage::Info, -1);
 
-    d->annotator->setSignatureMode(true);
+    d->annotator->startSigning(&d->signingInfo);
 
     // force an update of the cursor
     updateCursor();
@@ -5422,6 +5438,29 @@ void PageView::externalKeyPressEvent(QKeyEvent *e)
     keyPressEvent(e);
 }
 
+void PageView::finishSigning()
+{
+    const QString newFilePath = SignaturePartUtils::getFileNameForNewSignedFile(this, d->document);
+
+    if (newFilePath.isEmpty()) {
+        return;
+    }
+
+    Okular::NewSignatureData data;
+    data.setCertNickname(d->signingInfo.certificate->nickName());
+    data.setCertSubjectCommonName(d->signingInfo.certificate->subjectInfo(Okular::CertificateInfo::CommonName, Okular::CertificateInfo::EmptyString::TranslatedNotAvailable));
+    data.setPassword(d->signingInfo.certificatePassword);
+    data.setDocumentPassword(d->signingInfo.documentPassword);
+    data.setReason(d->signingInfo.reason);
+    data.setLocation(d->signingInfo.location);
+
+    const bool success = d->signatureAnnotation->sign(data, newFilePath);
+    if (success) {
+        Q_EMIT requestOpenNewlySignedFile(newFilePath, d->signatureAnnotation->page() + 1);
+    } else {
+        KMessageBox::error(this, i18nc("%1 is a file path", "Could not sign. Invalid certificate password or could not write to '%1'", d->document->currentDocument().toLocalFile()));
+    }
+}
 void PageView::slotProcessMovieAction(const Okular::MovieAction *action)
 {
     const Okular::MovieAnnotation *movieAnnotation = action->annotation();
