@@ -139,6 +139,7 @@ public:
                 painter->setPen(pen);
                 const Okular::NormalizedRect tmprect(qMin(startpoint.x, point.x), qMin(startpoint.y, point.y), qMax(startpoint.x, point.x), qMax(startpoint.y, point.y));
                 const QRect realrect = tmprect.geometry((int)xScale, (int)yScale);
+
                 painter->drawRect(realrect);
                 painter->setPen(origpen);
             }
@@ -389,6 +390,45 @@ public:
         clicked = false;
 
         return {};
+    }
+
+    void paint(QPainter *painter, double xScale, double yScale, const QRect & clipRect) override
+    {
+        if (clicked) {
+            if (m_block) {
+                const QPen origpen = painter->pen();
+                // QPen pen = painter->pen();
+                // pen.setStyle(Qt::DashLine);
+                // painter->setPen(pen);
+                const Okular::NormalizedRect tmprect(startpoint.x, startpoint.y, point.x, point.y);
+                // const QRect realrect = tmprect.geometry((int)xScale, (int)yScale);
+
+                // painter->drawRect(realrect);
+
+                const Okular::NormalizedRect leftTextNormalized(startpoint.x, startpoint.y, startpoint.x + (tmprect.width() / 2.0), point.y);
+                const QRect leftTextRect = leftTextNormalized.geometry((int)xScale, (int)yScale);
+
+                QFont leftFont(painter->font());
+                leftFont.setPointSize(20);
+                // leftFont.setBold(true);
+                painter->setFont(leftFont);
+
+                painter->drawText(leftTextRect, Qt::AlignHCenter | Qt::AlignVCenter | Qt::TextWordWrap, QStringLiteral("Nicolas Fella"));
+
+                const Okular::NormalizedRect textNormalized(startpoint.x + (tmprect.width() / 2.0), startpoint.y, point.x, point.y);
+                const QRect textRect = textNormalized.geometry((int)xScale, (int)yScale);
+
+                QFont f(painter->font());
+                f.setPointSize(10);
+                // f.setBold(true);
+                painter->setFont(f);
+
+                painter->drawText(textRect, Qt::AlignHCenter | Qt::AlignVCenter | Qt::TextWordWrap, QStringLiteral("Signiert von: Nicolas Fella\nDatum: 2024-04-03 21:27:07 GMT+2"));
+
+                painter->setPen(origpen);
+            }
+            PickPointEngine::paint(painter, xscale, yScale, clipRect);
+        }
     }
 
     bool isAccepted() const
