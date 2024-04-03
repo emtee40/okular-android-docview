@@ -23,6 +23,7 @@
 #include "action.h"
 #include "document.h"
 #include "document_p.h"
+#include "form.h"
 #include "movie.h"
 #include "page_p.h"
 #include "sound.h"
@@ -2338,6 +2339,110 @@ bool StampAnnotationPrivate::canBeResized() const
 AnnotationPrivate *StampAnnotationPrivate::getNewAnnotationPrivate()
 {
     return new StampAnnotationPrivate();
+}
+
+/** SignatureAnnotation [Annotation] */
+
+class Okular::SignatureAnnotationPrivate : public Okular::AnnotationPrivate
+{
+public:
+    SignatureAnnotationPrivate()
+        : AnnotationPrivate()
+    {
+    }
+
+    void setAnnotationProperties(const QDomNode &node) override;
+    bool canBeResized() const override;
+    AnnotationPrivate *getNewAnnotationPrivate() override;
+
+    QString m_text;
+    QString m_leftText;
+    QString m_imagePath;
+    std::unique_ptr<FormFieldSignature> formField;
+};
+
+SignatureAnnotation::SignatureAnnotation()
+    : Annotation(*new SignatureAnnotationPrivate())
+{
+}
+
+SignatureAnnotation::~SignatureAnnotation()
+{
+}
+
+Annotation::SubType SignatureAnnotation::subType() const
+{
+    return AWidget;
+}
+
+QString SignatureAnnotation::text() const
+{
+    Q_D(const SignatureAnnotation);
+    return d->m_text;
+}
+
+void SignatureAnnotation::setText(const QString &text)
+{
+    Q_D(SignatureAnnotation);
+    d->m_text = text;
+}
+
+QString SignatureAnnotation::leftText() const
+{
+    Q_D(const SignatureAnnotation);
+    return d->m_leftText;
+}
+
+void SignatureAnnotation::setLeftText(const QString &text)
+{
+    Q_D(SignatureAnnotation);
+    d->m_leftText = text;
+}
+
+QString SignatureAnnotation::imagePath() const
+{
+    Q_D(const SignatureAnnotation);
+    return d->m_imagePath;
+}
+
+void SignatureAnnotation::setImagePath(const QString &imagePath)
+{
+    Q_D(SignatureAnnotation);
+    d->m_imagePath = imagePath;
+}
+
+FormFieldSignature *SignatureAnnotation::formField() const
+{
+    Q_D(const SignatureAnnotation);
+    return d->formField.get();
+}
+
+void SignatureAnnotation::setFormField(std::unique_ptr<FormFieldSignature> &&formField)
+{
+    Q_D(SignatureAnnotation);
+    d->formField = std::move(formField);
+}
+
+void SignatureAnnotation::store(QDomNode &node, QDomDocument &document) const
+{
+    // TODO is this relevant?
+}
+
+void SignatureAnnotationPrivate::setAnnotationProperties(const QDomNode &node)
+{
+    Okular::AnnotationPrivate::setAnnotationProperties(node);
+
+    // TODO is this relevant?
+}
+
+bool SignatureAnnotationPrivate::canBeResized() const
+{
+    return true;
+}
+
+AnnotationPrivate *SignatureAnnotationPrivate::getNewAnnotationPrivate()
+{
+    return new SignatureAnnotationPrivate();
 }
 
 /** InkAnnotation [Annotation] */
