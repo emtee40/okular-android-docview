@@ -282,6 +282,7 @@ public Q_SLOTS:
     void noticeMessage(const QString &message, int duration = -1);
 
     void moveSplitter(const int sideWidgetSize);
+    void finishSigning();
 
 private:
     bool aboutToShowContextMenu(QMenu *menu, QAction *action, QMenu *contextMenu);
@@ -360,6 +361,7 @@ private:
     KMessageWidget *m_formsMessage;
     KMessageWidget *m_infoMessage;
     KMessageWidget *m_signatureMessage;
+    KMessageWidget *m_signatureInProgressMessage;
     QPointer<ThumbnailList> m_thumbnailList;
     QPointer<PageView> m_pageView;
     QPointer<TOC> m_toc;
