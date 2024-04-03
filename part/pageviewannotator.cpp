@@ -330,13 +330,13 @@ private:
 class PickPointEngineSignature : public PickPointEngine
 {
 public:
-    PickPointEngineSignature(Okular::Document *document, PageView *pageView)
+    PickPointEngineSignature(Okular::Document *document, PageView *pageView, SignaturePartUtils::SigningInformation *info)
         : PickPointEngine({})
         , m_document(document)
         , m_page(nullptr)
         , m_pageView(pageView)
-        , m_startOver(false)
         , m_aborted(false)
+        , m_signingInformation(info)
     {
         m_block = true;
     }
@@ -349,56 +349,50 @@ public:
 
     QList<Okular::Annotation *> end() override
     {
-        m_startOver = false;
         rect.left = qMin(startpoint.x, point.x);
         rect.top = qMin(startpoint.y, point.y);
         rect.right = qMax(startpoint.x, point.x);
         rect.bottom = qMax(startpoint.y, point.y);
 
-        // FIXME this is a bit arbitrary, try to figure out a better rule, potentially based in cm and not pixels?
-        if (rect.width() * m_page->width() < 100 || rect.height() * m_page->height() < 100) {
-            const KMessageBox::ButtonCode answer = KMessageBox::questionTwoActions(
-                m_pageView,
-                xi18nc("@info", "A signature of this size may be too small to read. If you would like to create a potentially more readable signature, press <interface>Start over</interface> and draw a bigger rectangle."),
-                QString(),
-                KGuiItem(i18nc("@action:button", "Start Over")),
-                KGuiItem(i18nc("@action:button", "Sign")),
-                QStringLiteral("TooSmallDigitalSignatureQuestion"));
-            if (answer == KMessageBox::PrimaryAction) {
-                m_startOver = true;
-                return {};
-            }
-        }
+        clicked = false;
 
-        const auto signInfo = SignaturePartUtils::getCertificateAndPasswordForSigning(m_pageView, m_document, SignaturePartUtils::SigningInformationOption::BackgroundImage);
-        if (!signInfo) {
-            m_aborted = true;
-            passToUse.clear();
-            documentPassword.clear();
-        } else {
-            certNicknameToUse = signInfo->certificate->nickName();
-            certCommonName = signInfo->certificate->subjectInfo(Okular::CertificateInfo::CommonName, Okular::CertificateInfo::EmptyString::TranslatedNotAvailable);
-            passToUse = signInfo->certificatePassword;
-            documentPassword = signInfo->documentPassword;
-            reason = signInfo->reason;
-            location = signInfo->location;
-            backgroundImagePath = signInfo->backgroundImagePath;
-        }
+        // find out annotation's type
+        Okular::SignatureAnnotation *ann = new Okular::SignatureAnnotation();
+
+        const QString certSubjectCommonName = m_signingInformation->certificate->subjectInfo(Okular::CertificateInfo::CommonName, Okular::CertificateInfo::EmptyString::TranslatedNotAvailable);
+        const QString datetime = QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd hh:mm:ss t"));
+        const QString signatureText = i18n("Signed by: %1\n\nDate: %2", certSubjectCommonName, datetime);
+
+        ann->setLeftText(certSubjectCommonName);
+        ann->setText(signatureText);
+        ann->setImagePath(m_signingInformation->backgroundImagePath);
 
         m_creationCompleted = false;
         clicked = false;
 
-        return {};
+        // safety check
+        if (!ann) {
+            return QList<Okular::Annotation *>();
+        }
+
+        // set the bounding rectangle, and make sure that the newly created
+        // annotation lies within the page by translating it if necessary
+        if (rect.right > 1) {
+            rect.left -= rect.right - 1;
+            rect.right = 1;
+        }
+        if (rect.bottom > 1) {
+            rect.top -= rect.bottom - 1;
+            rect.bottom = 1;
+        }
+        ann->setBoundingRectangle(rect);
+
+        return QList<Okular::Annotation *>() << ann;
     }
 
     bool isAccepted() const
     {
-        return !m_aborted && !certNicknameToUse.isEmpty();
-    }
-
-    bool userWantsToStartOver() const
-    {
-        return m_startOver;
+        return !m_aborted && !m_signingInformation->certificate->nickName().isEmpty();
     }
 
     bool isAborted() const
@@ -409,35 +403,25 @@ public:
     bool sign(const QString &newFilePath)
     {
         Okular::NewSignatureData data;
-        data.setCertNickname(certNicknameToUse);
-        data.setCertSubjectCommonName(certCommonName);
-        data.setPassword(passToUse);
-        data.setDocumentPassword(documentPassword);
+        data.setCertNickname(m_signingInformation->certificate->nickName());
+        data.setCertSubjectCommonName(m_signingInformation->certificate->subjectInfo(Okular::CertificateInfo::CommonName, Okular::CertificateInfo::EmptyString::TranslatedNotAvailable));
+        data.setPassword(m_signingInformation->certificatePassword);
+        data.setDocumentPassword(m_signingInformation->documentPassword);
         data.setPage(m_page->number());
         data.setBoundingRectangle(rect);
-        data.setReason(reason);
-        data.setLocation(location);
-        data.setBackgroundImagePath(backgroundImagePath);
-        passToUse.clear();
-        documentPassword.clear();
+        data.setReason(m_signingInformation->reason);
+        data.setLocation(m_signingInformation->location);
+        data.setBackgroundImagePath(m_signingInformation->backgroundImagePath);
         return m_document->sign(data, newFilePath);
     }
 
 private:
-    QString certNicknameToUse;
-    QString certCommonName;
-    QString passToUse;
-    QString documentPassword;
-    QString location;
-    QString backgroundImagePath;
-    QString reason;
-
     Okular::Document *m_document;
     const Okular::Page *m_page;
     PageView *m_pageView;
 
-    bool m_startOver;
     bool m_aborted;
+    SignaturePartUtils::SigningInformation *m_signingInformation;
 };
 
 /** @short PolyLineEngine */
@@ -932,14 +916,10 @@ PageViewAnnotator::~PageViewAnnotator()
     delete m_quickToolsDefinition;
 }
 
-void PageViewAnnotator::setSignatureMode(bool enabled)
+void PageViewAnnotator::startSigning(SignaturePartUtils::SigningInformation *info)
 {
-    m_signatureMode = enabled;
-}
-
-bool PageViewAnnotator::signatureMode() const
-{
-    return m_signatureMode;
+    m_signatureMode = true;
+    m_engine = new PickPointEngineSignature(m_document, m_pageView, info);
 }
 
 bool PageViewAnnotator::active() const
@@ -974,10 +954,6 @@ QRect PageViewAnnotator::performRouteMouseOrTabletEvent(const AnnotatorEngine::E
     } else if (button == AnnotatorEngine::Right && eventType == AnnotatorEngine::Release) {
         detachAnnotation();
         return QRect();
-    }
-
-    if (signatureMode() && eventType == AnnotatorEngine::Press) {
-        m_engine = new PickPointEngineSignature(m_document, m_pageView);
     }
 
     // 1. lock engine to current item
@@ -1030,34 +1006,24 @@ QRect PageViewAnnotator::performRouteMouseOrTabletEvent(const AnnotatorEngine::E
             annotation->setAuthor(Okular::Settings::identityAuthor());
             m_document->addPageAnnotation(m_lockedItem->pageNumber(), annotation);
 
+            if (auto signatureAnnotation = dynamic_cast<Okular::SignatureAnnotation *>(annotation)) {
+                m_pageView->startSigning(signatureAnnotation);
+            }
+
             if (annotation->openDialogAfterCreation()) {
                 m_pageView->openAnnotationWindow(annotation, m_lockedItem->pageNumber());
             }
         }
 
-        if (signatureMode()) {
+        if (m_signatureMode) {
             auto signEngine = static_cast<PickPointEngineSignature *>(m_engine);
             if (signEngine->isAccepted()) {
-                const QString newFilePath = SignaturePartUtils::getFileNameForNewSignedFile(m_pageView, m_document);
-
-                if (!newFilePath.isEmpty()) {
-                    const bool success = static_cast<PickPointEngineSignature *>(m_engine)->sign(newFilePath);
-                    if (success) {
-                        Q_EMIT requestOpenNewlySignedFile(newFilePath, m_lockedItem->pageNumber() + 1);
-                    } else {
-                        KMessageBox::error(m_pageView, i18nc("%1 is a file path", "Could not sign. Invalid certificate password or could not write to '%1'", newFilePath));
-                    }
-                }
                 // Exit the signature mode.
-                setSignatureMode(false);
+                m_signatureMode = false;
                 selectBuiltinTool(-1, ShowTip::No);
-            } else if (signEngine->userWantsToStartOver()) {
-                delete m_engine;
-                m_engine = new PickPointEngineSignature(m_document, m_pageView);
-                return {};
             } else if (signEngine->isAborted()) {
                 // Exit the signature mode.
-                setSignatureMode(false);
+                m_signatureMode = false;
                 selectBuiltinTool(-1, ShowTip::No);
             }
             m_continuousMode = false;
@@ -1301,13 +1267,13 @@ void PageViewAnnotator::detachAnnotation()
         return;
     }
     selectBuiltinTool(-1, ShowTip::No);
-    if (!signatureMode()) {
+    if (!m_signatureMode) {
         if (m_actionHandler) {
             m_actionHandler->deselectAllAnnotationActions();
         }
     } else {
         m_pageView->displayMessage(QString());
-        setSignatureMode(false);
+        m_signatureMode = false;
     }
 }
 
