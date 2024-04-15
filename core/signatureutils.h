@@ -341,7 +341,7 @@ public:
         CertificateExpired,         ///< The signing time is outside the validity bounds of this certificate.
         CertificateGenericError,    ///< The certificate could not be verified.
         CertificateNotVerified,     ///< The certificate is not yet verified.
-        CertificateVerificationInProgress
+        CertificateVerificationInProgress, ///< The certification is not yet verified, but in progress
     };
 
     /**
