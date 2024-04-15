@@ -496,7 +496,7 @@ public:
      *
      * @return handle to be able to be put back into \ref unsubscribeUpdates
      *
-     * @since 23.12
+     * @since 24.08
      */
     virtual SubscriptionHandle subscribeUpdates(const std::function<void()> &callback) const = 0;
     /**
@@ -507,7 +507,7 @@ public:
      * The most likely reason for for failure is if the handle was
      * already unsubscribed or for other reasons not existing
      *
-     * @since 23.12
+     * @since 24.08
      */
     virtual bool unsubscribeUpdates(const SubscriptionHandle &) const = 0;
 
