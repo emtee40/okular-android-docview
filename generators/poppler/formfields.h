@@ -151,7 +151,7 @@ private:
     Okular::SignatureInfo m_info;
     Okular::NormalizedRect m_rect;
     int m_id;
-#if POPPLER_VERSION_MACRO > QT_VERSION_CHECK(23, 8, 0)
+#if POPPLER_VERSION_MACRO > QT_VERSION_CHECK(24, 4, 0)
     std::shared_ptr<Poppler::AsyncObject> m_asyncObject;
 #endif
     mutable std::unordered_map<SubscriptionHandle, std::function<void()>> m_updateSubscriptions;

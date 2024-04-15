@@ -398,7 +398,7 @@ PopplerFormFieldSignature::PopplerFormFieldSignature(std::unique_ptr<Poppler::Fo
         validateOptions = validateOptions | Poppler::FormFieldSignature::ValidateWithoutOCSPRevocationCheck;
     }
 
-#if POPPLER_VERSION_MACRO > QT_VERSION_CHECK(23, 8, 0)
+#if POPPLER_VERSION_MACRO > QT_VERSION_CHECK(24, 4, 0)
     auto result = m_field->validateAsync(static_cast<Poppler::FormFieldSignature::ValidateOptions>(validateOptions));
     m_info = fromPoppler(result.first);
     m_asyncObject = result.second;
