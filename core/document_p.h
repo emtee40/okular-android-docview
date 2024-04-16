@@ -327,7 +327,6 @@ public:
 
     bool m_annotationEditingEnabled;
     bool m_annotationBeingModified; // is an annotation currently being moved or resized?
-    bool m_metadataLoadingCompleted;
 
     QUndoStack *m_undoStack;
     QDomNode m_prevPropsOfAnnotBeingModified;
