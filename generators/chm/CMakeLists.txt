@@ -24,14 +24,9 @@ target_include_directories(okularGenerator_chmlib PRIVATE ${CHM_INCLUDE_DIR} ${L
 target_link_libraries(okularGenerator_chmlib  okularcore ${CHM_LIBRARY} ${LIBZIP_LIBRARY} KF6::KHtml)
 
 ########### autotests ###############
-
-add_definitions( -DKDESRCDIR="${CMAKE_CURRENT_SOURCE_DIR}/" )
-ecm_add_test(autotests/chmgeneratortest.cpp
-    TEST_NAME "chmgeneratortest"
-    LINK_LIBRARIES Qt6::Test KF6::CoreAddons okularcore
-)
-
-target_compile_definitions(chmgeneratortest PRIVATE -DGENERATOR_PATH="$<TARGET_FILE:okularGenerator_chmlib>")
+if(BUILD_TESTING)
+   add_subdirectory(autotests)
+endif()
 
 ########### install files ###############
 install( PROGRAMS okularApplication_chm.desktop org.kde.mobile.okular_chm.desktop  DESTINATION  ${KDE_INSTALL_APPDIR} )
