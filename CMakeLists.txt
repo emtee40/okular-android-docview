@@ -450,6 +450,7 @@ PRIVATE
     KF6::BookmarksWidgets
     KF6::Bookmarks
     Qt6::Svg
+    Qt6::Multimedia
     ${MATH_LIB}
     ZLIB::ZLIB
 PUBLIC  # these are included from the installed headers
