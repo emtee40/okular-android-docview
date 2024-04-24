@@ -43,7 +43,7 @@ build_clazy_clang_tidy:
     - Linux
   interruptible: true
   before_script:
-    - git clone https://invent.kde.org/sysadmin/ci-utilities.git --depth=1
+    - git clone --branch work/nico/codespell https://invent.kde.org/nicolasfella/ci-utilities.git --depth=1
     - git clone https://invent.kde.org/sysadmin/repo-metadata.git ci-utilities/repo-metadata/ --depth=1
   only:
     - merge_requests
