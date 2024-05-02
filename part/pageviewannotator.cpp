@@ -357,27 +357,32 @@ public:
 
         // FIXME this is a bit arbitrary, try to figure out a better rule, potentially based in cm and not pixels?
         if (rect.width() * m_page->width() < 100 || rect.height() * m_page->height() < 100) {
-            const KMessageBox::ButtonCode answer = KMessageBox::questionYesNo(
+            const KMessageBox::ButtonCode answer = KMessageBox::questionTwoActions(
                 m_pageView,
                 xi18nc("@info", "A signature of this size may be too small to read. If you would like to create a potentially more readable signature, press <interface>Start over</interface> and draw a bigger rectangle."),
                 QString(),
                 KGuiItem(i18nc("@action:button", "Start Over")),
                 KGuiItem(i18nc("@action:button", "Sign")),
                 QStringLiteral("TooSmallDigitalSignatureQuestion"));
-            if (answer == KMessageBox::Yes) {
+            if (answer == KMessageBox::PrimaryAction) {
                 m_startOver = true;
                 return {};
             }
         }
 
-        const std::unique_ptr<Okular::CertificateInfo> cert = SignaturePartUtils::getCertificateAndPasswordForSigning(m_pageView, m_document, &passToUse, &documentPassword);
-        if (!cert) {
+        const auto signInfo = SignaturePartUtils::getCertificateAndPasswordForSigning(m_pageView, m_document, SignaturePartUtils::SigningInformationOption::BackgroundImage);
+        if (!signInfo) {
             m_aborted = true;
             passToUse.clear();
             documentPassword.clear();
         } else {
-            certNicknameToUse = cert->nickName();
-            certCommonName = cert->subjectInfo(Okular::CertificateInfo::CommonName);
+            certNicknameToUse = signInfo->certificate->nickName();
+            certCommonName = signInfo->certificate->subjectInfo(Okular::CertificateInfo::CommonName, Okular::CertificateInfo::EmptyString::TranslatedNotAvailable);
+            passToUse = signInfo->certificatePassword;
+            documentPassword = signInfo->documentPassword;
+            reason = signInfo->reason;
+            location = signInfo->location;
+            backgroundImagePath = signInfo->backgroundImagePath;
         }
 
         m_creationCompleted = false;
@@ -410,6 +415,9 @@ public:
         data.setDocumentPassword(documentPassword);
         data.setPage(m_page->number());
         data.setBoundingRectangle(rect);
+        data.setReason(reason);
+        data.setLocation(location);
+        data.setBackgroundImagePath(backgroundImagePath);
         passToUse.clear();
         documentPassword.clear();
         return m_document->sign(data, newFilePath);
@@ -420,6 +428,9 @@ private:
     QString certCommonName;
     QString passToUse;
     QString documentPassword;
+    QString location;
+    QString backgroundImagePath;
+    QString reason;
 
     Okular::Document *m_document;
     const Okular::Page *m_page;
@@ -673,7 +684,7 @@ public:
             QColor col = m_engineColor;
             col.setAlphaF(0.5);
             painter->setBrush(col);
-            for (const Okular::NormalizedRect &r : qAsConst(*selection)) {
+            for (const Okular::NormalizedRect &r : std::as_const(*selection)) {
                 painter->drawRect(r.geometry((int)xScale, (int)yScale));
             }
         }
@@ -712,7 +723,7 @@ public:
             Okular::HighlightAnnotation *ha = new Okular::HighlightAnnotation();
             ha->setHighlightType(type);
             ha->setBoundingRectangle(Okular::NormalizedRect(rect, item()->uncroppedWidth(), item()->uncroppedHeight()));
-            for (const Okular::NormalizedRect &r : qAsConst(*selection)) {
+            for (const Okular::NormalizedRect &r : std::as_const(*selection)) {
                 Okular::HighlightAnnotation::Quad q;
                 q.setCapStart(false);
                 q.setCapEnd(false);
@@ -1074,7 +1085,7 @@ QRect PageViewAnnotator::routeMouseEvent(QMouseEvent *e, PageViewItem *item)
     // Constrain angle if action checked XOR shift button pressed.
     modifiers.constrainRatioAndAngle = (bool(constrainRatioAndAngleActive()) != bool(e->modifiers() & Qt::ShiftModifier));
 
-    return performRouteMouseOrTabletEvent(eventType, button, modifiers, e->localPos(), item);
+    return performRouteMouseOrTabletEvent(eventType, button, modifiers, e->position(), item);
 }
 
 QRect PageViewAnnotator::routeTabletEvent(QTabletEvent *e, PageViewItem *item, const QPoint localOriginInGlobal)
@@ -1096,7 +1107,7 @@ QRect PageViewAnnotator::routeTabletEvent(QTabletEvent *e, PageViewItem *item, c
     // Constrain angle if action checked XOR shift button pressed.
     modifiers.constrainRatioAndAngle = (bool(constrainRatioAndAngleActive()) != bool(e->modifiers() & Qt::ShiftModifier));
 
-    const QPointF globalPosF = e->globalPosF();
+    const QPointF globalPosF = e->globalPosition();
     const QPointF localPosF = globalPosF - localOriginInGlobal;
     return performRouteMouseOrTabletEvent(eventType, button, modifiers, localPosF, item);
 }
@@ -1478,12 +1489,6 @@ void PageViewAnnotator::setupActions(KActionCollection *ac)
 {
     if (!m_actionHandler) {
         m_actionHandler = new AnnotationActionHandler(this, ac);
-        connect(m_actionHandler, &AnnotationActionHandler::ephemeralStampWarning, this, [this] {
-            if (m_document->metaData(QStringLiteral("ShowStampsWarning")).toString() == QLatin1String("yes")) {
-                KMessageBox::information(
-                    nullptr, i18nc("@info", "Stamps inserted in PDF documents are not visible in PDF readers other than Okular"), i18nc("@title:window", "Experimental feature"), QStringLiteral("stampAnnotationWarning"));
-            }
-        });
     }
 }
 

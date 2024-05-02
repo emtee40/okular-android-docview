@@ -23,7 +23,7 @@
 #include "core/signatureutils.h"
 
 struct SignatureItem {
-    enum DataType { Root, RevisionInfo, ValidityStatus, SigningTime, Reason, FieldInfo };
+    enum DataType { Root, RevisionInfo, ValidityStatus, SigningTime, Reason, Location, FieldInfo };
 
     SignatureItem();
     SignatureItem(SignatureItem *parent, const Okular::FormFieldSignature *form, DataType type, int page);
@@ -106,7 +106,7 @@ static void updateFormFieldSignaturePointer(SignatureItem *item, const QVector<O
         }
     }
 
-    for (SignatureItem *child : qAsConst(item->children)) {
+    for (SignatureItem *child : std::as_const(item->children)) {
         updateFormFieldSignaturePointer(child, pages);
     }
 }
@@ -155,12 +155,17 @@ void SignatureModelPrivate::notifySetup(const QVector<Okular::Page *> &pages, in
             childItem1->displayString = SignatureGuiUtils::getReadableSignatureStatus(info.signatureStatus());
 
             auto childItem2 = new SignatureItem(parentItem, nullptr, SignatureItem::SigningTime, pageNumber);
-            childItem2->displayString = i18n("Signing Time: %1", info.signingTime().toString(Qt::DefaultLocaleLongDate));
+            childItem2->displayString = i18n("Signing Time: %1", QLocale().toString(info.signingTime(), QLocale::LongFormat));
 
             const QString reason = info.reason();
             if (!reason.isEmpty()) {
                 auto childItem3 = new SignatureItem(parentItem, nullptr, SignatureItem::Reason, pageNumber);
                 childItem3->displayString = i18n("Reason: %1", reason);
+            }
+            const QString location = info.location();
+            if (!location.isEmpty()) {
+                auto childItem3 = new SignatureItem(parentItem, nullptr, SignatureItem::Location, pageNumber);
+                childItem3->displayString = i18n("Location: %1", location);
             }
 
             auto childItem4 = new SignatureItem(parentItem, sf, SignatureItem::FieldInfo, pageNumber);
@@ -249,7 +254,7 @@ QVariant SignatureModel::data(const QModelIndex &index, int role) const
     case SignerNameRole:
         return form->signatureInfo().signerName();
     case SigningTimeRole:
-        return form->signatureInfo().signingTime().toString(Qt::DefaultLocaleLongDate);
+        return QLocale().toString(form->signatureInfo().signingTime(), QLocale::LongFormat);
     case SigningLocationRole:
         return form->signatureInfo().location();
     case SigningReasonRole:

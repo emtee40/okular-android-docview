@@ -3,7 +3,7 @@ add_definitions(-DTRANSLATION_DOMAIN="okular_poppler")
 
 add_subdirectory( conf )
 
-set(CMAKE_REQUIRED_LIBRARIES Poppler::Qt5 Qt5::Core Qt5::Gui)
+set(CMAKE_REQUIRED_LIBRARIES Poppler::Qt6 Qt6::Core Qt6::Gui)
 
 include_directories(
    ${CMAKE_CURRENT_SOURCE_DIR}/../..
@@ -17,6 +17,7 @@ set(okularGenerator_poppler_PART_SRCS
    annots.cpp
    pdfsignatureutils.cpp
    pdfsettingswidget.cpp
+   imagescaling.cpp
 )
 
 ki18n_wrap_ui(okularGenerator_poppler_PART_SRCS
@@ -27,9 +28,15 @@ kconfig_add_kcfg_files(okularGenerator_poppler_PART_SRCS GENERATE_MOC conf/pdfse
 
 okular_add_generator(okularGenerator_poppler ${okularGenerator_poppler_PART_SRCS})
 
-target_link_libraries(okularGenerator_poppler okularcore KF5::I18n KF5::Completion KF5::KIOWidgets Poppler::Qt5 Qt5::Xml)
+target_link_libraries(okularGenerator_poppler okularcore KF6::I18n KF6::Completion KF6::KIOWidgets Poppler::Qt6 Qt6::Xml)
+
+########### autotests ###############
+
+ecm_add_test(autotests/testimagescaling.cpp
+    TEST_NAME "imageScalingTest"
+    LINK_LIBRARIES Qt6::Test Qt6::Gui
+)
 
 ########### install files ###############
-install( FILES okularPoppler.desktop  DESTINATION  ${KDE_INSTALL_KSERVICES5DIR} )
 install( PROGRAMS okularApplication_pdf.desktop org.kde.mobile.okular_pdf.desktop  DESTINATION  ${KDE_INSTALL_APPDIR} )
 install( FILES org.kde.okular-poppler.metainfo.xml DESTINATION ${KDE_INSTALL_METAINFODIR} )

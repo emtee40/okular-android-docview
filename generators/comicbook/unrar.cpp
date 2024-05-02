@@ -14,8 +14,8 @@
 
 #include <QLoggingCategory>
 #if defined(WITH_KPTY)
-#include <KPty/kptydevice.h>
-#include <KPty/kptyprocess.h>
+#include <KPtyDevice>
+#include <KPtyProcess>
 #endif
 
 #include "debug_comicbook.h"
@@ -45,8 +45,9 @@ static UnrarFlavour *detectUnrar(const QString &unrarPath, const QString &versio
     proc.start(unrarPath, QStringList() << versionCommand);
     bool ok = proc.waitForFinished(-1);
     Q_UNUSED(ok)
-    const QRegularExpression regex(QStringLiteral("[\r\n]"));
-    const QStringList lines = QString::fromLocal8Bit(proc.readAllStandardOutput()).split(regex, QString::SkipEmptyParts);
+    static const QRegularExpression regex(QStringLiteral("[\r\n]"));
+    const QString output = QString::fromLocal8Bit(proc.readAllStandardOutput());
+    const QList<QStringView> lines = QStringView(output).split(regex, Qt::SkipEmptyParts);
     if (!lines.isEmpty()) {
         if (lines.first().startsWith(QLatin1String("UNRAR "))) {
             kind = new NonFreeUnrarFlavour();
@@ -106,6 +107,7 @@ UnrarHelper::~UnrarHelper()
 
 Unrar::Unrar()
     : QObject(nullptr)
+    , mProcess(nullptr)
     , mLoop(nullptr)
     , mTempDir(nullptr)
 {
@@ -150,8 +152,8 @@ QStringList Unrar::list()
 
     startSyncProcess(helper->kind->processListArgs(mFileName));
 
-    const QRegularExpression regex(QStringLiteral("[\r\n]"));
-    QStringList listFiles = helper->kind->processListing(QString::fromLocal8Bit(mStdOutData).split(regex, QString::SkipEmptyParts));
+    static const QRegularExpression regex(QStringLiteral("[\r\n]"));
+    QStringList listFiles = helper->kind->processListing(QString::fromLocal8Bit(mStdOutData).split(regex, Qt::SkipEmptyParts));
 
     QString subDir;
 
@@ -162,7 +164,7 @@ QStringList Unrar::list()
     }
 
     QStringList newList;
-    for (const QString &f : qAsConst(listFiles)) {
+    for (const QString &f : std::as_const(listFiles)) {
         // Extract all the files to mTempDir regardless of their path inside the archive
         // This will break if ever an arvhice with two files with the same name in different subfolders
         QFileInfo fi(f);

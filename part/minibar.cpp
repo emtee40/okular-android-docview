@@ -77,7 +77,7 @@ void MiniBarLogic::notifySetup(const QVector<Okular::Page *> &pageVector, int se
     // if document is closed or has no pages, hide widget
     const int pages = pageVector.count();
     if (pages < 1) {
-        for (MiniBar *miniBar : qAsConst(m_miniBars)) {
+        for (MiniBar *miniBar : std::as_const(m_miniBars)) {
             miniBar->setEnabled(false);
         }
         return;
@@ -107,7 +107,7 @@ void MiniBarLogic::notifySetup(const QVector<Okular::Page *> &pageVector, int se
         }
     }
 
-    for (MiniBar *miniBar : qAsConst(m_miniBars)) {
+    for (MiniBar *miniBar : std::as_const(m_miniBars)) {
         // resize width of widgets
         miniBar->resizeForPage(pages, pagesOrLabelString);
 
@@ -139,7 +139,7 @@ void MiniBarLogic::notifyCurrentPageChanged(int previousPage, int currentPage)
         const QString pageNumber = QString::number(currentPage + 1);
         const QString pageLabel = m_document->page(currentPage)->label();
 
-        for (MiniBar *miniBar : qAsConst(m_miniBars)) {
+        for (MiniBar *miniBar : std::as_const(m_miniBars)) {
             // update prev/next button state
             miniBar->m_prevButton->setEnabled(currentPage > 0);
             miniBar->m_nextButton->setEnabled(currentPage < (pages - 1));
@@ -206,7 +206,7 @@ MiniBar::MiniBar(QWidget *parent, MiniBarLogic *miniBarLogic)
     resizeForPage(0, QString());
 
     // connect signals from child widgets to internal handlers / signals bouncers
-    connect(m_pageNumberEdit, &PageNumberEdit::returnPressed, this, &MiniBar::slotChangePageFromReturn);
+    connect(m_pageNumberEdit, &PageNumberEdit::returnKeyPressed, this, &MiniBar::slotChangePageFromReturn);
     connect(m_pageLabelEdit, &PageLabelEdit::pageNumberChosen, this, &MiniBar::slotChangePage);
     connect(m_pagesButton, &QAbstractButton::clicked, this, &MiniBar::gotoPage);
     connect(m_prevButton, &QAbstractButton::clicked, this, &MiniBar::prevPage);
@@ -359,14 +359,14 @@ void ProgressWidget::slotGotoNormalizedPage(float index)
 void ProgressWidget::mouseMoveEvent(QMouseEvent *e)
 {
     if ((QApplication::mouseButtons() & Qt::LeftButton) && width() > 0) {
-        slotGotoNormalizedPage((float)(QApplication::isRightToLeft() ? width() - e->x() : e->x()) / (float)width());
+        slotGotoNormalizedPage((float)(QApplication::isRightToLeft() ? width() - e->position().x() : e->position().x()) / (float)width());
     }
 }
 
 void ProgressWidget::mousePressEvent(QMouseEvent *e)
 {
     if (e->button() == Qt::LeftButton && width() > 0) {
-        slotGotoNormalizedPage((float)(QApplication::isRightToLeft() ? width() - e->x() : e->x()) / (float)width());
+        slotGotoNormalizedPage((float)(QApplication::isRightToLeft() ? width() - e->position().x() : e->position().x()) / (float)width());
     }
 }
 
@@ -418,7 +418,7 @@ PageLabelEdit::PageLabelEdit(MiniBar *parent)
     : PagesEdit(parent)
 {
     setVisible(false);
-    connect(this, &PageLabelEdit::returnPressed, this, &PageLabelEdit::pageChosen);
+    connect(this, &PageLabelEdit::returnKeyPressed, this, &PageLabelEdit::pageChosen);
 }
 
 void PageLabelEdit::setText(const QString &newText)
@@ -483,8 +483,6 @@ PagesEdit::PagesEdit(MiniBar *parent)
     // send a focus out event
     QFocusEvent fe(QEvent::FocusOut);
     QApplication::sendEvent(this, &fe);
-
-    connect(qApp, &QGuiApplication::paletteChanged, this, &PagesEdit::updatePalette);
 }
 
 void PagesEdit::setText(const QString &newText)
@@ -526,6 +524,14 @@ void PagesEdit::updatePalette()
     }
 
     setPalette(pal);
+}
+
+bool PagesEdit::event(QEvent *e)
+{
+    if (e->type() == QEvent::ApplicationPaletteChange) {
+        updatePalette();
+    }
+    return KLineEdit::event(e);
 }
 
 void PagesEdit::focusInEvent(QFocusEvent *e)

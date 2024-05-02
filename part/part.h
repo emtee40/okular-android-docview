@@ -15,12 +15,18 @@
 #ifndef _PART_H_
 #define _PART_H_
 
+#include <config-okular.h>
+
+#if HAVE_DBUS
+#include <QDBusAbstractAdaptor> // for Q_NOREPLY
+#else                           // HAVE_DBUS
+#define Q_NOREPLY
+#endif // HAVE_DBUS
 #include <QIcon>
 #include <QList>
 #include <QPointer>
 #include <QProcess>
 #include <QUrl>
-#include <QtDBus> // krazy:exclude=includes
 
 #include <KCompressionDevice>
 #include <KIO/Job>
@@ -34,8 +40,6 @@
 #include "../kdocumentviewer.h"
 
 #include "okularpart_export.h"
-
-#include <config-okular.h>
 
 class QAction;
 class QWidget;
@@ -74,7 +78,7 @@ class DrawingToolActions;
 class Layers;
 class SignaturePanel;
 
-#if PURPOSE_FOUND
+#if HAVE_PURPOSE
 namespace Purpose
 {
 class Menu;
@@ -95,7 +99,6 @@ enum EmbedMode {
     UnknownEmbedMode,
     NativeShellMode,  // embedded in the native Okular' shell
     PrintPreviewMode, // embedded to show the print preview of a document
-    KHTMLPartMode,    // embedded in KHTML
     ViewerWidgetMode  // the part acts as a widget that can display all kinds of documents
 };
 
@@ -124,7 +127,7 @@ public:
      * which config file should be used by adding a string containing "ConfigFileName=<file name>"
      * to 'args'.
      **/
-    Part(QWidget *parentWidget, QObject *parent, const QVariantList &args);
+    Part(QObject *parent, const QVariantList &args);
 
     // Destructor
     ~Part() override;
@@ -147,6 +150,7 @@ public:
     bool areSourceLocationsShownGraphically() const override;
     void setShowSourceLocationsGraphically(bool show) override;
     bool openNewFilesInTabs() const override;
+    QWidget *getSideContainer() const override;
     Q_INVOKABLE bool activateTabIfAlreadyOpenFile() const;
 
     void setModified(bool modified) override;
@@ -308,7 +312,7 @@ private:
     void setFileToWatch(const QString &filePath);
     void unsetFileToWatch();
 
-#if PURPOSE_FOUND
+#if HAVE_PURPOSE
     void slotShareActionFinished(const QJsonObject &output, int error, const QString &message);
 #endif
 
@@ -319,9 +323,8 @@ private:
      * Determines the config file path, and performs configuration updates not handled by kconf_update.
      *
      * @param args As passed to Part::Part().
-     * @param componentName As KXMLGUIClient::componentName(), probably "okular".
      */
-    void setupConfigSkeleton(const QVariantList &args, const QString &componentName);
+    void setupConfigSkeleton(const QVariantList &args);
 
     static int numberOfParts;
 
@@ -404,7 +407,7 @@ private:
     QAction *m_exportAs;
     QAction *m_exportAsText;
     QAction *m_exportAsDocArchive;
-#if PURPOSE_FOUND
+#if HAVE_PURPOSE
     QAction *m_share;
 #endif
     QAction *m_showPresentation;
@@ -418,7 +421,7 @@ private:
     QAction *m_aboutBackend;
     QAction *m_reload;
     QMenu *m_exportAsMenu;
-#if PURPOSE_FOUND
+#if HAVE_PURPOSE
     Purpose::Menu *m_shareMenu;
 #endif
     QAction *m_closeFindBar;

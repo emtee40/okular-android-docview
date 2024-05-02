@@ -8,6 +8,8 @@
     SPDX-License-Identifier: GPL-2.0-or-later
 */
 
+#include "config-okular.h"
+
 #include "generator.h"
 #include "generator_p.h"
 #include "observer.h"
@@ -22,7 +24,7 @@
 #include <QMimeDatabase>
 #include <QTimer>
 
-#ifdef WITH_KWALLET
+#if HAVE_KWALLET
 #include <KWallet>
 #endif
 
@@ -35,7 +37,8 @@
 using namespace Okular;
 
 GeneratorPrivate::GeneratorPrivate()
-    : m_document(nullptr)
+    : q_ptr(nullptr)
+    , m_document(nullptr)
     , mPixmapGenerationThread(nullptr)
     , mTextPageGenerationThread(nullptr)
     , mPixmapReady(true)
@@ -414,7 +417,7 @@ bool Generator::exportTo(const QString &, const ExportFormat &)
 
 void Generator::walletDataForFile(const QString &fileName, QString *walletName, QString *walletFolder, QString *walletKey) const
 {
-#ifdef WITH_KWALLET
+#if HAVE_KWALLET
     *walletKey = fileName.section(QLatin1Char('/'), -1, -1);
     *walletName = KWallet::Wallet::NetworkWallet();
     *walletFolder = QStringLiteral("KPdf");
@@ -559,11 +562,6 @@ TextRequestPrivate *TextRequestPrivate::get(const TextRequest *req)
     return req->d;
 }
 
-PixmapRequest::PixmapRequest(DocumentObserver *observer, int pageNumber, int width, int height, int priority, PixmapRequestFeatures features)
-    : PixmapRequest(observer, pageNumber, width, height, qApp->devicePixelRatio(), priority, features)
-{
-}
-
 PixmapRequest::PixmapRequest(DocumentObserver *observer, int pageNumber, int width, int height, qreal dpr, int priority, PixmapRequestFeatures features)
     : d(new PixmapRequestPrivate)
 {
@@ -676,7 +674,7 @@ PixmapRequestPrivate *PixmapRequestPrivate::get(const PixmapRequest *req)
 
 void PixmapRequestPrivate::swap()
 {
-    qSwap(mWidth, mHeight);
+    std::swap(mWidth, mHeight);
 }
 
 class Okular::ExportFormatPrivate : public QSharedData

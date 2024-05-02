@@ -11,7 +11,7 @@
 #define _OKULAR_GENERATOR_PDF_ANNOTS_H_
 
 #include <poppler-annotation.h>
-#include <poppler-qt5.h>
+#include <poppler-qt6.h>
 #include <poppler-version.h>
 #define POPPLER_VERSION_MACRO ((POPPLER_VERSION_MAJOR << 16) | (POPPLER_VERSION_MINOR << 8) | (POPPLER_VERSION_MICRO))
 
@@ -38,9 +38,7 @@ private:
     Poppler::Document *ppl_doc;
     QMutex *mutex;
     QHash<Okular::Annotation *, Poppler::Annotation *> *annotationsOnOpenHash;
-#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(21, 10, 0)
     std::unordered_map<Okular::StampAnnotation *, std::unique_ptr<Poppler::AnnotationAppearance>> deletedStampsAnnotationAppearance;
-#endif
 };
 
 #endif

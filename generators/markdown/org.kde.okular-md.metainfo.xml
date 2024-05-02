@@ -6,7 +6,9 @@
   <project_license>GPL-2.0+ and GFDL-1.3</project_license>
   <name>Markdown</name>
   <name xml:lang="ar">مارك‌داون</name>
+  <name xml:lang="ast">Markdown</name>
   <name xml:lang="az">Markdown</name>
+  <name xml:lang="be">Markdown</name>
   <name xml:lang="bg">Markdown</name>
   <name xml:lang="ca">Markdown</name>
   <name xml:lang="ca-valencia">Markdown</name>
@@ -14,19 +16,24 @@
   <name xml:lang="de">Markdown</name>
   <name xml:lang="el">Markdown</name>
   <name xml:lang="en-GB">Markdown</name>
+  <name xml:lang="eo">Markdown</name>
   <name xml:lang="es">Markdown</name>
   <name xml:lang="et">Markdown</name>
   <name xml:lang="eu">Markdown</name>
   <name xml:lang="fi">Markdown</name>
   <name xml:lang="fr">Markdown</name>
   <name xml:lang="gl">Markdown</name>
+  <name xml:lang="he">Markdown</name>
   <name xml:lang="hi">मार्कडाउन</name>
   <name xml:lang="hu">Markdown</name>
   <name xml:lang="ia">Markdown</name>
+  <name xml:lang="ie">Markdown</name>
+  <name xml:lang="is">Markdown</name>
   <name xml:lang="it">Markdown</name>
   <name xml:lang="ka">Markdown</name>
   <name xml:lang="ko">Markdown</name>
   <name xml:lang="lt">Markdown</name>
+  <name xml:lang="lv">Markdown</name>
   <name xml:lang="ml">മാർക്ഡൗൺ</name>
   <name xml:lang="nl">Markdown</name>
   <name xml:lang="nn">Markdown</name>
@@ -52,6 +59,7 @@
   <summary>Adds support for reading Markdown documents</summary>
   <summary xml:lang="ar">يضيف دعم لقراءة مستندات مارك‌داون</summary>
   <summary xml:lang="az">Markdown sənədlərini oxumaq üçün dəstək əlavə edir</summary>
+  <summary xml:lang="be">Падтрымка чытання дакументаў Markdown</summary>
   <summary xml:lang="bg">Добавя поддръжка за четене на Markdown документи</summary>
   <summary xml:lang="ca">Afegeix la implementació per a llegir documents en Markdown</summary>
   <summary xml:lang="ca-valencia">Afig la implementació per a llegir documents en Markdown</summary>
@@ -59,19 +67,24 @@
   <summary xml:lang="de">Bietet Unterstützung zum Lesen von Markdown-Dokumenten</summary>
   <summary xml:lang="el">Προσθέτει υποστήριξη για ανάγνωση Markdown εγγράφων</summary>
   <summary xml:lang="en-GB">Adds support for reading Markdown documents</summary>
+  <summary xml:lang="eo">Aldonas subtenon por legi Markdown-dokumentojn</summary>
   <summary xml:lang="es">Permite la lectura de documentos Markdown</summary>
   <summary xml:lang="et">Markdowni dokumentide lugemise toetuse lisamine</summary>
   <summary xml:lang="eu">Markdown dokumentuak irakurtzeko euskarria gehitzen du</summary>
   <summary xml:lang="fi">Lisää Markdown-tiedostojen lukutuen</summary>
   <summary xml:lang="fr">Permet la lecture des documents Markdown</summary>
-  <summary xml:lang="gl">Engade a posibilidade de ler documentos Markdown</summary>
+  <summary xml:lang="gl">Engade a posibilidade de ler documentos Markdown.</summary>
+  <summary xml:lang="he">מוסיף תמיכה בקריאת מסמכי Markdown</summary>
   <summary xml:lang="hi">मार्कडाउन दस्तावेज़ पढ़ने के लिए समर्थन जोड़ता है</summary>
   <summary xml:lang="hu">Támogatás Markdown dokumentumok olvasásához</summary>
   <summary xml:lang="ia">Adde supporto per leger documentos Markdown</summary>
+  <summary xml:lang="ie">Adjunte li supporte de letion de documentes Markdown</summary>
+  <summary xml:lang="is">Bætir við stuðningi til að lesa Markdown-skjöl</summary>
   <summary xml:lang="it">Aggiunge il supporto per la lettura di documenti Markdown</summary>
   <summary xml:lang="ka">Markdown -ის დოკუმენტების კითხვის მხარდაჭერის დამატება</summary>
   <summary xml:lang="ko">Markdown 문서 읽기 지원 추가</summary>
   <summary xml:lang="lt">Prideda palaikymą Markdown dokumentų skaitymui</summary>
+  <summary xml:lang="lv">Pievieno atbalstu „Markdown“ dokumentu lasīšanai</summary>
   <summary xml:lang="ml">മാർക്ഡൗൺ പ്രമാണങ്ങൾ വായിക്കുന്നതിനുള്ള പിന്തുണ ചേർക്കുന്നു</summary>
   <summary xml:lang="nl">Voegt ondersteuning voor lezen van Markdown-documenten toe</summary>
   <summary xml:lang="nn">Legg til støtte for å lesa Markdown-dokument</summary>
@@ -92,16 +105,16 @@
   <summary xml:lang="uk">Додає підтримку читання документів Markdown</summary>
   <summary xml:lang="vi">Thêm hỗ trợ đọc tài liệu Markdown</summary>
   <summary xml:lang="x-test">xxAdds support for reading Markdown documentsxx</summary>
-  <summary xml:lang="zh-CN">添加阅读 Markdown 文档的支持</summary>
+  <summary xml:lang="zh-CN">增加对 Markdown 文档的阅读支持</summary>
   <summary xml:lang="zh-TW">增加讀取 Markdown 文件的支援</summary>
   <provides>
     <mediatype>text/markdown</mediatype>
   </provides>
   <url type="homepage">https://okular.kde.org</url>
   <releases>
-    <release version="22.08.1" date="2022-09-08"/>
-    <release version="22.08.0" date="2022-08-18"/>
-    <release version="22.04.3" date="2022-07-07"/>
-    <release version="22.04.2" date="2022-06-09"/>
+    <release version="24.02.2" date="2024-04-11"/>
+    <release version="24.02.1" date="2024-03-21"/>
+    <release version="24.02.0" date="2024-02-28"/>
+    <release version="23.08.5" date="2024-02-15"/>
   </releases>
 </component>

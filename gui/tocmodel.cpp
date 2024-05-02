@@ -54,6 +54,7 @@ public:
     QList<TOCItem *> currentPage;
     TOCModel *m_oldModel;
     QVector<QModelIndex> m_oldTocExpandedIndexes;
+    Q_DISABLE_COPY(TOCModelPrivate)
 };
 
 TOCItem::TOCItem()
@@ -97,6 +98,7 @@ TOCModelPrivate::TOCModelPrivate(TOCModel *qq)
     : q(qq)
     , root(new TOCItem)
     , dirty(false)
+    , document(nullptr)
     , m_oldModel(nullptr)
 {
     root->model = this;
@@ -224,7 +226,7 @@ QVariant TOCModel::data(const QModelIndex &index, int role) const
             QFont font;
             font.setBold(true);
 
-            TOCItem *lastHighlighted = d->currentPage.last();
+            const TOCItem *lastHighlighted = d->currentPage.last();
 
             // in the mobile version our parent is not a QTreeView; embolden the last highlighted item
             // TODO misusing parent() here, fix
@@ -338,7 +340,7 @@ void TOCModel::fill(const Okular::DocumentSynopsis *toc)
     d->dirty = true;
     Q_EMIT layoutChanged();
     if (equals(d->m_oldModel)) {
-        for (const QModelIndex &oldIndex : qAsConst(d->m_oldTocExpandedIndexes)) {
+        for (const QModelIndex &oldIndex : std::as_const(d->m_oldTocExpandedIndexes)) {
             const QModelIndex index = indexForIndex(oldIndex, this);
             if (!index.isValid()) {
                 continue;
@@ -348,7 +350,7 @@ void TOCModel::fill(const Okular::DocumentSynopsis *toc)
             QMetaObject::invokeMethod(QObject::parent(), "expand", Qt::QueuedConnection, Q_ARG(QModelIndex, index));
         }
     } else {
-        for (TOCItem *item : qAsConst(d->itemsToOpen)) {
+        for (TOCItem *item : std::as_const(d->itemsToOpen)) {
             const QModelIndex index = d->indexForItem(item);
             if (!index.isValid()) {
                 continue;
@@ -380,7 +382,7 @@ void TOCModel::clear()
 
 void TOCModel::setCurrentViewport(const Okular::DocumentViewport &viewport)
 {
-    for (TOCItem *item : qAsConst(d->currentPage)) {
+    for (TOCItem *item : std::as_const(d->currentPage)) {
         QModelIndex index = d->indexForItem(item);
         if (!index.isValid()) {
             continue;
@@ -396,7 +398,7 @@ void TOCModel::setCurrentViewport(const Okular::DocumentViewport &viewport)
 
     d->currentPage = newCurrentPage;
 
-    for (TOCItem *item : qAsConst(d->currentPage)) {
+    for (TOCItem *item : std::as_const(d->currentPage)) {
         QModelIndex index = d->indexForItem(item);
         if (!index.isValid()) {
             continue;
@@ -447,7 +449,7 @@ QString TOCModel::externalFileNameForIndex(const QModelIndex &index) const
         return QString();
     }
 
-    TOCItem *item = static_cast<TOCItem *>(index.internalPointer());
+    const TOCItem *item = static_cast<TOCItem *>(index.internalPointer());
     return item->extFileName;
 }
 
@@ -457,7 +459,7 @@ Okular::DocumentViewport TOCModel::viewportForIndex(const QModelIndex &index) co
         return Okular::DocumentViewport();
     }
 
-    TOCItem *item = static_cast<TOCItem *>(index.internalPointer());
+    const TOCItem *item = static_cast<TOCItem *>(index.internalPointer());
     return item->viewport;
 }
 
@@ -467,7 +469,7 @@ QString TOCModel::urlForIndex(const QModelIndex &index) const
         return QString();
     }
 
-    TOCItem *item = static_cast<TOCItem *>(index.internalPointer());
+    const TOCItem *item = static_cast<TOCItem *>(index.internalPointer());
     return item->url;
 }
 

@@ -17,6 +17,7 @@ using namespace Okular;
 FormFieldPrivate::FormFieldPrivate(FormField::FieldType type)
     : m_type(type)
     , m_activateAction(nullptr)
+    , q_ptr(nullptr)
 {
 }
 
@@ -242,7 +243,7 @@ public:
     void setValue(const QString &v) override
     {
         Q_Q(FormFieldChoice);
-        const QStringList choices = v.split(QLatin1Char(';'), QString::SkipEmptyParts);
+        const QStringList choices = v.split(QLatin1Char(';'), Qt::SkipEmptyParts);
         QList<int> newchoices;
         for (const QString &str : choices) {
             bool ok = true;
@@ -262,7 +263,7 @@ public:
         QList<int> choices = q->currentChoices();
         std::sort(choices.begin(), choices.end());
         QStringList list;
-        for (const int c : qAsConst(choices)) {
+        for (const int c : std::as_const(choices)) {
             list.append(QString::number(c));
         }
         return list.join(QStringLiteral(";"));

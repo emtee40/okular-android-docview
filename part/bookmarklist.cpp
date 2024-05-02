@@ -127,7 +127,7 @@ BookmarkList::BookmarkList(Okular::Document *document, QWidget *parent)
     mainlay->setSpacing(6);
 
     KTitleWidget *titleWidget = new KTitleWidget(this);
-    titleWidget->setLevel(2);
+    titleWidget->setLevel(4);
     titleWidget->setText(i18n("Bookmarks"));
     mainlay->addWidget(titleWidget);
     mainlay->setAlignment(titleWidget, Qt::AlignHCenter);
@@ -254,10 +254,10 @@ void BookmarkList::contextMenuForBookmarkItem(const QPoint p, BookmarkItem *bmIt
     }
 
     QMenu menu(this);
-    QAction *gotobm = menu.addAction(i18n("Go to This Bookmark"));
-    QAction *editbm = menu.addAction(QIcon::fromTheme(QStringLiteral("edit-rename")), i18n("Rename Bookmark"));
-    QAction *removebm = menu.addAction(QIcon::fromTheme(QStringLiteral("bookmark-remove"), QIcon::fromTheme(QStringLiteral("edit-delete-bookmark"))), i18n("Remove Bookmark"));
-    QAction *res = menu.exec(QCursor::pos());
+    const QAction *gotobm = menu.addAction(i18n("Go to This Bookmark"));
+    const QAction *editbm = menu.addAction(QIcon::fromTheme(QStringLiteral("edit-rename")), i18n("Rename Bookmark"));
+    const QAction *removebm = menu.addAction(QIcon::fromTheme(QStringLiteral("bookmark-remove"), QIcon::fromTheme(QStringLiteral("edit-delete-bookmark"))), i18n("Remove Bookmark"));
+    const QAction *res = menu.exec(QCursor::pos());
     if (!res) {
         return;
     }
@@ -286,9 +286,9 @@ void BookmarkList::contextMenuForFileItem(const QPoint p, FileItem *fItem)
     if (!thisdoc) {
         open = menu.addAction(i18nc("Opens the selected document", "Open Document"));
     }
-    QAction *editbm = menu.addAction(QIcon::fromTheme(QStringLiteral("edit-rename")), i18n("Rename Bookmark"));
-    QAction *removebm = menu.addAction(QIcon::fromTheme(QStringLiteral("bookmark-remove"), QIcon::fromTheme(QStringLiteral("edit-delete-bookmark"))), i18n("Remove all Bookmarks for this Document"));
-    QAction *res = menu.exec(QCursor::pos());
+    const QAction *editbm = menu.addAction(QIcon::fromTheme(QStringLiteral("edit-rename")), i18n("Rename Bookmark"));
+    const QAction *removebm = menu.addAction(QIcon::fromTheme(QStringLiteral("bookmark-remove"), QIcon::fromTheme(QStringLiteral("edit-delete-bookmark"))), i18n("Remove all Bookmarks for this Document"));
+    const QAction *res = menu.exec(QCursor::pos());
     if (!res) {
         return;
     }

@@ -221,11 +221,6 @@ bool Page::hasPixmap(DocumentObserver *observer, int width, int height, const No
     TilesManager *tm = d->tilesManager(observer);
     if (tm) {
         if (width != tm->width() || height != tm->height()) {
-            // FIXME hasPixmap should not be calling setSize on the TilesManager this is not very "const"
-            // as this function claims to be
-            if (width != -1 && height != -1) {
-                tm->setSize(width, height);
-            }
             return false;
         }
 
@@ -250,21 +245,29 @@ bool Page::hasPixmap(DocumentObserver *observer, int width, int height, const No
     return (pixmap->width() == width && pixmap->height() == height);
 }
 
+void Page::setPageSize(DocumentObserver *observer, int width, int height)
+{
+    TilesManager *tm = d->tilesManager(observer);
+    if (tm) {
+        tm->setSize(width, height);
+    }
+}
+
 bool Page::hasTextPage() const
 {
     return d->m_text != nullptr;
 }
 
-RegularAreaRect *Page::wordAt(const NormalizedPoint &p, QString *word) const
+std::unique_ptr<RegularAreaRect> Page::wordAt(const NormalizedPoint &p) const
 {
     if (d->m_text) {
-        return d->m_text->wordAt(p, word);
+        return d->m_text->wordAt(p);
     }
 
     return nullptr;
 }
 
-RegularAreaRect *Page::textArea(TextSelection *selection) const
+std::unique_ptr<RegularAreaRect> Page::textArea(const TextSelection &selection) const
 {
     if (d->m_text) {
         return d->m_text->textArea(selection);
@@ -371,9 +374,7 @@ TextEntity::List Page::words(const RegularAreaRect *area, TextPage::TextAreaIncl
     }
 
     for (auto &retI : ret) {
-        const TextEntity *orig = retI;
-        retI = new TextEntity(orig->text(), new Okular::NormalizedRect(orig->transformedArea(d->rotationMatrix())));
-        delete orig;
+        retI = TextEntity(retI.text(), Okular::NormalizedRect(retI.transformedArea(d->rotationMatrix())));
     }
 
     return ret;
@@ -388,7 +389,7 @@ void PagePrivate::rotateAt(Rotation orientation)
     deleteTextSelections();
 
     if (((int)m_orientation + (int)m_rotation) % 2 != ((int)m_orientation + (int)orientation) % 2) {
-        qSwap(m_width, m_height);
+        std::swap(m_width, m_height);
     }
 
     Rotation oldRotation = m_rotation;
@@ -425,12 +426,12 @@ void PagePrivate::rotateAt(Rotation orientation)
      * Rotate the object rects on the page.
      */
     const QTransform matrix = rotationMatrix();
-    for (ObjectRect *objRect : qAsConst(m_page->m_rects)) {
+    for (ObjectRect *objRect : std::as_const(m_page->m_rects)) {
         objRect->transform(matrix);
     }
 
     const QTransform highlightRotationMatrix = Okular::buildRotationMatrix((Rotation)(((int)m_rotation - (int)oldRotation + 4) % 4));
-    for (HighlightAreaRect *hlar : qAsConst(m_page->m_highlights)) {
+    for (HighlightAreaRect *hlar : std::as_const(m_page->m_highlights)) {
         hlar->transform(highlightRotationMatrix);
     }
 }
@@ -448,7 +449,7 @@ void PagePrivate::changeSize(const PageSize &size)
     m_width = size.width();
     m_height = size.height();
     if (m_rotation % 2) {
-        qSwap(m_width, m_height);
+        std::swap(m_width, m_height);
     }
 }
 
@@ -625,16 +626,13 @@ void PagePrivate::setHighlight(int s_id, RegularAreaRect *rect, const QColor &co
     m_page->m_highlights.append(hr);
 }
 
-void PagePrivate::setTextSelections(RegularAreaRect *r, const QColor &color)
+void PagePrivate::setTextSelections(const RegularAreaRect &r, const QColor &color)
 {
     deleteTextSelections();
-    if (r) {
-        HighlightAreaRect *hr = new HighlightAreaRect(r);
-        hr->s_id = -1;
-        hr->color = color;
-        m_textSelections = hr;
-        delete r;
-    }
+    HighlightAreaRect *hr = new HighlightAreaRect(&r);
+    hr->s_id = -1;
+    hr->color = color;
+    m_textSelections = hr;
 }
 
 void Page::setSourceReferences(const QList<SourceRefObjectRect *> &refRects)
@@ -746,7 +744,7 @@ void Page::setFormFields(const QList<FormField *> &fields)
 {
     qDeleteAll(d->formfields);
     d->formfields = fields;
-    for (FormField *ff : qAsConst(d->formfields)) {
+    for (FormField *ff : std::as_const(d->formfields)) {
         ff->d_ptr->setDefault();
         ff->d_ptr->m_page = this;
     }
@@ -875,7 +873,7 @@ bool PagePrivate::restoreLocalContents(const QDomNode &pageNode)
             }
 
             QHash<int, FormField *> hashedforms;
-            for (FormField *ff : qAsConst(formfields)) {
+            for (FormField *ff : std::as_const(formfields)) {
                 hashedforms[ff->id()] = ff;
             }
 
@@ -930,7 +928,7 @@ void PagePrivate::saveLocalContents(QDomNode &parentNode, QDomDocument &document
         QDomElement annotListElement = document.createElement(QStringLiteral("annotationList"));
 
         // add every annotation to the annotationList
-        for (const Annotation *a : qAsConst(m_page->m_annotations)) {
+        for (const Annotation *a : std::as_const(m_page->m_annotations)) {
             // only save okular annotations (not the embedded in file ones)
             if (!(a->flags() & Annotation::External)) {
                 // append an filled-up element called 'annotation' to the list
@@ -1065,26 +1063,26 @@ FormField *PagePrivate::findEquivalentForm(const Page *p, FormField *oldField)
 {
     // given how id is not very good of id (at least for pdf) we do a few passes
     // same rect, type and id
-    for (FormField *f : qAsConst(p->d->formfields)) {
+    for (FormField *f : std::as_const(p->d->formfields)) {
         if (f->rect() == oldField->rect() && f->type() == oldField->type() && f->id() == oldField->id()) {
             return f;
         }
     }
     // same rect and type
-    for (FormField *f : qAsConst(p->d->formfields)) {
+    for (FormField *f : std::as_const(p->d->formfields)) {
         if (f->rect() == oldField->rect() && f->type() == oldField->type()) {
             return f;
         }
     }
     // fuzzy rect, same type and id
-    for (FormField *f : qAsConst(p->d->formfields)) {
+    for (FormField *f : std::as_const(p->d->formfields)) {
         if (f->type() == oldField->type() && f->id() == oldField->id() && qFuzzyCompare(f->rect().left, oldField->rect().left) && qFuzzyCompare(f->rect().top, oldField->rect().top) &&
             qFuzzyCompare(f->rect().right, oldField->rect().right) && qFuzzyCompare(f->rect().bottom, oldField->rect().bottom)) {
             return f;
         }
     }
     // fuzzy rect and same type
-    for (FormField *f : qAsConst(p->d->formfields)) {
+    for (FormField *f : std::as_const(p->d->formfields)) {
         if (f->type() == oldField->type() && qFuzzyCompare(f->rect().left, oldField->rect().left) && qFuzzyCompare(f->rect().top, oldField->rect().top) && qFuzzyCompare(f->rect().right, oldField->rect().right) &&
             qFuzzyCompare(f->rect().bottom, oldField->rect().bottom)) {
             return f;

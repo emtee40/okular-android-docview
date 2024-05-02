@@ -17,8 +17,10 @@
 
 #include <KConfigGroup>
 #include <KFormat>
+#include <KIO/JobUiDelegate>
+#include <KIO/JobUiDelegateFactory>
+#include <KIO/OpenUrlJob>
 #include <KLocalizedString>
-#include <KRun>
 #include <KStandardGuiItem>
 #include <QDialogButtonBox>
 #include <QIcon>
@@ -26,6 +28,7 @@
 #include <QMimeType>
 #include <QPushButton>
 #include <QVBoxLayout>
+#include <kio_version.h>
 
 #include "core/document.h"
 #include "gui/guiutils.h"
@@ -148,10 +151,10 @@ void EmbeddedFilesDialog::attachViewContextMenu()
     }
 
     QMenu menu(this);
-    QAction *saveAsAct = menu.addAction(QIcon::fromTheme(QStringLiteral("document-save-as")), i18nc("@action:inmenu", "&Save As..."));
-    QAction *viewAct = menu.addAction(QIcon::fromTheme(QStringLiteral("document-open")), i18nc("@action:inmenu", "&View..."));
+    const QAction *saveAsAct = menu.addAction(QIcon::fromTheme(QStringLiteral("document-save-as")), i18nc("@action:inmenu", "&Save As..."));
+    const QAction *viewAct = menu.addAction(QIcon::fromTheme(QStringLiteral("document-open")), i18nc("@action:inmenu", "&View..."));
 
-    QAction *act = menu.exec(QCursor::pos());
+    const QAction *act = menu.exec(QCursor::pos());
     if (!act) {
         return;
     }
@@ -182,7 +185,9 @@ void EmbeddedFilesDialog::viewFile(Okular::EmbeddedFile *ef)
     m_openedFiles.push_back(QSharedPointer<QTemporaryFile>(tmpFile));
 
     // view the temporary file with the default application
-    new KRun(QUrl::fromLocalFile(tmpFile->fileName()), this);
+    auto *job = new KIO::OpenUrlJob(QUrl::fromLocalFile(tmpFile->fileName()));
+    job->setUiDelegate(KIO::createDefaultJobUiDelegate(KJobUiDelegate::AutoHandlingEnabled, this));
+    job->start();
 }
 
 void EmbeddedFilesDialog::saveFile(Okular::EmbeddedFile *ef)

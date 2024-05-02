@@ -1,22 +1,39 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.22)
 
 # KDE Application Version, managed by release script
-set (RELEASE_SERVICE_VERSION_MAJOR "22")
-set (RELEASE_SERVICE_VERSION_MINOR "11")
+set (RELEASE_SERVICE_VERSION_MAJOR "24")
+set (RELEASE_SERVICE_VERSION_MINOR "07")
 set (RELEASE_SERVICE_VERSION_MICRO "70")
 set (RELEASE_SERVICE_VERSION "${RELEASE_SERVICE_VERSION_MAJOR}.${RELEASE_SERVICE_VERSION_MINOR}.${RELEASE_SERVICE_VERSION_MICRO}")
 
 project(okular VERSION ${RELEASE_SERVICE_VERSION})
 
-set(QT_REQUIRED_VERSION "5.12.0") # Remember to update the QT_DEPRECATED_WARNINGS_SINCE below
-set(KF5_REQUIRED_VERSION "5.68.0") # Remember to update the KF_DEPRECATED_WARNINGS_SINCE below
+set(QT_REQUIRED_VERSION "6.6.0") # Remember to update the QT_DEPRECATED_WARNINGS_SINCE below
+set(KF_REQUIRED_VERSION "5.240.0") # Remember to update the KF_DEPRECATED_WARNINGS_SINCE below
 
 set(OKULAR_UI "" CACHE STRING "Which Okular user interface to build. Possible values: desktop, mobile, both. Default: desktop (except on Android, where it is 'mobile')")
 
-option(FORCE_NOT_REQUIRED_DEPENDENCIES "List (semicolon-separated) of dependencies that will be downgraded from REQUIRED to RECOMMENDED")
+set(FORCE_NOT_REQUIRED_DEPENDENCIES "" CACHE STRING "List (semicolon-separated) of dependencies that will be downgraded from REQUIRED to RECOMMENDED")
 
-if (ANDROID AND (NOT FORCE_NOT_REQUIRED_DEPENDENCIES) AND (NOT FORCE_NOT_REQUIRED_DEPENDENCIES STREQUAL ""))
-    set(FORCE_NOT_REQUIRED_DEPENDENCIES "KF5Wallet;KF5DocTools;KF5JS;TIFF;JPEG;LibSpectre;KF5KExiv2;CHM;KF5KHtml;LibZip;DjVuLibre;EPub;Discount;")
+find_package(ECM ${KF_REQUIRED_VERSION} CONFIG REQUIRED)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${ECM_MODULE_PATH})
+
+include(ECMInstallIcons)
+include(ECMSetupVersion)
+include(ECMOptionalAddSubdirectory)
+include(GenerateExportHeader)
+include(FeatureSummary)
+include(ECMAddAppIcon)
+include(KDECompilerSettings NO_POLICY_SCOPE)
+include(KDEInstallDirs)
+include(KDECMakeSettings)
+include(ECMAddTests)
+include(ECMAddAppIcon)
+include(CMakePackageConfigHelpers)
+include(ECMSetupQtPluginMacroNames)
+
+if (ANDROID AND (FORCE_NOT_REQUIRED_DEPENDENCIES STREQUAL ""))
+    set(FORCE_NOT_REQUIRED_DEPENDENCIES "KF6Wallet;KF6DocTools;Qt6Qml;TIFF;LibSpectre;KExiv2Qt6;CHM;LibZip;DjVuLibre;EPub;Discount;")
 endif()
 
 function(set_okular_optional_package_properties _name _props)
@@ -65,27 +82,6 @@ else()
     set(BUILD_MOBILE OFF)
 endif()
 
-if (BUILD_MOBILE)
-    set(QT_REQUIRED_VERSION "5.15.2")
-endif()
-
-find_package(ECM ${KF5_REQUIRED_VERSION} CONFIG REQUIRED)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${ECM_MODULE_PATH})
-
-include(ECMInstallIcons)
-include(ECMSetupVersion)
-include(ECMOptionalAddSubdirectory)
-include(GenerateExportHeader)
-include(FeatureSummary)
-include(ECMAddAppIcon)
-include(KDECompilerSettings NO_POLICY_SCOPE)
-include(KDEInstallDirs)
-include(KDECMakeSettings)
-include(ECMAddTests)
-include(ECMAddAppIcon)
-include(CMakePackageConfigHelpers)
-include(ECMSetupQtPluginMacroNames)
-
 # append the plugins from the install tree folder to the QT_PLUGIN_PATH
 if(UNIX)
     set(ENV{QT_PLUGIN_PATH} "$ENV{QT_PLUGIN_PATH}:${KDE_INSTALL_FULL_QTPLUGINDIR}")
@@ -93,20 +89,16 @@ elseif(WIN32)
     set(ENV{QT_PLUGIN_PATH} "$ENV{QT_PLUGIN_PATH};${KDE_INSTALL_FULL_QTPLUGINDIR}")
 endif()
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 ecm_setup_version(${PROJECT_VERSION}
                   VARIABLE_PREFIX OKULAR
                   VERSION_HEADER "${CMAKE_CURRENT_BINARY_DIR}/core/version.h"
-                  PACKAGE_VERSION_FILE "${CMAKE_CURRENT_BINARY_DIR}/Okular5ConfigVersion.cmake")
+                  PACKAGE_VERSION_FILE "${CMAKE_CURRENT_BINARY_DIR}/Okular6ConfigVersion.cmake")
 
-find_package(Qt5 ${QT_REQUIRED_VERSION} CONFIG REQUIRED COMPONENTS Core Test Widgets PrintSupport Svg Qml Quick)
-
-if(ANDROID)
-    find_package(Qt5 ${QT_REQUIRED_VERSION} CONFIG REQUIRED COMPONENTS AndroidExtras)
-endif()
+find_package(Qt6 ${QT_REQUIRED_VERSION} CONFIG REQUIRED COMPONENTS Core Test Widgets PrintSupport Svg Xml)
 
 ecm_setup_qtplugin_macro_names(
     JSON_ARG2
@@ -115,7 +107,7 @@ ecm_setup_qtplugin_macro_names(
         PACKAGE_SETUP_AUTOMOC_VARIABLES
 )
 
-find_package(KF5 ${KF5_REQUIRED_VERSION} REQUIRED COMPONENTS
+find_package(KF6 ${KF_REQUIRED_VERSION} REQUIRED COMPONENTS
     Archive
     Bookmarks
     Completion
@@ -126,73 +118,106 @@ find_package(KF5 ${KF5_REQUIRED_VERSION} REQUIRED COMPONENTS
     KIO
     ThreadWeaver
     WindowSystem
+    XmlGui
 )
 
-find_package(KF5Wallet ${KF5_REQUIRED_VERSION})
-set_okular_optional_package_properties(KF5Wallet PROPERTIES
+if (NOT WIN32)
+    find_package(KF6Wallet ${KF_REQUIRED_VERSION})
+    set_okular_optional_package_properties(KF6Wallet PROPERTIES
     PURPOSE "Required for document storing passwords in secure wallets.")
-if(KF5Wallet_FOUND)
-    add_definitions(-DWITH_KWALLET=1)
+endif()
+if(KF6Wallet_FOUND)
+    set(HAVE_KWALLET 1)
+else()
+    set(HAVE_KWALLET 0)
 endif()
 
-find_package(KF5DocTools ${KF5_REQUIRED_VERSION})
-set_okular_optional_package_properties(KF5DocTools PROPERTIES
+find_package(KF6DocTools ${KF_REQUIRED_VERSION})
+set_okular_optional_package_properties(KF6DocTools PROPERTIES
     PURPOSE "Required for compiling and installing the user documentation.")
 
-find_package(KF5JS ${KF5_REQUIRED_VERSION})
-set_okular_optional_package_properties(KF5JS PROPERTIES
+find_package(Qt6Qml)
+set_okular_optional_package_properties(Qt6Qml PROPERTIES
     PURPOSE "Required for supporting JavaScript in PDF documents")
-if(KF5JS_FOUND)
-    add_definitions(-DWITH_KJS=1)
+if(TARGET Qt6::Qml)
+    set(HAVE_JS 1)
+else()
+    set(HAVE_JS 0)
 endif()
 
 if (BUILD_DESKTOP)
-    find_package(Qt5 ${QT_REQUIRED_VERSION} CONFIG REQUIRED COMPONENTS DBus)
-    find_package(KF5 ${KF5_REQUIRED_VERSION} REQUIRED COMPONENTS Parts Crash IconThemes TextWidgets)
+    find_package(Qt6DBus)
+    set_okular_optional_package_properties(Qt6DBus PROPERTIES
+        PURPOSE "Required for interprocess communication, external open in same instance and various presentation related bits.")
+    if(TARGET Qt6::DBus)
+        set(HAVE_DBUS 1)
+    else()
+        set(HAVE_DBUS 0)
+    endif()
+    find_package(KF6 ${KF_REQUIRED_VERSION} REQUIRED COMPONENTS Parts ColorScheme Crash IconThemes ItemViews TextWidgets WidgetsAddons)
 
-    find_package(KF5Purpose)
-    set_okular_optional_package_properties(KF5Purpose PROPERTIES
+    find_package(KF6Purpose)
+    set_okular_optional_package_properties(KF6Purpose PROPERTIES
         DESCRIPTION "A framework for services and actions integration"
         PURPOSE "Required for enabling the share menu.")
-    if (KF5Purpose_FOUND)
-        set(PURPOSE_FOUND 1)
+    if (KF6Purpose_FOUND)
+        set(HAVE_PURPOSE 1)
     else()
-        set(PURPOSE_FOUND 0)
+        set(HAVE_PURPOSE 0)
     endif()
 
-    find_package(Qt5TextToSpeech ${QT_REQUIRED_VERSION} CONFIG)
-    set_okular_optional_package_properties(Qt5TextToSpeech PROPERTIES
+    find_package(Qt6TextToSpeech ${QT_REQUIRED_VERSION} CONFIG)
+    set_okular_optional_package_properties(Qt6TextToSpeech PROPERTIES
         PURPOSE "Enables speech features.")
-    if (Qt5TextToSpeech_FOUND)
-        add_definitions(-DHAVE_SPEECH)
+    if (Qt6TextToSpeech_FOUND)
+        set(HAVE_SPEECH 1)
+    else()
+        set(HAVE_SPEECH 0)
     endif()
 endif()
 
 if (BUILD_MOBILE)
-    find_package(KF5Kirigami2)
-    set_package_properties(KF5Kirigami2 PROPERTIES
+    find_package(Qt6 ${QT_REQUIRED_VERSION} CONFIG REQUIRED COMPONENTS Qml Quick)
+    find_package(KF6Kirigami2)
+    set_package_properties(KF6Kirigami2 PROPERTIES
         DESCRIPTION "A QtQuick based components set"
+        PURPOSE "Required at runtime by the mobile app"
+        TYPE RUNTIME
+    )
+    find_package(KF6KirigamiAddons)
+    set_package_properties(KF6KirigamiAddons PROPERTIES
+        DESCRIPTION "A set of widgets for Kirigami along with  code to support them"
         PURPOSE "Required at runtime by the mobile app"
         TYPE RUNTIME
     )
 endif()
 
 if(NOT WIN32 AND NOT ANDROID AND NOT APPLE)
-    find_package(KF5 ${KF5_REQUIRED_VERSION} REQUIRED COMPONENTS
-        Activities
-    )
-    set_package_properties("KF5Activities" PROPERTIES
+    find_package(Qt6Gui REQUIRED COMPONENTS Private)
+    find_package(PlasmaActivities REQUIRED)
+    set_package_properties("PlasmaActivities" PROPERTIES
         DESCRIPTION  "Activities interface library"
-        URL "https://api.kde.org/frameworks/kactivities/html/"
-        PURPOSE "Required for Activities integration.")
+        URL "https://invent.kde.org/plasma/plasma-activities"
+        PURPOSE "Required for Activities integration."
+    )
+    set(HAVE_X11 TRUE)
+else()
+    set(HAVE_X11 FALSE)
 endif()
-find_package(Phonon4Qt5 CONFIG REQUIRED)
+find_package(Phonon4Qt6 CONFIG)
+set_okular_optional_package_properties(Phonon4Qt6 PROPERTIES
+    PURPOSE "Required for documents with audio or video elements")
+if (Phonon4Qt6_FOUND)
+    set(HAVE_PHONON 1)
+else()
+    set(HAVE_PHONON 0)
+endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/modules)
 
 find_package(ZLIB REQUIRED)
 
-find_package(Poppler "0.86.0" COMPONENTS Qt5)
+find_package(Poppler "22.02.0" COMPONENTS Qt6)
 set_okular_optional_package_properties(Poppler PROPERTIES
         PURPOSE "Support for PDF files in okular.")
 
@@ -208,12 +233,6 @@ set_okular_optional_package_properties(TIFF PROPERTIES
         URL "http://www.libtiff.org"
         PURPOSE "Support for TIFF files in okular.")
 
-find_package(JPEG)
-set_okular_optional_package_properties(JPEG PROPERTIES
-        DESCRIPTION  "A library for reading and writing JPEG image files."
-        URL "https://www.ijg.org"
-        PURPOSE "Support for PalmDB documents in okular.")
-
 set(LIBSPECTRE_MINIMUM_VERSION "0.2")
 find_package(LibSpectre "${LIBSPECTRE_MINIMUM_VERSION}")
 set_okular_optional_package_properties(LibSpectre PROPERTIES
@@ -221,22 +240,20 @@ set_okular_optional_package_properties(LibSpectre PROPERTIES
         URL "https://libspectre.freedesktop.org"
         PURPOSE "Support for PS files in okular.")
 
-find_package(KF5KExiv2 CONFIG)
-set_okular_optional_package_properties(KF5KExiv2 PROPERTIES
+find_package(KExiv2Qt6 CONFIG)
+set_okular_optional_package_properties(KExiv2Qt6 PROPERTIES
         DESCRIPTION  "Wrapper around Exiv2 library"
         URL "https://commits.kde.org/libkexiv2"
         PURPOSE "Support for exif rotation in image files.")
 
-find_package(CHM)
-set_okular_optional_package_properties(CHM PROPERTIES
-        DESCRIPTION  "A library for dealing with Microsoft ITSS/CHM format files"
-        URL "http://www.jedrea.com/chmlib"
-        PURPOSE "Support CHM files in okular.")
+if (FALSE ) # Investigate porting at some point
+    find_package(CHM)
+    set_okular_optional_package_properties(CHM PROPERTIES
+            DESCRIPTION  "A library for dealing with Microsoft ITSS/CHM format files"
+            URL "http://www.jedrea.com/chmlib"
+            PURPOSE "Support CHM files in okular.")
 
-find_package(KF5KHtml CONFIG)
-set_okular_optional_package_properties(KF5KHtml PROPERTIES
-        DESCRIPTION "HTML rendering library"
-        PURPOSE "Support CHM files in okular.")
+endif()
 
 find_package(LibZip)
 set_okular_optional_package_properties(LibZip PROPERTIES
@@ -244,7 +261,7 @@ set_okular_optional_package_properties(LibZip PROPERTIES
         URL "https://libzip.org/"
         PURPOSE "Support CHM files in okular.")
 
-find_package(DjVuLibre "3.5.17")
+find_package(DjVuLibre "3.5.28")
 set_okular_optional_package_properties(DjVuLibre PROPERTIES
         DESCRIPTION  "A library for dealing with DjVu formatted files"
         URL "https://djvulibre.djvuzone.org"
@@ -256,8 +273,8 @@ set_okular_optional_package_properties(EPub PROPERTIES
         URL "http://sourceforge.net/projects/ebook-tools"
         PURPOSE "Support for EPub documents in Okular.")
 
-find_package(QMobipocket "2" CONFIG)
-set_okular_optional_package_properties(QMobipocket PROPERTIES
+find_package(QMobipocket6 "2" CONFIG)
+set_okular_optional_package_properties(QMobiPocket6 PROPERTIES
         DESCRIPTION  "A library for reading Mobipocket documents"
         URL "https://commits.kde.org/kdegraphics-mobipocket"
         PURPOSE "Support for Mobipocket documents in Okular.")
@@ -268,22 +285,11 @@ set_okular_optional_package_properties(Discount PROPERTIES
         URL "https://www.pell.portland.or.us/~orc/Code/discount/"
         PURPOSE "Support for Markdown documents in Okular.")
 
-add_definitions(-DQT_USE_QSTRINGBUILDER)
 add_definitions(-DTRANSLATION_DOMAIN="okular")
-add_definitions(-DQT_NO_URL_CAST_FROM_STRING)
-add_definitions(-DQT_NO_CAST_FROM_ASCII)
-add_definitions(-DQT_NO_CAST_FROM_BYTEARRAY)
-add_definitions(-DQT_NO_CAST_TO_ASCII)
-add_definitions(-DQT_DEPRECATED_WARNINGS_SINCE=0x050C00)
-add_definitions(-DKF_DEPRECATED_WARNINGS_SINCE=0x054400)
-add_definitions(-DQT_NO_KEYWORDS)
+add_definitions(-DQT_DEPRECATED_WARNINGS_SINCE=0x060600)
+add_definitions(-DKF_DEPRECATED_WARNINGS_SINCE=0x05F000)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${PHONON_INCLUDES} core/synctex ${CMAKE_BINARY_DIR}/core)
-
-if(BUILD_MOBILE AND KF5Kirigami2_VERSION VERSION_LESS "5.85")
-    message(FATAL_ERROR "Disable mobile build. This requires Kirigami 5.85 or greater.")
-    set(BUILD_MOBILE OFF)
-endif()
 
 option(BUILD_COVERAGE "Build the project with gcov support" OFF)
 
@@ -307,7 +313,7 @@ if(BUILD_TESTING)
    add_subdirectory( autotests )
 endif()
 
-if(KF5DocTools_FOUND)
+if(KF6DocTools_FOUND)
     add_subdirectory(doc)
 endif()
 
@@ -359,7 +365,7 @@ set(okularcore_SRCS
    core/synctex/synctex_parser.c
    core/synctex/synctex_parser_utils.c
 )
-qt5_add_resources(okularcore_SRCS
+qt_add_resources(okularcore_SRCS
    core/script/builtin.qrc
 )
 
@@ -411,6 +417,7 @@ kconfig_add_kcfg_files(okularcore_SRCS GENERATE_MOC conf/settings_core.kcfgc)
 
 add_library(okularcore SHARED ${okularcore_SRCS})
 generate_export_header(okularcore BASE_NAME okularcore EXPORT_FILE_NAME "${CMAKE_CURRENT_BINARY_DIR}/core/okularcore_export.h")
+target_include_directories(okularcore PUBLIC "$<INSTALL_INTERFACE:${KDE_INSTALL_INCLUDEDIR}>")
 
 if (ANDROID)
     set(fileName ${CMAKE_BINARY_DIR}/Okular5Core-android-dependencies.xml)
@@ -435,55 +442,56 @@ target_link_libraries(okularcore
 PRIVATE
     ${OKULAR_IOKIT}
     ${SHLWAPI}
-    KF5::Archive
-    KF5::KIOCore
-    KF5::KIOWidgets
-    KF5::I18n
-    KF5::ThreadWeaver
-    KF5::Bookmarks
-    Phonon::phonon4qt5
-    Qt5::Svg
+    KF6::Archive
+    KF6::KIOCore
+    KF6::KIOWidgets
+    KF6::I18n
+    KF6::ThreadWeaver
+    KF6::BookmarksWidgets
+    KF6::Bookmarks
+    Qt6::Svg
     ${MATH_LIB}
     ZLIB::ZLIB
 PUBLIC  # these are included from the installed headers
-    KF5::CoreAddons
-    KF5::XmlGui
-    KF5::ConfigGui
-    Qt5::PrintSupport
-    Qt5::Widgets
-    Qt5::CorePrivate
+    KF6::CoreAddons
+    KF6::XmlGui
+    KF6::ConfigGui
+    Qt6::PrintSupport
+    Qt6::Widgets
 )
-
-
-if (KF5Wallet_FOUND)
-    target_link_libraries(okularcore PRIVATE KF5::Wallet)
+if (Phonon4Qt6_FOUND)
+    target_link_libraries(okularcore PRIVATE Phonon::phonon4qt6)
 endif()
-if (KF5JS_FOUND)
+
+
+if (KF6Wallet_FOUND)
+    target_link_libraries(okularcore PRIVATE KF6::Wallet)
+endif()
+if (TARGET Qt6::Qml)
     target_sources(okularcore PRIVATE
-            core/script/executor_kjs.cpp
-            core/script/kjs_app.cpp
-            core/script/kjs_console.cpp
-            core/script/kjs_data.cpp
-            core/script/kjs_display.cpp
-            core/script/kjs_document.cpp
-            core/script/kjs_field.cpp
-            core/script/kjs_fullscreen.cpp
-            core/script/kjs_field.cpp
-            core/script/kjs_spell.cpp
-            core/script/kjs_util.cpp
-            core/script/kjs_event.cpp
-            core/script/kjs_ocg.cpp
+            core/script/executor_js.cpp
+            core/script/js_app.cpp
+            core/script/js_console.cpp
+            core/script/js_data.cpp
+            core/script/js_display.cpp
+            core/script/js_document.cpp
+            core/script/js_field.cpp
+            core/script/js_fullscreen.cpp
+            core/script/js_field.cpp
+            core/script/js_spell.cpp
+            core/script/js_util.cpp
+            core/script/js_event.cpp
+            core/script/js_ocg.cpp
     )
-    target_link_libraries(okularcore PRIVATE KF5::JS KF5::JSApi)
+    target_link_libraries(okularcore PRIVATE Qt6::Qml)
 endif()
 
-set_target_properties(okularcore PROPERTIES VERSION 10.0.0 SOVERSION 10 OUTPUT_NAME Okular5Core EXPORT_NAME Core)
+set_target_properties(okularcore PROPERTIES VERSION 1.0.0 SOVERSION 1 OUTPUT_NAME Okular6Core EXPORT_NAME Core)
 
-install(TARGETS okularcore EXPORT Okular5Targets ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
+install(TARGETS okularcore EXPORT Okular6Targets ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
 
 install(FILES conf/okular.kcfg DESTINATION ${KDE_INSTALL_KCFGDIR})
 install(FILES conf/okular_core.kcfg DESTINATION ${KDE_INSTALL_KCFGDIR})
-install(FILES core/okularGenerator.desktop DESTINATION ${KDE_INSTALL_KSERVICETYPES5DIR})
 
 if(BUILD_DESKTOP)
   # okularpart
@@ -509,7 +517,6 @@ if(BUILD_DESKTOP)
     part/widgetconfigurationtoolsbase.cpp
     part/widgetdrawingtools.cpp
     part/part.cpp
-    part/xmlgui_helper.cpp
     part/extensions.cpp
     part/embeddedfilesdialog.cpp
     part/actionbar.cpp
@@ -557,9 +564,12 @@ if(BUILD_DESKTOP)
     part/signaturepartutils.cpp
     part/signaturepropertiesdialog.cpp
     part/signaturepanel.cpp
-  )
 
-if (Qt5TextToSpeech_FOUND)
+    part/part.qrc
+  )
+  ki18n_wrap_ui(okularpart_SRCS part/selectcertificatedialog.ui)
+
+if (Qt6TextToSpeech_FOUND)
    set(okularpart_SRCS ${okularpart_SRCS}
       part/tts.cpp)
 endif()
@@ -571,75 +581,74 @@ generate_export_header(okularpart BASE_NAME okularpart)
 
 target_link_libraries(okularpart okularcore
     ${MATH_LIB}
-    Qt5::Svg
-    Phonon::phonon4qt5
-    KF5::Archive
-    KF5::Bookmarks
-    KF5::I18n
-    KF5::IconThemes
-    KF5::ItemViews
-    KF5::KIOCore
-    KF5::KIOFileWidgets
-    KF5::KIOWidgets
-    KF5::Parts
-    KF5::Solid
-    KF5::WindowSystem
-    KF5::TextWidgets
+    Qt6::Svg
+    KF6::Archive
+    KF6::Bookmarks
+    KF6::I18n
+    KF6::IconThemes
+    KF6::ItemViews
+    KF6::KIOCore
+    KF6::KIOWidgets
+    KF6::Parts
+    KF6::WindowSystem
+    KF6::TextWidgets
 )
-
-if(KF5Wallet_FOUND)
-    target_link_libraries(okularpart KF5::Wallet)
+if (TARGET Qt6::DBus)
+    target_link_libraries(okularpart Qt6::DBus)
+endif()
+if (Phonon4Qt6_FOUND)
+   target_link_libraries(okularpart Phonon::phonon4qt6)
 endif()
 
-if (KF5Purpose_FOUND)
-    target_link_libraries(okularpart KF5::PurposeWidgets)
+if(KF6Wallet_FOUND)
+    target_link_libraries(okularpart KF6::Wallet)
+endif()
+
+if (KF6Purpose_FOUND)
+    target_link_libraries(okularpart KF6::PurposeWidgets)
 endif()
 
 set_target_properties(okularpart PROPERTIES PREFIX "")
+set_target_properties(okularpart PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/kf6/parts)
 
-if (Qt5TextToSpeech_FOUND)
-   target_link_libraries(okularpart Qt5::TextToSpeech)
+if (Qt6TextToSpeech_FOUND)
+   target_link_libraries(okularpart Qt6::TextToSpeech)
 endif()
-install(TARGETS okularpart DESTINATION ${KDE_INSTALL_PLUGINDIR})
-endif()
+
+#instead install the part to this path so it can be found
+install(TARGETS okularpart DESTINATION ${KDE_INSTALL_PLUGINDIR}/kf6/parts/ )
+
+endif()# End of BUILD_DESKTOP if
 
 
 ########### install files ###############
 
 install(FILES okular.upd DESTINATION ${KDE_INSTALL_KCONFUPDATEDIR})
-
-install( FILES okular_part.desktop  DESTINATION  ${KDE_INSTALL_KSERVICES5DIR} )
-install( FILES part/part.rc part/part-viewermode.rc DESTINATION ${KDE_INSTALL_KXMLGUI5DIR}/okular )
-
-if (${ECM_VERSION} STRGREATER "5.58.0")
-    install(FILES okular.categories  DESTINATION  ${KDE_INSTALL_LOGGINGCATEGORIESDIR})
-else()
-    install(FILES okular.categories  DESTINATION ${KDE_INSTALL_CONFDIR})
-endif()
+install(FILES okular.categories  DESTINATION  ${KDE_INSTALL_LOGGINGCATEGORIESDIR})
 
 ki18n_install(po)
-if(KF5DocTools_FOUND)
+if(KF6DocTools_FOUND)
     kdoctools_install(po)
 endif()
 
 ########### cmake files #################
 
-set(CMAKECONFIG_INSTALL_DIR "${KDE_INSTALL_CMAKEPACKAGEDIR}/Okular5")
+set(CMAKECONFIG_INSTALL_DIR "${KDE_INSTALL_CMAKEPACKAGEDIR}/Okular6")
 configure_package_config_file(
-  "${CMAKE_CURRENT_SOURCE_DIR}/Okular5Config.cmake.in"
-  "${CMAKE_CURRENT_BINARY_DIR}/Okular5Config.cmake"
+  "${CMAKE_CURRENT_SOURCE_DIR}/Okular6Config.cmake.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/Okular6Config.cmake"
   INSTALL_DESTINATION  ${CMAKECONFIG_INSTALL_DIR}
-  PATH_VARS  INCLUDE_INSTALL_DIR CMAKE_INSTALL_PREFIX
+  PATH_VARS  KDE_INSTALL_INCLUDEDIR CMAKE_INSTALL_PREFIX
 )
 
 install(FILES
-  "${CMAKE_CURRENT_BINARY_DIR}/Okular5Config.cmake"
-  "${CMAKE_CURRENT_BINARY_DIR}/Okular5ConfigVersion.cmake"
+  "${CMAKE_CURRENT_BINARY_DIR}/Okular6Config.cmake"
+  "${CMAKE_CURRENT_BINARY_DIR}/Okular6ConfigVersion.cmake"
   DESTINATION "${CMAKECONFIG_INSTALL_DIR}"
   COMPONENT Devel
 )
 
-install(EXPORT Okular5Targets DESTINATION "${CMAKECONFIG_INSTALL_DIR}" FILE Okular5Targets.cmake NAMESPACE Okular::)
+install(EXPORT Okular6Targets DESTINATION "${CMAKECONFIG_INSTALL_DIR}" FILE Okular6Targets.cmake NAMESPACE Okular::)
 
 install(FILES
    core/stamps.svg

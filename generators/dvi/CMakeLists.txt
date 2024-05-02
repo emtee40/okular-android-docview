@@ -45,13 +45,12 @@ set(okularGenerator_dvi_SRCS
 
 okular_add_generator(okularGenerator_dvi ${okularGenerator_dvi_SRCS})
 
-target_link_libraries(okularGenerator_dvi okularcore KF5::I18n)
+target_link_libraries(okularGenerator_dvi okularcore KF6::I18n)
 if (FREETYPE_FOUND)
    target_link_libraries(okularGenerator_dvi Freetype::Freetype)
 endif (FREETYPE_FOUND)
 
 
 ########### install files ###############
-install( FILES okularDvi.desktop  DESTINATION  ${KDE_INSTALL_KSERVICES5DIR} )
 install( PROGRAMS okularApplication_dvi.desktop org.kde.mobile.okular_dvi.desktop  DESTINATION  ${KDE_INSTALL_APPDIR} )
 install( FILES org.kde.okular-dvi.metainfo.xml DESTINATION ${KDE_INSTALL_METAINFODIR} )

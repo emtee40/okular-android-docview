@@ -7,13 +7,12 @@
 #include "welcomescreen.h"
 
 #include <KConfigGroup>
+#include <KIO/OpenFileManagerWindowJob>
 #include <KIconLoader>
 #include <KSharedConfig>
 
 #include <QAction>
 #include <QClipboard>
-#include <QDesktopServices>
-#include <QDir>
 #include <QGraphicsOpacityEffect>
 #include <QGuiApplication>
 #include <QMenu>
@@ -42,10 +41,10 @@ public:
         const RecentItemsModel *model = static_cast<RecentItemsModel *>(aModel);
         const RecentItemsModel::RecentItem *item = model->getItem(index);
 
-        bool willOpenMenu = false;
         QPoint menuPosition;
 
         if (item != nullptr) {
+            bool willOpenMenu = false;
             if (event->type() == QEvent::ContextMenu) {
                 willOpenMenu = true;
                 menuPosition = static_cast<QContextMenuEvent *>(event)->globalPos();
@@ -53,7 +52,7 @@ public:
             if (event->type() == QEvent::MouseButtonPress) {
                 if (static_cast<QMouseEvent *>(event)->button() == Qt::MouseButton::RightButton) {
                     willOpenMenu = true;
-                    menuPosition = static_cast<QMouseEvent *>(event)->globalPos();
+                    menuPosition = static_cast<QMouseEvent *>(event)->globalPosition().toPoint();
                 }
             }
 
@@ -79,10 +78,7 @@ public:
                 showDirectoryAction->setIcon(QIcon::fromTheme(QStringLiteral("document-open-folder")));
                 connect(showDirectoryAction, &QAction::triggered, this, [item]() {
                     if (item->url.isLocalFile()) {
-                        QFileInfo fileInfo(item->url.toLocalFile());
-                        QDir parentDir = fileInfo.dir();
-                        QUrl parentDirUrl = QUrl::fromLocalFile(parentDir.absolutePath());
-                        QDesktopServices::openUrl(parentDirUrl);
+                        KIO::highlightInFileManager({item->url});
                     }
                 });
                 menu.addAction(showDirectoryAction);
@@ -116,8 +112,6 @@ WelcomeScreen::WelcomeScreen(QWidget *parent)
     Q_ASSERT(parent);
 
     setupUi(this);
-
-    appIcon->setPixmap(QIcon::fromTheme(QStringLiteral("okular")).pixmap(KIconLoader::SizeEnormous));
 
     connect(openButton, &QPushButton::clicked, this, &WelcomeScreen::openClicked);
     connect(closeButton, &QPushButton::clicked, this, &WelcomeScreen::closeClicked);
@@ -155,9 +149,18 @@ WelcomeScreen::~WelcomeScreen()
     delete m_recentsItemDelegate;
 }
 
+void WelcomeScreen::showEvent(QShowEvent *e)
+{
+    if (appIcon->pixmap(Qt::ReturnByValue).isNull()) {
+        appIcon->setPixmap(QIcon::fromTheme(QStringLiteral("okular")).pixmap(KIconLoader::SizeEnormous));
+    }
+
+    QWidget::showEvent(e);
+}
+
 void WelcomeScreen::loadRecents()
 {
-    m_recentsModel->loadEntries(KSharedConfig::openConfig()->group("Recent Files"));
+    m_recentsModel->loadEntries(KSharedConfig::openConfig()->group(QStringLiteral("Recent Files")));
 }
 
 int WelcomeScreen::recentsCount()

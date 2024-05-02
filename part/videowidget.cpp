@@ -22,15 +22,21 @@
 #include <KLocalizedString>
 #include <QIcon>
 
+#include "config-okular.h"
+
+#if HAVE_PHONON
 #include <phonon/mediaobject.h>
 #include <phonon/seekslider.h>
 #include <phonon/videoplayer.h>
+#endif
 
 #include "core/annotations.h"
 #include "core/area.h"
 #include "core/document.h"
 #include "core/movie.h"
 #include "snapshottaker.h"
+
+#if HAVE_PHONON
 
 static QAction *createToolBarButtonWithWidgetPopup(QToolBar *toolBar, QWidget *widget, const QIcon &icon)
 {
@@ -245,7 +251,7 @@ VideoWidget::VideoWidget(const Okular::Annotation *annotation, Okular::Movie *mo
     d->playPauseAction = new QAction(d->controlBar);
     d->controlBar->addAction(d->playPauseAction);
     d->setupPlayPauseAction(Private::PlayMode);
-    d->stopAction = d->controlBar->addAction(QIcon::fromTheme(QStringLiteral("media-playback-stop")), i18nc("stop the movie playback", "Stop"), this, SLOT(stop()));
+    d->stopAction = d->controlBar->addAction(QIcon::fromTheme(QStringLiteral("media-playback-stop")), i18nc("stop the movie playback", "Stop"), this, &VideoWidget::stop);
     d->stopAction->setEnabled(false);
     d->controlBar->addSeparator();
     d->seekSlider = new Phonon::SeekSlider(d->player->mediaObject(), d->controlBar);
@@ -271,7 +277,7 @@ VideoWidget::VideoWidget(const Okular::Annotation *annotation, Okular::Movie *mo
     d->posterImagePage->setCursor(Qt::PointingHandCursor);
 
     d->pageLayout = new QStackedLayout(this);
-    d->pageLayout->setMargin(0);
+    d->pageLayout->setContentsMargins({});
     d->pageLayout->setSpacing(0);
     d->pageLayout->addWidget(playerPage);
     d->pageLayout->addWidget(d->posterImagePage);
@@ -325,6 +331,9 @@ void VideoWidget::pageEntered()
     if (d->movie->autoPlay()) {
         show();
         QMetaObject::invokeMethod(this, "play", Qt::QueuedConnection);
+        if (d->movie->startPaused()) {
+            QMetaObject::invokeMethod(this, "pause", Qt::QueuedConnection);
+        }
     }
 }
 
@@ -378,7 +387,7 @@ bool VideoWidget::eventFilter(QObject *object, QEvent *event)
                 QWheelEvent *we = static_cast<QWheelEvent *>(event);
 
                 // forward wheel events to parent widget
-                QWheelEvent *copy = new QWheelEvent(we->pos(), we->globalPos(), we->angleDelta().y(), we->buttons(), we->modifiers(), we->orientation());
+                QWheelEvent *copy = new QWheelEvent(we->position(), we->globalPosition(), we->pixelDelta(), we->angleDelta(), we->buttons(), we->modifiers(), we->phase(), we->inverted(), we->source());
                 QCoreApplication::postEvent(parentWidget(), copy);
             }
             break;
@@ -417,5 +426,94 @@ void VideoWidget::resizeEvent(QResizeEvent *event)
         d->seekSliderMenuAction->setVisible(false);
     }
 }
+#else
 
+class VideoWidget::Private
+{
+public:
+    Okular::NormalizedRect geom;
+};
+
+bool VideoWidget::event(QEvent *event)
+{
+    return QWidget::event(event);
+}
+
+bool VideoWidget::eventFilter(QObject *object, QEvent *event)
+{
+    return QWidget::eventFilter(object, event);
+}
+
+bool VideoWidget::isPlaying() const
+{
+    return false;
+}
+
+Okular::NormalizedRect VideoWidget::normGeometry() const
+{
+    return d->geom;
+}
+
+void VideoWidget::pageEntered()
+{
+    show();
+}
+
+void VideoWidget::pageInitialized()
+{
+}
+
+void VideoWidget::pageLeft()
+{
+}
+void VideoWidget::pause()
+{
+}
+void VideoWidget::play()
+{
+}
+
+void VideoWidget::resizeEvent(QResizeEvent *event)
+{
+    QWidget::resizeEvent(event);
+}
+
+void VideoWidget::setNormGeometry(const Okular::NormalizedRect &rect)
+{
+    d->geom = rect;
+}
+
+void VideoWidget::stop()
+{
+}
+
+VideoWidget::VideoWidget(const Okular::Annotation *annotation, Okular::Movie *movie, Okular::Document *document, QWidget *parent)
+    : QWidget(parent)
+    , d(new VideoWidget::Private)
+{
+    auto layout = new QVBoxLayout();
+    d->geom = annotation->transformedBoundingRectangle();
+    auto poster = new QLabel;
+    if (movie->showPosterImage()) {
+        auto posterImage = movie->posterImage();
+        if (!posterImage.isNull()) {
+            poster->setPixmap(QPixmap::fromImage(posterImage));
+        }
+    }
+    Q_EMIT document->warning(i18n("Videos not supported in this okular"), 5000);
+    poster->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
+    layout->addWidget(poster, 2);
+
+    auto label = new QLabel(i18n("Videos not supported in this Okular"));
+    label->setAutoFillBackground(true);
+    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+    layout->addWidget(label, 1, Qt::AlignCenter);
+    setLayout(layout);
+}
+
+VideoWidget::~VideoWidget() noexcept
+{
+}
+
+#endif
 #include "moc_videowidget.cpp"

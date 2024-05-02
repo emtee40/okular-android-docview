@@ -5,11 +5,9 @@ include_directories(
   ${CMAKE_CURRENT_BINARY_DIR}/../../
 )
 add_executable(okularkirigami main.cpp app.qrc)
-target_link_libraries(okularkirigami Qt5::Widgets Qt5::Qml KF5::I18n KF5::CoreAddons)
+target_link_libraries(okularkirigami Qt6::Widgets Qt6::Qml KF6::I18n KF6::CoreAddons)
 if (ANDROID)
-    find_package(Qt5 COMPONENTS AndroidExtras)
     target_sources(okularkirigami PRIVATE android.cpp)
-    target_link_libraries(okularkirigami Qt5::AndroidExtras)
 
     # androiddeployqt only packages libraries needed by the main binary.
     # That is problematic because some of the libraries we need we only use in plugins
@@ -40,6 +38,7 @@ if (ANDROID)
         dialog-close
         document-open
         help-about-symbolic
+        okular
         view-preview
         view-table-of-contents-ltr
     )
@@ -47,5 +46,5 @@ endif()
 
 install(TARGETS okularkirigami ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
 
-install(FILES package/metadata.desktop DESTINATION ${XDG_APPS_INSTALL_DIR} RENAME org.kde.okular.kirigami.desktop)
+install(FILES package/metadata.desktop DESTINATION ${KDE_INSTALL_APPDIR} RENAME org.kde.okular.kirigami.desktop)
 install( FILES org.kde.okular.kirigami.appdata.xml DESTINATION  ${KDE_INSTALL_METAINFODIR} )

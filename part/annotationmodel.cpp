@@ -120,7 +120,7 @@ static void updateAnnotationPointer(AnnItem *item, const QVector<Okular::Page *>
         }
     }
 
-    for (AnnItem *child : qAsConst(item->children)) {
+    for (AnnItem *child : std::as_const(item->children)) {
         updateAnnotationPointer(child, pages);
     }
 }
@@ -321,7 +321,12 @@ QVariant AnnotationModel::data(const QModelIndex &index, int role) const
     AnnItem *item = static_cast<AnnItem *>(index.internalPointer());
     if (!item->annotation) {
         if (role == Qt::DisplayRole) {
-            return i18n("Page %1", item->page + 1);
+            auto *page = d->document->page(item->page);
+            if (page && !page->label().isEmpty() && page->label().toInt() != item->page + 1) {
+                return i18nc("Page label (number)", "Page %1 (%2)", page->label(), item->page + 1);
+            } else {
+                return i18n("Page %1", item->page + 1);
+            }
         } else if (role == Qt::DecorationRole) {
             return QIcon::fromTheme(QStringLiteral("text-plain"));
         } else if (role == PageRole) {
@@ -331,9 +336,15 @@ QVariant AnnotationModel::data(const QModelIndex &index, int role) const
         return QVariant();
     }
     switch (role) {
-    case Qt::DisplayRole:
-        return GuiUtils::captionForAnnotation(item->annotation);
+    case Qt::DisplayRole: {
+        const QString contents = item->annotation->contents().simplified();
+        if (!contents.isEmpty()) {
+            return i18nc("Annotation type: contents", "%1: %2", GuiUtils::captionForAnnotation(item->annotation), contents);
+        } else {
+            return GuiUtils::captionForAnnotation(item->annotation);
+        }
         break;
+    }
     case Qt::DecorationRole:
         return QIcon::fromTheme(QStringLiteral("okular"));
         break;

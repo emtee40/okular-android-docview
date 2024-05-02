@@ -9,6 +9,7 @@
 #include <QAbstractTextDocumentLayout>
 #include <QApplication> // Because of the HACK
 #include <QFileInfo>
+#include <QRegularExpression>
 #include <QTextDocument>
 #include <QTextDocumentFragment>
 #include <QTextFrame>
@@ -215,8 +216,10 @@ QTextDocument *Converter::convert(const QString &fileName)
         QString htmlContent = QString::fromUtf8(epub_it_get_curr(it));
 
         // as QTextCharFormat::anchorNames() ignores sections, replace it with <p>
-        htmlContent.replace(QRegExp(QStringLiteral("< *section")), QStringLiteral("<p"));
-        htmlContent.replace(QRegExp(QStringLiteral("< */ *section")), QStringLiteral("</p"));
+        static const QRegularExpression sectionStart {QStringLiteral("< *section")};
+        htmlContent.replace(sectionStart, QStringLiteral("<p"));
+        static const QRegularExpression sectionEnd {QStringLiteral("< */ *section")};
+        htmlContent.replace(sectionEnd, QStringLiteral("</p"));
 
         // convert svg tags to img
         const int maxHeight = mTextDocument->maxContentHeight();
@@ -250,7 +253,7 @@ QTextDocument *Converter::convert(const QString &fileName)
                         newDoc.setContent(QStringLiteral("<img src=\"%1\" height=\"%2\" width=\"%3\" />").arg(lnk).arg(ht).arg(wd));
                         imgNodes.append(newDoc.documentElement());
                     }
-                    for (const QDomNode &nd : qAsConst(imgNodes)) {
+                    for (const QDomNode &nd : std::as_const(imgNodes)) {
                         svgs.at(i).parentNode().replaceChild(nd, svgs.at(i));
                     }
                 }

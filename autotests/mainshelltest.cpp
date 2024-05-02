@@ -7,14 +7,22 @@
 // clazy:excludeall=qstring-allocations
 
 #include <QTest>
+#include <config-okular.h>
 
 #include <KConfigGroup>
 #include <KLineEdit>
 #include <KRecentFilesAction>
+
+#if HAVE_DBUS
+#include <QDBusConnection>
+#include <QDBusConnectionInterface>
+#endif // HAVE_DBUS
 #include <QPrintDialog>
 #include <QStandardPaths>
 #include <QTabBar>
 #include <QTabWidget>
+#include <QTemporaryFile>
+#include <QTimer>
 #include <qwidget.h>
 
 #include "../core/document_p.h"
@@ -137,16 +145,17 @@ void MainShellTest::initTestCase()
     Okular::Settings::instance(QStringLiteral("mainshelltest"));
 
     // Register in bus as okular
+#if HAVE_DBUS
     QDBusConnectionInterface *bus = QDBusConnection::sessionBus().interface();
     const QString myPid = QString::number(getpid());
     const QString serviceName = QStringLiteral("org.kde.okular-") + myPid;
     QVERIFY(bus->registerService(serviceName) == QDBusConnectionInterface::ServiceRegistered);
-
+#endif
     // Tell the presentationWidget and queryClose to not be annoying
-    KSharedConfigPtr c = KSharedConfig::openConfig();
-    KConfigGroup cg = c->group("Notification Messages");
-    cg.writeEntry("presentationInfo", false);
-    cg.writeEntry("ShowTabWarning", false);
+    KSharedConfigPtr c = KSharedConfig::openConfig(QStringLiteral("mainshelltest.kmessagebox"));
+    KConfigGroup cg = c->group(QStringLiteral("General"));
+    cg.writeEntry("presentationInfo", 4);
+    cg.writeEntry("ShowTabWarning", 4);
 }
 
 void MainShellTest::cleanupTestCase()
@@ -211,11 +220,14 @@ void MainShellTest::testShell_data()
     QTest::newRow("two files no tabs") << file1AndToc << QString() << false << QString() << 0u << false << false << false << 0u << false << false << QString();
     QTest::newRow("two files with tabs") << file1AndToc << QString() << true << QString() << 0u << false << false << false << 0u << false << false << QString();
     QTest::newRow("two files sequence no tabs") << file1 << QString() << false << tocReload << 0u << false << false << false << 0u << false << false << QString();
+#if HAVE_DBUS
     QTest::newRow("two files sequence with tabs") << file1 << QString() << true << tocReload << 0u << false << false << false << 0u << false << false << QString();
+#endif // HAVE_DBUS
     QTest::newRow("open file page number") << contentsEpub << optionsPage2 << false << QString() << 1u << false << false << false << 0u << false << false << QString();
     QTest::newRow("open file page number and presentation") << contentsEpub << optionsPage2Presentation << false << QString() << 1u << true << false << false << 0u << false << false << QString();
     QTest::newRow("open file find") << file1 << optionsFind << false << QString() << 0u << false << false << false << 0u << false << false << QStringLiteral("si:next-testing parameters!");
     QTest::newRow("open file print") << file1 << optionsPrint << false << QString() << 0u << false << true << false << 0u << false << false << QString();
+#if HAVE_DBUS
     QTest::newRow("open two files unique") << file1 << optionsUnique << false << tocReload << 0u << false << false << true << 0u << false << false << QString();
     QTest::newRow("open two files unique tabs") << file1 << optionsUnique << true << tocReload << 0u << false << false << true << 0u << false << false << QString();
     QTest::newRow("page number attach tabs") << file1 << QString() << true << contentsEpub[0] << 0u << false << false << false << 2u << false << false << QString();
@@ -227,6 +239,7 @@ void MainShellTest::testShell_data()
     QTest::newRow("page number attach unique tabs") << file1 << optionsUnique << true << contentsEpub[0] << 0u << false << false << true << 3u << false << false << QString();
     QTest::newRow("presentation attach unique tabs") << file1 << optionsUnique << true << contentsEpub[0] << 0u << false << false << true << 2u << true << false << QString();
     QTest::newRow("print attach unique tabs") << file1 << optionsUnique << true << contentsEpub[0] << 0u << false << false << true << 2u << false << true << QString();
+#endif // HAVE_DBUS
 }
 
 void MainShellTest::testShell()
@@ -300,7 +313,7 @@ void MainShellTest::testShell()
             QCOMPARE(partDocument(part2)->currentPage(), expectedPage);
             openUrls << part2->url().url();
 
-            for (const QString &path : qAsConst(paths)) {
+            for (const QString &path : std::as_const(paths)) {
                 QVERIFY(openUrls.contains(QStringLiteral("file://%1").arg(path)));
             }
         }
@@ -469,8 +482,10 @@ void MainShellTest::test2FilesError_data()
 
     QTest::newRow("startInPresentation") << ShellUtils::serializeOptions(true, false, false, false, false, QString(), QString(), QString());
     QTest::newRow("showPrintDialog") << ShellUtils::serializeOptions(false, true, false, false, false, QString(), QString(), QString());
+#if HAVE_DBUS
     QTest::newRow("unique") << ShellUtils::serializeOptions(false, false, false, true, false, QString(), QString(), QString());
     QTest::newRow("pageNumber") << ShellUtils::serializeOptions(false, false, false, false, false, QStringLiteral("3"), QString(), QString());
+#endif // HAVE_DBUS
     QTest::newRow("find") << ShellUtils::serializeOptions(false, false, false, false, false, QString(), QStringLiteral("silly"), QString());
 }
 
@@ -524,7 +539,7 @@ void MainShellTest::testSessionRestore()
     QList<Shell *> shells = getShells();
     QVERIFY(!shells.isEmpty());
     int numDocs = 0;
-    for (Shell *shell : qAsConst(shells)) {
+    for (Shell *shell : std::as_const(shells)) {
         QVERIFY(QTest::qWaitForWindowExposed(shell));
         numDocs += shell->m_tabs.size();
     }
@@ -544,7 +559,7 @@ void MainShellTest::testSessionRestore()
     int numWindows = 0;
     { // Scope for config so that we can reconstruct from file
         KConfig config(configFile.fileName(), KConfig::SimpleConfig);
-        for (Shell *shell : qAsConst(shells)) {
+        for (Shell *shell : std::as_const(shells)) {
             shell->savePropertiesInternal(&config, ++numWindows);
             // Windows aren't necessarily closed on shutdown, but we'll use
             // this as a way to trigger the destructor code, which is normally
@@ -558,8 +573,10 @@ void MainShellTest::testSessionRestore()
     QEventLoop eventLoop;
     QTimer::singleShot(100, &eventLoop, &QEventLoop::quit);
     eventLoop.exec(QEventLoop::AllEvents);
+    // Sometimes the event loop is not enough, so try a bit more to get deferred delete happen
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
     shells = getShells();
-    QVERIFY(shells.isEmpty());
+    QCOMPARE(shells.size(), 0);
 
     Okular::Settings::self()->setShellOpenFileInTabs(useTabsRestore);
 
@@ -577,7 +594,7 @@ void MainShellTest::testSessionRestore()
     shells = getShells();
     QVERIFY(!shells.isEmpty());
     numDocs = 0;
-    for (Shell *shell : qAsConst(shells)) {
+    for (Shell *shell : std::as_const(shells)) {
         QVERIFY(QTest::qWaitForWindowExposed(shell));
         numDocs += shell->m_tabs.size();
     }

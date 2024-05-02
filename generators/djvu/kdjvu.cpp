@@ -154,14 +154,6 @@ public:
 
 // KdjVu::Page
 
-KDjVu::Page::Page()
-{
-}
-
-KDjVu::Page::~Page()
-{
-}
-
 int KDjVu::Page::width() const
 {
     return m_width;
@@ -451,7 +443,7 @@ public:
     ddjvu_document_t *m_djvu_document;
     ddjvu_format_t *m_format;
 
-    QVector<KDjVu::Page *> m_pages;
+    QVector<KDjVu::Page> m_pages;
     QVector<ddjvu_page_t *> m_pages_cache;
 
     QList<ImageCacheItem *> mImgCache;
@@ -542,7 +534,7 @@ void KDjVu::Private::fillBookmarksRecurse(QDomDocument &maindoc, QDomNode &curno
                 if (dest.at(0) == QLatin1Char('#')) {
                     dest.remove(0, 1);
                     bool isNumber = false;
-                    dest.toInt(&isNumber);
+                    (void)dest.toInt(&isNumber);
                     if (isNumber) {
                         // it might be an actual page number, but could also be a page label
                         // so resolve the number, and get the real page number
@@ -631,11 +623,7 @@ KDjVu::KDjVu()
     // creating the djvu context
     d->m_djvu_cxt = ddjvu_context_create("KDjVu");
     // creating the rendering format
-#if DDJVUAPI_VERSION >= 18
     d->m_format = ddjvu_format_create(DDJVU_FORMAT_RGBMASK32, 4, Private::s_formatmask);
-#else
-    d->m_format = ddjvu_format_create(DDJVU_FORMAT_RGBMASK32, 3, Private::s_formatmask);
-#endif
     ddjvu_format_set_row_order(d->m_format, 1);
     ddjvu_format_set_y_direction(d->m_format, 1);
 }
@@ -717,15 +705,11 @@ bool KDjVu::openFile(const QString &fileName)
             return false;
         }
 
-        KDjVu::Page *p = new KDjVu::Page();
-        p->m_width = info.width;
-        p->m_height = info.height;
-        p->m_dpi = info.dpi;
-#if DDJVUAPI_VERSION >= 18
-        p->m_orientation = flipRotation(info.rotation);
-#else
-        p->m_orientation = 0;
-#endif
+        KDjVu::Page p;
+        p.m_width = info.width;
+        p.m_height = info.height;
+        p.m_dpi = info.dpi;
+        p.m_orientation = flipRotation(info.rotation);
         d->m_pages[i] = p;
     }
 
@@ -743,7 +727,6 @@ void KDjVu::closeFile()
     delete d->m_docBookmarks;
     d->m_docBookmarks = nullptr;
     // deleting the pages
-    qDeleteAll(d->m_pages);
     d->m_pages.clear();
     // releasing the djvu pages
     QVector<ddjvu_page_t *>::Iterator it = d->m_pages_cache.begin(), itEnd = d->m_pages_cache.end();
@@ -871,7 +854,7 @@ void KDjVu::linksAndAnnotationsForPage(int pageNum, QList<KDjVu::Link *> *links,
     }
 }
 
-const QVector<KDjVu::Page *> &KDjVu::pages() const
+const QVector<KDjVu::Page> &KDjVu::pages() const
 {
     return d->m_pages;
 }
@@ -1045,7 +1028,7 @@ QList<KDjVu::TextEntity> KDjVu::textEntities(int page, const QString &granularit
 
     QList<KDjVu::TextEntity> ret;
 
-    int height = d->m_pages.at(page)->height();
+    int height = d->m_pages.at(page).height();
 
     QQueue<miniexp_t> queue;
     queue.enqueue(r);

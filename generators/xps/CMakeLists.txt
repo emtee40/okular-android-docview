@@ -9,9 +9,8 @@ set(okularGenerator_xps_SRCS
 
 okular_add_generator(okularGenerator_xps ${okularGenerator_xps_SRCS})
 
-target_link_libraries(okularGenerator_xps okularcore KF5::Archive KF5::I18n Qt5::PrintSupport Qt5::Xml)
+target_link_libraries(okularGenerator_xps okularcore KF6::Archive KF6::I18n Qt6::PrintSupport Qt6::Xml)
 
 ########### install files ###############
-install( FILES okularXps.desktop  DESTINATION  ${KDE_INSTALL_KSERVICES5DIR} )
 install( PROGRAMS okularApplication_xps.desktop org.kde.mobile.okular_xps.desktop  DESTINATION  ${KDE_INSTALL_APPDIR} )
 install( FILES org.kde.okular-xps.metainfo.xml DESTINATION ${KDE_INSTALL_METAINFODIR} )

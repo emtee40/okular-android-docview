@@ -17,7 +17,6 @@
 #include <QLoggingCategory>
 #include <QStack>
 #include <QVariant>
-#include <QXmlDefaultHandler>
 #include <QXmlStreamReader>
 
 #include <kzip.h>
@@ -43,7 +42,7 @@ class XpsRenderNode
 public:
     QString name;
     QVector<XpsRenderNode> children;
-    QXmlAttributes attributes;
+    QXmlStreamAttributes attributes;
     QVariant data;
 
     const XpsRenderNode *findChild(const QString &name) const;
@@ -79,6 +78,7 @@ struct XpsPathFigure {
     QPainterPath path;
     bool isFilled;
 };
+
 struct XpsPathGeometry {
     XpsPathGeometry()
         : fillRule(Qt::OddEvenFill)
@@ -99,41 +99,6 @@ struct XpsPathGeometry {
 
 class XpsPage;
 class XpsFile;
-
-class XpsHandler : public QXmlDefaultHandler
-{
-public:
-    explicit XpsHandler(XpsPage *page);
-    ~XpsHandler() override;
-
-    bool startElement(const QString &nameSpace, const QString &localName, const QString &qname, const QXmlAttributes &atts) override;
-    bool endElement(const QString &nameSpace, const QString &localName, const QString &qname) override;
-    bool startDocument() override;
-
-protected:
-    XpsPage *m_page;
-
-    void processStartElement(XpsRenderNode &node);
-    void processEndElement(XpsRenderNode &node);
-
-    // Methods for processing of different xml elements
-    void processGlyph(XpsRenderNode &node);
-    void processPath(XpsRenderNode &node);
-    void processPathData(XpsRenderNode &node);
-    void processFill(XpsRenderNode &node);
-    void processStroke(XpsRenderNode &node);
-    void processImageBrush(XpsRenderNode &node);
-    void processPathGeometry(XpsRenderNode &node);
-    void processPathFigure(XpsRenderNode &node);
-
-    QPainter *m_painter;
-
-    QImage m_image;
-
-    QStack<XpsRenderNode> m_nodes;
-
-    friend class XpsPage;
-};
 
 class XpsPage
 {
@@ -156,15 +121,27 @@ public:
     }
 
 private:
+    // Methods for processing of different xml elements
+    void processStartElement(QPainter *painter, const XpsRenderNode &node);
+    void processEndElement(QPainter *painter, XpsRenderNode &node);
+    void processGlyph(QPainter *painter, const XpsRenderNode &node);
+    void processPath(QPainter *painter, const XpsRenderNode &node);
+    void processPathData(XpsRenderNode &node);
+    void processFill(XpsRenderNode &node);
+    void processStroke(XpsRenderNode &node);
+    void processImageBrush(XpsRenderNode &node);
+    void processPathGeometry(XpsRenderNode &node);
+    void processPathFigure(XpsRenderNode &node);
+
     XpsFile *m_file;
     const QString m_fileName;
+    QStack<XpsRenderNode> m_nodes;
 
     QSizeF m_pageSize;
 
     QString m_thumbnailFileName;
     bool m_thumbnailMightBeAvailable;
     QImage m_thumbnail;
-    bool m_thumbnailIsLoaded;
 
     QImage *m_pageImage;
     bool m_pageIsRendered;
@@ -213,10 +190,10 @@ public:
 private:
     void parseDocumentStructure(const QString &documentStructureFileName);
 
-    QList<XpsPage *> m_pages;
+    std::vector<std::unique_ptr<XpsPage>> m_pages;
     XpsFile *m_file;
     bool m_haveDocumentStructure;
-    Okular::DocumentSynopsis *m_docStructure;
+    std::unique_ptr<Okular::DocumentSynopsis> m_docStructure;
     QMap<QString, int> m_docStructurePageMap;
 };
 
@@ -278,19 +255,17 @@ public:
 private:
     int loadFontByName(const QString &absoluteFileName);
 
-    QList<XpsDocument *> m_documents;
+    std::vector<std::unique_ptr<XpsDocument>> m_documents;
     QList<XpsPage *> m_pages;
 
     QString m_thumbnailFileName;
-    bool m_thumbnailMightBeAvailable;
     QImage m_thumbnail;
-    bool m_thumbnailIsLoaded;
 
     QString m_corePropertiesFileName;
 
     QString m_signatureOrigin;
 
-    KZip *m_xpsArchive;
+    std::unique_ptr<KZip> m_xpsArchive;
 
     QMap<QString, int> m_fontCache;
     QFontDatabase m_fontDatabase;
@@ -320,7 +295,7 @@ protected:
     Okular::TextPage *textPage(Okular::TextRequest *request) override;
 
 private:
-    XpsFile *m_xpsFile;
+    std::unique_ptr<XpsFile> m_xpsFile;
 };
 
 Q_DECLARE_LOGGING_CATEGORY(OkularXpsDebug)

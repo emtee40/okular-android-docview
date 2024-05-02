@@ -48,6 +48,7 @@ Document::Document()
     : mDirectory(nullptr)
     , mUnrar(nullptr)
     , mArchive(nullptr)
+    , mArchiveDir(nullptr)
 {
 }
 
@@ -80,7 +81,7 @@ bool Document::open(const QString &fileName)
         if (!processArchive()) {
             return false;
         }
-#ifdef WITH_K7ZIP
+#if WITH_K7ZIP
         /**
          * We have a 7z archive
          */
@@ -186,7 +187,7 @@ void Document::pages(QVector<Okular::Page *> *pagesVector)
     pagesVector->resize(mEntries.size());
     QImageReader reader;
     reader.setAutoTransform(true);
-    for (const QString &file : qAsConst(mEntries)) {
+    for (const QString &file : std::as_const(mEntries)) {
         if (mArchive) {
             const KArchiveFile *entry = static_cast<const KArchiveFile *>(mArchiveDir->entry(file));
             if (entry) {

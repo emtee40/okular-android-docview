@@ -8,6 +8,7 @@
 
 #include <KLocalizedString>
 
+#include <QDomDocument>
 #include <QTextCursor>
 #include <QTextDocument>
 #include <QTextFrame>
@@ -21,26 +22,43 @@ extern "C" {
 #include <mkdio.h>
 }
 
-// older versions of discount might not have these flags.
-// defining them to 0 allows us to convert without them
-#ifndef MKD_FENCEDCODE
-#define MKD_FENCEDCODE 0
-#endif
-
-#ifndef MKD_GITHUBTAGS
-#define MKD_GITHUBTAGS 0
-#endif
-
-#ifndef MKD_AUTOLINK
-#define MKD_AUTOLINK 0
-#endif
-
 #define PAGE_WIDTH 980
 #define PAGE_HEIGHT 1307
 #define PAGE_MARGIN 45
 #define CONTENT_WIDTH (PAGE_WIDTH - 2 * PAGE_MARGIN)
 
 using namespace Markdown;
+
+static void recursiveRenameTags(QDomElement &elem)
+{
+    for (QDomNode node = elem.firstChild(); !node.isNull(); node = node.nextSibling()) {
+        QDomElement child = node.toElement();
+        if (!child.isNull()) {
+            // Discount emits <del> tags for ~~ but Qt doesn't understand them and
+            // removes them. Instead replace them with <s> tags which Qt does
+            // understand.
+            if (child.nodeName() == QStringLiteral("del")) {
+                child.setTagName(QStringLiteral("s"));
+            }
+            recursiveRenameTags(child);
+        }
+    }
+}
+
+QString detail::fixupHtmlTags(QString &&html)
+{
+    QDomDocument dom;
+    // Discount emits simplified HTML but QDomDocument will barf if everything isn't
+    // inside a "root" node. Luckily QTextDocument ignores unknown tags so we can just
+    // wrap the original HTML with a fake tag that'll be stripped off later.
+    if (!dom.setContent(QStringLiteral("<ignored_by_qt>") + html + QStringLiteral("</ignored_by_qt>"))) {
+        return std::move(html);
+    }
+    QDomElement elem = dom.documentElement();
+    recursiveRenameTags(elem);
+    // Don't add any indentation otherwise code blocks can gain indents.
+    return dom.toString(-1);
+}
 
 Converter::Converter()
     : m_markdownFile(nullptr)
@@ -57,6 +75,9 @@ Converter::~Converter()
 
 QTextDocument *Converter::convert(const QString &fileName)
 {
+    if (m_markdownFile) {
+        fclose(m_markdownFile);
+    }
     m_markdownFile = fopen(fileName.toLocal8Bit().constData(), "rb");
     if (!m_markdownFile) {
         Q_EMIT error(i18n("Failed to open the document"), -1);
@@ -91,8 +112,14 @@ void Converter::convertAgain()
 
 QTextDocument *Converter::convertOpenFile()
 {
-    rewind(m_markdownFile);
+    int result = fseek(m_markdownFile, 0, SEEK_SET);
+    if (result != 0) {
+        Q_EMIT error(i18n("Failed to open the document"), -1);
+        return nullptr;
+    }
 
+#if defined(MKD_NOLINKS)
+    // on discount 2 MKD_NOLINKS is a define
     MMIOT *markdownHandle = mkd_in(m_markdownFile, 0);
 
     int flags = MKD_FENCEDCODE | MKD_GITHUBTAGS | MKD_AUTOLINK | MKD_TOC | MKD_IDANCHOR;
@@ -103,11 +130,32 @@ QTextDocument *Converter::convertOpenFile()
         Q_EMIT error(i18n("Failed to compile the Markdown document."), -1);
         return nullptr;
     }
+#else
+    // on discount 3 MKD_NOLINKS is an enum value
+    MMIOT *markdownHandle = mkd_in(m_markdownFile, nullptr);
+
+    mkd_flag_t *flags = mkd_flags();
+    // These flags aren't bitflags, so they can't be | together
+    mkd_set_flag_num(flags, MKD_FENCEDCODE);
+    mkd_set_flag_num(flags, MKD_GITHUBTAGS);
+    mkd_set_flag_num(flags, MKD_AUTOLINK);
+    mkd_set_flag_num(flags, MKD_TOC);
+    mkd_set_flag_num(flags, MKD_IDANCHOR);
+    if (!m_isFancyPantsEnabled) {
+        mkd_set_flag_num(flags, MKD_NOPANTS);
+    }
+    if (!mkd_compile(markdownHandle, flags)) {
+        Q_EMIT error(i18n("Failed to compile the Markdown document."), -1);
+        mkd_free_flags(flags);
+        return nullptr;
+    }
+    mkd_free_flags(flags);
+#endif
 
     char *htmlDocument;
     const int size = mkd_document(markdownHandle, &htmlDocument);
 
-    const QString html = QString::fromUtf8(htmlDocument, size);
+    const QString html = detail::fixupHtmlTags(QString::fromUtf8(htmlDocument, size));
 
     QTextDocument *textDocument = new QTextDocument;
     textDocument->setPageSize(QSizeF(PAGE_WIDTH, PAGE_HEIGHT));
@@ -207,10 +255,8 @@ void Converter::convertImages(const QTextBlock &parent, const QDir &dir, QTextDo
                     setImageSize(format, specifiedWidth, specifiedHeight, img.width(), img.height());
 
                     cursor.insertImage(format);
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
                 } else if ((!textCharFormat.toImageFormat().property(QTextFormat::ImageAltText).toString().isEmpty())) {
                     cursor.insertText(textCharFormat.toImageFormat().property(QTextFormat::ImageAltText).toString());
-#endif
                 }
             }
         }

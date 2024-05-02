@@ -46,7 +46,7 @@ PixmapPreviewSelector::PixmapPreviewSelector(QWidget *parent, PreviewPosition po
 {
     QVBoxLayout *mainlay = new QVBoxLayout(this);
     mainlay->setContentsMargins(0, 0, 0, 0);
-    QHBoxLayout *toplay = new QHBoxLayout(this);
+    QHBoxLayout *toplay = new QHBoxLayout;
     toplay->setContentsMargins(0, 0, 0, 0);
     mainlay->addLayout(toplay);
     m_comboItems = new KComboBox(this);
@@ -73,7 +73,7 @@ PixmapPreviewSelector::PixmapPreviewSelector(QWidget *parent, PreviewPosition po
     setFocusPolicy(Qt::TabFocus);
     setFocusProxy(m_comboItems);
 
-    connect(m_comboItems, QOverload<const QString &>::of(&QComboBox::currentIndexChanged), this, &PixmapPreviewSelector::iconComboChanged);
+    connect(m_comboItems, &QComboBox::currentIndexChanged, this, [this](int index) { iconComboChanged(m_comboItems->itemText(index)); });
     connect(m_comboItems, &QComboBox::editTextChanged, this, &PixmapPreviewSelector::iconComboChanged);
     connect(m_stampPushButton, &QPushButton::clicked, this, &PixmapPreviewSelector::selectCustomStamp);
 }
@@ -445,22 +445,6 @@ StampAnnotationWidget::StampAnnotationWidget(Okular::Annotation *ann)
 void StampAnnotationWidget::createStyleWidget(QFormLayout *formlayout)
 {
     QWidget *widget = qobject_cast<QWidget *>(formlayout->parent());
-
-    const Okular::PagePrivate *const pagePrivate = Okular::AnnotationPrivate::get(m_stampAnn)->m_page;
-    if (pagePrivate) {
-        // Not all stamps are associated with pages, e.g. when we're creating a quick annotation tool
-        Okular::Document *doc = pagePrivate->m_doc->m_parent;
-        if (doc->metaData(QStringLiteral("ShowStampsWarning")).toString() == QLatin1String("yes")) {
-            KMessageWidget *brokenStampSupportWarning = new KMessageWidget(widget);
-            brokenStampSupportWarning->setText(xi18nc("@info",
-                                                      "<warning>experimental feature.<nl/>"
-                                                      "Stamps inserted in PDF documents are not visible in PDF readers other than Okular.</warning>"));
-            brokenStampSupportWarning->setMessageType(KMessageWidget::Warning);
-            brokenStampSupportWarning->setWordWrap(true);
-            brokenStampSupportWarning->setCloseButtonVisible(false);
-            formlayout->insertRow(0, brokenStampSupportWarning);
-        }
-    }
 
     addOpacitySpinBox(widget, formlayout);
     addVerticalSpacer(formlayout);

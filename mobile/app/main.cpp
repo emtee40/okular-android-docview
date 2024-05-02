@@ -27,9 +27,10 @@ Q_DECL_EXPORT
 #endif
 int main(int argc, char *argv[])
 {
-    QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QApplication app(argc, argv);
     app.setApplicationName(QStringLiteral("okularkirigami"));
+
+    KLocalizedString::setApplicationDomain("org.kde.active.documentviewer");
 
     KAboutData aboutData = okularAboutData();
     KAboutData::setApplicationData(aboutData);

@@ -7,11 +7,11 @@
 #include "documentitem.h"
 
 #include <QMimeDatabase>
-#include <QtQml> // krazy:exclude=includes
+#include <QQmlEngine>
 
 #ifdef Q_OS_ANDROID
-#include <QAndroidJniObject>
-#include <QtAndroid>
+#include <QCoreApplication>
+#include <QJniObject>
 #endif
 
 #include <core/bookmarkmanager.h>
@@ -19,8 +19,6 @@
 #include <core/page.h>
 
 #include "gui/signatureguiutils.h"
-#include "gui/signaturemodel.h"
-#include "gui/tocmodel.h"
 
 DocumentItem::DocumentItem(QObject *parent)
     : QObject(parent)
@@ -63,7 +61,8 @@ void DocumentItem::openUrl(const QUrl &url, const QString &password)
     QUrl realUrl = url; // NOLINT(performance-unnecessary-copy-initialization) because of the ifdef below this can't be const &
 
 #ifdef Q_OS_ANDROID
-    realUrl = QUrl(QtAndroid::androidActivity().callObjectMethod("contentUrlToFd", "(Ljava/lang/String;)Ljava/lang/String;", QAndroidJniObject::fromString(url.toString()).object<jstring>()).toString());
+    realUrl =
+        QUrl(QJniObject(QNativeInterface::QAndroidApplication::context()).callObjectMethod("contentUrlToFd", "(Ljava/lang/String;)Ljava/lang/String;", QJniObject::fromString(url.toString(QUrl::FullyEncoded)).object<jstring>()).toString());
 #endif
 
     const QString path = realUrl.isLocalFile() ? realUrl.toLocalFile() : QStringLiteral("-");
@@ -174,7 +173,7 @@ QVariantList DocumentItem::bookmarkedPages() const
     std::sort(list.begin(), list.end());
 
     QVariantList variantList;
-    for (const int page : qAsConst(list)) {
+    for (const int page : std::as_const(list)) {
         variantList << page;
     }
     return variantList;

@@ -18,6 +18,7 @@
 #ifndef _OKULAR_PAGEVIEW_H_
 #define _OKULAR_PAGEVIEW_H_
 
+#include "config-okular.h"
 #include "core/area.h"
 #include "core/observer.h"
 #include "core/view.h"
@@ -35,6 +36,7 @@ namespace Okular
 class Action;
 class Document;
 class DocumentViewport;
+class FormField;
 class FormFieldSignature;
 class Annotation;
 class MovieAction;
@@ -91,8 +93,8 @@ public:
     QVariant capability(ViewCapability capability) const override;
     void setCapability(ViewCapability capability, const QVariant &option) override;
 
-    QList<Okular::RegularAreaRect *> textSelections(const QPoint start, const QPoint end, int &firstpage);
-    Okular::RegularAreaRect *textSelectionForItem(const PageViewItem *item, const QPoint startPoint = QPoint(), const QPoint endPoint = QPoint());
+    std::vector<std::unique_ptr<Okular::RegularAreaRect>> textSelections(const QPoint start, const QPoint end, int &firstpage);
+    std::unique_ptr<Okular::RegularAreaRect> textSelectionForItem(const PageViewItem *item, const QPoint startPoint = QPoint(), const QPoint endPoint = QPoint());
 
     void reparseConfig();
 
@@ -129,6 +131,7 @@ public Q_SLOTS:
     void slotSelectPage();
 
     void slotAction(Okular::Action *action);
+    void slotMouseUpAction(Okular::Action *action, Okular::FormField *form);
     void slotFormChanged(int pageNumber);
 
     void externalKeyPressEvent(QKeyEvent *e);
@@ -156,6 +159,8 @@ protected:
 
     void paintEvent(QPaintEvent *e) override;
     void tabletEvent(QTabletEvent *e) override;
+    void continuousZoom(double delta);
+    void continuousZoomEnd();
     void mouseMoveEvent(QMouseEvent *e) override;
     void mousePressEvent(QMouseEvent *e) override;
     void mouseReleaseEvent(QMouseEvent *e) override;
@@ -232,6 +237,12 @@ private:
      */
     bool getContinuousMode() const;
 
+    // Zoom around the point given as zoomCenter
+    // zoomCenter is given in viewport coordinates
+    // newZoom is the intended new zoom level.  A value of 0.0 means: Don't change the current zoom level.
+    // The zoomMode is set to newZoomMode.
+    void zoomWithFixedCenter(ZoomMode newZoomMode, QPointF zoomCenter, float newZoom = 0.0);
+
     // don't want to expose classes in here
     class PageViewPrivate *d;
 
@@ -286,7 +297,7 @@ private Q_SLOTS:
     void slotTrimToSelectionToggled(bool);
     void slotToggleForms();
     void slotRefreshPage();
-#ifdef HAVE_SPEECH
+#if HAVE_SPEECH
     void slotSpeakDocument();
     void slotSpeakCurrentPage();
     void slotStopSpeaks();

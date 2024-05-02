@@ -4,6 +4,7 @@
 #include <QDialog>
 #include <QPushButton>
 #include <QTest>
+#include <QTimer>
 
 namespace TestingUtils
 {
@@ -39,7 +40,7 @@ CloseDialogHelper::~CloseDialogHelper()
 void CloseDialogHelper::closeDialog()
 {
     QWidget *dialog = (m_widget) ? m_widget->findChild<QDialog *>() : qApp->activeModalWidget();
-    if (!dialog) {
+    if (!dialog || !QTest::qWaitForWindowExposed(dialog)) {
         QTimer::singleShot(0, this, &CloseDialogHelper::closeDialog);
         return;
     }

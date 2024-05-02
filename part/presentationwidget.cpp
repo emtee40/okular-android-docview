@@ -5,11 +5,14 @@
 */
 
 #include "presentationwidget.h"
+#include "config-okular.h"
 
 // qt/kde includes
+#if HAVE_DBUS
 #include <QDBusConnection>
 #include <QDBusMessage>
 #include <QDBusReply>
+#endif
 #include <QLoggingCategory>
 
 #include <KActionCollection>
@@ -17,9 +20,9 @@
 #include <KLineEdit>
 #include <KLocalizedString>
 #include <KMessageBox>
-#include <KRandom>
 #include <KSelectAction>
 #include <QAction>
+#include <QActionGroup>
 #include <QApplication>
 #include <QDialog>
 #include <QEvent>
@@ -30,6 +33,7 @@
 #include <QLabel>
 #include <QLayout>
 #include <QPainter>
+#include <QRandomGenerator>
 #include <QScreen>
 #include <QStyle>
 #include <QStyleOption>
@@ -39,7 +43,9 @@
 #include <QValidator>
 
 #ifdef Q_OS_LINUX
+#if HAVE_DBUS
 #include <QDBusUnixFileDescriptor>
+#endif
 #include <unistd.h> // For ::close() for sleep inhibition
 #endif
 
@@ -72,7 +78,8 @@
 // a frame contains a pointer to the page object, its geometry and the
 // transition effect to the next frame
 struct PresentationFrame {
-    PresentationFrame() = default;
+    explicit PresentationFrame(const Okular::Page *_page)
+        : page(_page) {};
 
     ~PresentationFrame()
     {
@@ -94,7 +101,7 @@ struct PresentationFrame {
         }
         geometry.setRect((width - pageWidth) / 2, (height - pageHeight) / 2, pageWidth, pageHeight);
 
-        for (VideoWidget *vw : qAsConst(videoWidgets)) {
+        for (VideoWidget *vw : std::as_const(videoWidgets)) {
             const Okular::NormalizedRect r = vw->normGeometry();
             QRect vwgeom = r.geometry(geometry.width(), geometry.height());
             vw->resize(vwgeom.size());
@@ -174,7 +181,7 @@ PresentationWidget::PresentationWidget(QWidget *parent, Okular::Document *doc, D
     m_topBar->setObjectName(QStringLiteral("presentationBar"));
     m_topBar->setMovable(false);
     m_topBar->layout()->setContentsMargins(0, 0, 0, 0);
-    m_topBar->addAction(QIcon::fromTheme(layoutDirection() == Qt::RightToLeft ? QStringLiteral("go-next") : QStringLiteral("go-previous")), i18n("Previous Page"), this, SLOT(slotPrevPage()));
+    m_topBar->addAction(QIcon::fromTheme(layoutDirection() == Qt::RightToLeft ? QStringLiteral("go-next") : QStringLiteral("go-previous")), i18n("Previous Page"), this, &PresentationWidget::slotPrevPage);
     m_pagesEdit = new KLineEdit(m_topBar);
     QSizePolicy sp = m_pagesEdit->sizePolicy();
     sp.setHorizontalPolicy(QSizePolicy::Minimum);
@@ -191,7 +198,7 @@ PresentationWidget::PresentationWidget(QWidget *parent, Okular::Document *doc, D
     pagesLabel->setText(QLatin1String(" / ") + QString::number(m_document->pages()) + QLatin1String(" "));
     m_topBar->addWidget(pagesLabel);
     connect(m_pagesEdit, &QLineEdit::returnPressed, this, &PresentationWidget::slotPageChanged);
-    m_topBar->addAction(QIcon::fromTheme(layoutDirection() == Qt::RightToLeft ? QStringLiteral("go-previous") : QStringLiteral("go-next")), i18n("Next Page"), this, SLOT(slotNextPage()));
+    m_topBar->addAction(QIcon::fromTheme(layoutDirection() == Qt::RightToLeft ? QStringLiteral("go-previous") : QStringLiteral("go-next")), i18n("Next Page"), this, &PresentationWidget::slotNextPage);
     m_topBar->addSeparator();
     QAction *playPauseAct = collection->action(QStringLiteral("presentation_play_pause"));
     playPauseAct->setEnabled(true);
@@ -230,7 +237,7 @@ PresentationWidget::PresentationWidget(QWidget *parent, Okular::Document *doc, D
     QWidget *spacer = new QWidget(m_topBar);
     spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::MinimumExpanding);
     m_topBar->addWidget(spacer);
-    m_topBar->addAction(QIcon::fromTheme(QStringLiteral("application-exit")), i18n("Exit Presentation Mode"), this, SLOT(close()));
+    m_topBar->addAction(QIcon::fromTheme(QStringLiteral("application-exit")), i18n("Exit Presentation Mode"), this, &PresentationWidget::close);
     m_topBar->setAutoFillBackground(true);
     showTopBar(false);
     // change topbar background color
@@ -329,8 +336,7 @@ void PresentationWidget::notifySetup(const QVector<Okular::Page *> &pageSet, int
     // create the new frames
     float screenRatio = (float)m_height / (float)m_width;
     for (const Okular::Page *page : pageSet) {
-        PresentationFrame *frame = new PresentationFrame();
-        frame->page = page;
+        PresentationFrame *frame = new PresentationFrame(page);
         const QList<Okular::Annotation *> annotations = page->annotations();
         for (Okular::Annotation *a : annotations) {
             if (a->subType() == Okular::Annotation::AMovie) {
@@ -401,7 +407,7 @@ void PresentationWidget::notifyCurrentPageChanged(int previousPage, int currentP
 {
     if (previousPage != -1) {
         // stop video playback
-        for (VideoWidget *vw : qAsConst(m_frames[previousPage]->videoWidgets)) {
+        for (VideoWidget *vw : std::as_const(m_frames[previousPage]->videoWidgets)) {
             vw->stop();
             vw->pageLeft();
         }
@@ -475,7 +481,7 @@ void PresentationWidget::notifyCurrentPageChanged(int previousPage, int currentP
         }
 
         // start autoplay video playback
-        for (VideoWidget *vw : qAsConst(m_frames[m_frameIndex]->videoWidgets)) {
+        for (VideoWidget *vw : std::as_const(m_frames[m_frameIndex]->videoWidgets)) {
             vw->pageEntered();
         }
     }
@@ -496,10 +502,10 @@ void PresentationWidget::setupActions()
 {
     addAction(m_ac->action(QStringLiteral("first_page")));
     addAction(m_ac->action(QStringLiteral("last_page")));
-    addAction(m_ac->action(QString::fromLocal8Bit(KStandardAction::name(KStandardAction::Prior))));
-    addAction(m_ac->action(QString::fromLocal8Bit(KStandardAction::name(KStandardAction::Next))));
-    addAction(m_ac->action(QString::fromLocal8Bit(KStandardAction::name(KStandardAction::DocumentBack))));
-    addAction(m_ac->action(QString::fromLocal8Bit(KStandardAction::name(KStandardAction::DocumentForward))));
+    addAction(m_ac->action(KStandardAction::name(KStandardAction::Prior)));
+    addAction(m_ac->action(KStandardAction::name(KStandardAction::Next)));
+    addAction(m_ac->action(KStandardAction::name(KStandardAction::DocumentBack)));
+    addAction(m_ac->action(KStandardAction::name(KStandardAction::DocumentForward)));
 
     QAction *action = m_ac->action(QStringLiteral("switch_blackscreen_mode"));
     connect(action, &QAction::toggled, this, &PresentationWidget::toggleBlackScreenMode);
@@ -542,6 +548,11 @@ bool PresentationWidget::eventFilter(QObject *o, QEvent *e)
 // <widget events>
 bool PresentationWidget::event(QEvent *e)
 {
+    if (e->type() == QEvent::DevicePixelRatioChange) {
+        invalidatePixmaps();
+        return QWidget::event(e);
+    }
+
     if (e->type() == QEvent::Gesture) {
         return gestureEvent(static_cast<QGestureEvent *>(e));
     }
@@ -550,7 +561,7 @@ bool PresentationWidget::event(QEvent *e)
         QHelpEvent *he = (QHelpEvent *)e;
 
         QRect r;
-        const Okular::Action *link = getLink(he->x(), he->y(), &r);
+        const Okular::Action *link = getLink(he->pos(), &r);
 
         if (link) {
             QString tip = link->actionTip();
@@ -667,11 +678,11 @@ void PresentationWidget::mousePressEvent(QMouseEvent *e)
     // pressing left button
     if (e->button() == Qt::LeftButton) {
         // if pressing on a link, skip other checks
-        if ((m_pressedLink = getLink(e->x(), e->y()))) {
+        if ((m_pressedLink = getLink(e->position()))) {
             return;
         }
 
-        const Okular::Annotation *annotation = getAnnotation(e->x(), e->y());
+        const Okular::Annotation *annotation = getAnnotation(e->position());
         if (annotation) {
             if (annotation->subType() == Okular::Annotation::AMovie) {
                 const Okular::MovieAnnotation *movieAnnotation = static_cast<const Okular::MovieAnnotation *>(annotation);
@@ -707,7 +718,7 @@ void PresentationWidget::mousePressEvent(QMouseEvent *e)
         else if (Okular::Settings::slidesTapNavigation() != Okular::Settings::EnumSlidesTapNavigation::Disabled) {
             switch (Okular::Settings::slidesTapNavigation()) {
             case Okular::Settings::EnumSlidesTapNavigation::ForwardBackward: {
-                if (e->x() < (geometry().width() / 2)) {
+                if (e->position().x() < (qreal(geometry().width()) / 2)) {
                     m_goToPreviousPageOnRelease = true;
                 } else {
                     m_goToNextPageOnRelease = true;
@@ -743,7 +754,7 @@ void PresentationWidget::mouseReleaseEvent(QMouseEvent *e)
 
     // if releasing on the same link we pressed over, execute it
     if (m_pressedLink && e->button() == Qt::LeftButton) {
-        const Okular::Action *link = getLink(e->x(), e->y());
+        const Okular::Action *link = getLink(e->position());
         if (link == m_pressedLink) {
             m_document->processAction(link);
         }
@@ -770,12 +781,12 @@ void PresentationWidget::mouseMoveEvent(QMouseEvent *e)
 
     // update cursor and tooltip if hovering a link
     if (!m_drawingEngine && Okular::Settings::slidesCursor() != Okular::Settings::EnumSlidesCursor::Hidden) {
-        testCursorOnLink(e->x(), e->y());
+        testCursorOnLink(e->position());
     }
 
     if (!m_topBar->isHidden()) {
         // hide a shown bar when exiting the area
-        if (e->y() > (m_topBar->height() + 1)) {
+        if (e->position().y() > (m_topBar->height() + 1)) {
             showTopBar(false);
             setFocus(Qt::OtherFocusReason);
         }
@@ -788,7 +799,7 @@ void PresentationWidget::mouseMoveEvent(QMouseEvent *e)
             }
         } else {
             // show the bar if reaching top 2 pixels
-            if (e->y() <= 1) {
+            if (e->position().y() <= 1) {
                 showTopBar(true);
             } else if ((QApplication::mouseButtons() & Qt::LeftButton) && m_overlayGeometry.contains(e->pos())) {
                 // handle "dragging the wheel" if clicking on its geometry
@@ -824,8 +835,8 @@ void PresentationWidget::paintEvent(QPaintEvent *pe)
     }
 
     // check painting rect consistency
-    QRect r = pe->rect().intersected(QRect(QPoint(0, 0), geometry().size()));
-    if (r.isNull()) {
+    QRect paintRect = pe->rect().intersected(QRect(QPoint(0, 0), geometry().size()));
+    if (paintRect.isNull()) {
         return;
     }
 
@@ -921,19 +932,11 @@ void PresentationWidget::resizeEvent(QResizeEvent *re)
     // BEGIN Content area
     // update the frames
     const float screenRatio = (float)m_height / (float)m_width;
-    for (PresentationFrame *frame : qAsConst(m_frames)) {
+    for (PresentationFrame *frame : std::as_const(m_frames)) {
         frame->recalcGeometry(m_width, m_height, screenRatio);
     }
 
-    if (m_frameIndex != -1) {
-        // ugliness alarm!
-        const_cast<Okular::Page *>(m_frames[m_frameIndex]->page)->deletePixmap(this);
-        // force the regeneration of the pixmap
-        m_lastRenderedPixmap = QPixmap();
-        m_blockNotifications = true;
-        requestPixmaps();
-        m_blockNotifications = false;
-    }
+    invalidatePixmaps();
 
     if (m_transitionTimer->isActive()) {
         m_transitionTimer->stop();
@@ -943,12 +946,11 @@ void PresentationWidget::resizeEvent(QResizeEvent *re)
     // END Content area
 }
 
-void PresentationWidget::enterEvent(QEvent *e)
+void PresentationWidget::enterEvent(QEnterEvent *e)
 {
     if (!m_topBar->isHidden()) {
-        QEnterEvent *ee = static_cast<QEnterEvent *>(e);
         // This can happen when we exited the widget via a "tooltip" and the tooltip disappears
-        if (ee->y() > (m_topBar->height() + 1)) {
+        if (e->position().y() > (m_topBar->height() + 1)) {
             showTopBar(false);
         }
     }
@@ -985,7 +987,7 @@ void PresentationWidget::leaveEvent(QEvent *e)
 }
 // </widget events>
 
-const void *PresentationWidget::getObjectRect(Okular::ObjectRect::ObjectType type, int x, int y, QRect *geometry) const
+const void *PresentationWidget::getObjectRect(Okular::ObjectRect::ObjectType type, QPointF point, QRect *geometry) const
 {
     // no links on invalid pages
     if (geometry && !geometry->isNull()) {
@@ -1001,8 +1003,8 @@ const void *PresentationWidget::getObjectRect(Okular::ObjectRect::ObjectType typ
     const QRect &frameGeometry = frame->geometry;
 
     // compute normalized x and y
-    double nx = (double)(x - frameGeometry.left()) / (double)frameGeometry.width();
-    double ny = (double)(y - frameGeometry.top()) / (double)frameGeometry.height();
+    double nx = (double)(point.x() - frameGeometry.left()) / (double)frameGeometry.width();
+    double ny = (double)(point.y() - frameGeometry.top()) / (double)frameGeometry.height();
 
     // no links outside the pages
     if (nx < 0 || nx > 1 || ny < 0 || ny > 1) {
@@ -1026,20 +1028,20 @@ const void *PresentationWidget::getObjectRect(Okular::ObjectRect::ObjectType typ
     return object->object();
 }
 
-const Okular::Action *PresentationWidget::getLink(int x, int y, QRect *geometry) const
+const Okular::Action *PresentationWidget::getLink(QPointF point, QRect *geometry) const
 {
-    return reinterpret_cast<const Okular::Action *>(getObjectRect(Okular::ObjectRect::Action, x, y, geometry));
+    return reinterpret_cast<const Okular::Action *>(getObjectRect(Okular::ObjectRect::Action, point, geometry));
 }
 
-const Okular::Annotation *PresentationWidget::getAnnotation(int x, int y, QRect *geometry) const
+const Okular::Annotation *PresentationWidget::getAnnotation(QPointF point, QRect *geometry) const
 {
-    return reinterpret_cast<const Okular::Annotation *>(getObjectRect(Okular::ObjectRect::OAnnotation, x, y, geometry));
+    return reinterpret_cast<const Okular::Annotation *>(getObjectRect(Okular::ObjectRect::OAnnotation, point, geometry));
 }
 
-void PresentationWidget::testCursorOnLink(int x, int y)
+void PresentationWidget::testCursorOnLink(QPointF point)
 {
-    const Okular::Action *link = getLink(x, y, nullptr);
-    const Okular::Annotation *annotation = getAnnotation(x, y, nullptr);
+    const Okular::Action *link = getLink(point, nullptr);
+    const Okular::Annotation *annotation = getAnnotation(point, nullptr);
 
     const bool needsHandCursor = ((link != nullptr) || ((annotation != nullptr) && (annotation->subType() == Okular::Annotation::AMovie)) || ((annotation != nullptr) && (annotation->subType() == Okular::Annotation::ARichMedia)) ||
                                   ((annotation != nullptr) && (annotation->subType() == Okular::Annotation::AScreen) && (GuiUtils::renditionMovieFromScreenAnnotation(static_cast<const Okular::ScreenAnnotation *>(annotation)) != nullptr)));
@@ -1094,7 +1096,6 @@ void PresentationWidget::generatePage(bool disableTransition)
         qreal dpr = devicePixelRatioF();
         m_lastRenderedPixmap = QPixmap(m_width * dpr, m_height * dpr);
         m_lastRenderedPixmap.setDevicePixelRatio(dpr);
-
         m_previousPagePixmap = QPixmap();
     } else {
         m_previousPagePixmap = m_lastRenderedPixmap;
@@ -1138,7 +1139,7 @@ void PresentationWidget::generatePage(bool disableTransition)
     // update cursor + tooltip
     if (!m_drawingEngine && Okular::Settings::slidesCursor() != Okular::Settings::EnumSlidesCursor::Hidden) {
         QPoint p = mapFromGlobal(QCursor::pos());
-        testCursorOnLink(p.x(), p.y());
+        testCursorOnLink(p);
     }
 }
 
@@ -1352,7 +1353,7 @@ QRect PresentationWidget::routeMouseDrawingEvent(QMouseEvent *e)
         hasclicked = true;
     }
 
-    QPointF mousePos = e->localPos();
+    QPointF mousePos = e->position();
     double nX = (mousePos.x() - (double)geom.left()) / (double)geom.width();
     double nY = (mousePos.y() - (double)geom.top()) / (double)geom.height();
     QRect ret;
@@ -1666,9 +1667,22 @@ void PresentationWidget::clearDrawings()
     update();
 }
 
+void PresentationWidget::invalidatePixmaps()
+{
+    // force the regeneration of the pixmap
+    m_lastRenderedPixmap = QPixmap();
+    if (m_frameIndex != -1) {
+        // ugliness alarm!
+        const_cast<Okular::Page *>(m_frames[m_frameIndex]->page)->deletePixmap(this);
+        m_blockNotifications = true;
+        requestPixmaps();
+        m_blockNotifications = false;
+    }
+}
+
 void PresentationWidget::chooseScreen(QAction *act)
 {
-    if (!act || act->data().type() != QVariant::Int) {
+    if (!act || act->data().metaType().id() != QMetaType::Int) {
         return;
     }
 
@@ -1688,11 +1702,7 @@ void PresentationWidget::toggleBlackScreenMode(bool)
 void PresentationWidget::setScreen(const QScreen *newScreen)
 {
     // To move to a new screen, need to disable fullscreen first:
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
     if (newScreen != screen()) {
-#else
-    if (true) { // TODO Qt6 (oldQt_screenOf() doesn’t help here, because it has a default value.)
-#endif
         setWindowState(windowState() & ~Qt::WindowFullScreen);
     }
     setGeometry(newScreen->geometry());
@@ -1701,6 +1711,7 @@ void PresentationWidget::setScreen(const QScreen *newScreen)
 
 void PresentationWidget::inhibitPowerManagement()
 {
+#if HAVE_DBUS
 #ifdef Q_OS_LINUX
     QString reason = i18nc("Reason for inhibiting the screensaver activation, when the presentation mode is active", "Giving a presentation");
 
@@ -1734,11 +1745,13 @@ void PresentationWidget::inhibitPowerManagement()
             qCWarning(OkularUiDebug) << "Unable to inhibit sleep" << reply.error();
         }
     }
-#endif
+#endif // Q_OS_LINUX
+#endif // HAVE_DBUS
 }
 
 void PresentationWidget::allowPowerManagement()
 {
+#if HAVE_DBUS
 #ifdef Q_OS_LINUX
     if (m_sleepInhibitFd != -1) {
         ::close(m_sleepInhibitFd);
@@ -1754,7 +1767,8 @@ void PresentationWidget::allowPowerManagement()
 
         m_screenInhibitCookie = 0;
     }
-#endif
+#endif // Q_OS_LINUX
+#endif // HAVE_DBUS
 }
 
 void PresentationWidget::showTopBar(bool show)
@@ -1814,113 +1828,94 @@ const Okular::PageTransition PresentationWidget::defaultTransition(int type) con
         Okular::PageTransition transition(Okular::PageTransition::Blinds);
         transition.setAlignment(Okular::PageTransition::Horizontal);
         return transition;
-        break;
     }
     case Okular::Settings::EnumSlidesTransition::BlindsVertical: {
         Okular::PageTransition transition(Okular::PageTransition::Blinds);
         transition.setAlignment(Okular::PageTransition::Vertical);
         return transition;
-        break;
     }
     case Okular::Settings::EnumSlidesTransition::BoxIn: {
         Okular::PageTransition transition(Okular::PageTransition::Box);
         transition.setDirection(Okular::PageTransition::Inward);
         return transition;
-        break;
     }
     case Okular::Settings::EnumSlidesTransition::BoxOut: {
         Okular::PageTransition transition(Okular::PageTransition::Box);
         transition.setDirection(Okular::PageTransition::Outward);
         return transition;
-        break;
     }
     case Okular::Settings::EnumSlidesTransition::Dissolve: {
         return Okular::PageTransition(Okular::PageTransition::Dissolve);
-        break;
     }
     case Okular::Settings::EnumSlidesTransition::GlitterDown: {
         Okular::PageTransition transition(Okular::PageTransition::Glitter);
         transition.setAngle(270);
         return transition;
-        break;
     }
     case Okular::Settings::EnumSlidesTransition::GlitterRight: {
         Okular::PageTransition transition(Okular::PageTransition::Glitter);
         transition.setAngle(0);
         return transition;
-        break;
     }
     case Okular::Settings::EnumSlidesTransition::GlitterRightDown: {
         Okular::PageTransition transition(Okular::PageTransition::Glitter);
         transition.setAngle(315);
         return transition;
-        break;
     }
     case Okular::Settings::EnumSlidesTransition::Random: {
-        return defaultTransition(KRandom::random() % 18);
-        break;
+        return defaultTransition(QRandomGenerator::global()->bounded(18));
     }
     case Okular::Settings::EnumSlidesTransition::SplitHorizontalIn: {
         Okular::PageTransition transition(Okular::PageTransition::Split);
         transition.setAlignment(Okular::PageTransition::Horizontal);
         transition.setDirection(Okular::PageTransition::Inward);
         return transition;
-        break;
     }
     case Okular::Settings::EnumSlidesTransition::SplitHorizontalOut: {
         Okular::PageTransition transition(Okular::PageTransition::Split);
         transition.setAlignment(Okular::PageTransition::Horizontal);
         transition.setDirection(Okular::PageTransition::Outward);
         return transition;
-        break;
     }
     case Okular::Settings::EnumSlidesTransition::SplitVerticalIn: {
         Okular::PageTransition transition(Okular::PageTransition::Split);
         transition.setAlignment(Okular::PageTransition::Vertical);
         transition.setDirection(Okular::PageTransition::Inward);
         return transition;
-        break;
     }
     case Okular::Settings::EnumSlidesTransition::SplitVerticalOut: {
         Okular::PageTransition transition(Okular::PageTransition::Split);
         transition.setAlignment(Okular::PageTransition::Vertical);
         transition.setDirection(Okular::PageTransition::Outward);
         return transition;
-        break;
     }
     case Okular::Settings::EnumSlidesTransition::WipeDown: {
         Okular::PageTransition transition(Okular::PageTransition::Wipe);
         transition.setAngle(270);
         return transition;
-        break;
     }
     case Okular::Settings::EnumSlidesTransition::WipeRight: {
         Okular::PageTransition transition(Okular::PageTransition::Wipe);
         transition.setAngle(0);
         return transition;
-        break;
     }
     case Okular::Settings::EnumSlidesTransition::WipeLeft: {
         Okular::PageTransition transition(Okular::PageTransition::Wipe);
         transition.setAngle(180);
         return transition;
-        break;
     }
     case Okular::Settings::EnumSlidesTransition::WipeUp: {
         Okular::PageTransition transition(Okular::PageTransition::Wipe);
         transition.setAngle(90);
         return transition;
-        break;
     }
     case Okular::Settings::EnumSlidesTransition::Fade: {
         return Okular::PageTransition(Okular::PageTransition::Fade);
-        break;
     }
     case Okular::Settings::EnumSlidesTransition::NoTransitions:
     case Okular::Settings::EnumSlidesTransition::Replace:
     default:
         return Okular::PageTransition(Okular::PageTransition::Replace);
-        break;
     }
     // should not happen, just make gcc happy
     return Okular::PageTransition();

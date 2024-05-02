@@ -155,6 +155,11 @@ public:
         return prebookmarks;
     }
 
+    const QVector<DVI_SourceFileAnchor> &sourceAnchors()
+    {
+        return sourceHyperLinkAnchors;
+    }
+
 Q_SIGNALS:
     /**
      * The following three signals are modeleed on the corresponding signals
@@ -165,7 +170,7 @@ Q_SIGNALS:
     void notice(const QString &message, int duration);
 
 public Q_SLOTS:
-    void exportPS(const QString &fname = QString(), const QStringList &options = QStringList(), QPrinter *printer = nullptr, QPrinter::Orientation orientation = QPrinter::Portrait);
+    void exportPS(const QString &fname = QString(), const QStringList &options = QStringList(), QPrinter *printer = nullptr, QPageLayout::Orientation orientation = QPageLayout::Portrait);
     void exportPDF();
 
     void handleSRCLink(const QString &linkText, const QPoint point, DocumentWidget *widget);
@@ -176,11 +181,6 @@ public Q_SLOTS:
     virtual void getText(RenderedDocumentPagePixmap *page);
 
     SimplePageSize sizeOfPage(const PageNumber page);
-
-    const QVector<DVI_SourceFileAnchor> &sourceAnchors()
-    {
-        return sourceHyperLinkAnchors;
-    }
 
 private Q_SLOTS:
     /** This method shows a dialog that tells the user that source
@@ -232,7 +232,7 @@ private:
     void prescan_ParsePSQuoteSpecial(const QString &cp);
     void prescan_ParsePSSpecial(const QString &cp);
     void prescan_ParsePSFileSpecial(const QString &cp);
-    void prescan_ParseSourceSpecial(const QString &cp);
+    void prescan_ParseSourceSpecial(QStringView cp);
     void prescan_setChar(unsigned int ch);
 
     /* */

@@ -24,6 +24,7 @@
 
 #include <QMimeType>
 #include <QUrl>
+#include <QVariant>
 
 class KConfigDialog;
 class KPluginMetaData;
@@ -433,19 +434,9 @@ public:
      * @param viewport The document viewport.
      * @param excludeObserver The observer which shouldn't be effected by this change.
      * @param smoothMove Whether the move shall be animated smoothly.
-     */
-    void setViewport(const DocumentViewport &viewport, DocumentObserver *excludeObserver = nullptr, bool smoothMove = false);
-
-    /**
-     * Sets the current document viewport to the given @p viewport.
-     * BCI TODO: merge with setViewport, adding a parameter "bool updateHistory = true"
-     *
-     * @param viewport The document viewport.
-     * @param excludeObserver The observer which shouldn't be effected by this change.
-     * @param smoothMove Whether the move shall be animated smoothly.
      * @param updateHistory Whether to consider the change of viewport for the history navigation
      */
-    void setViewportWithHistory(const DocumentViewport &viewport, DocumentObserver *excludeObserver = nullptr, bool smoothMove = false, bool updateHistory = true);
+    void setViewport(const DocumentViewport &viewport, DocumentObserver *excludeObserver = nullptr, bool smoothMove = false, bool updateHistory = true);
 
     /**
      * Sets the current document viewport to the next viewport in the
@@ -601,7 +592,7 @@ public:
      * @param rect The rectangle of the selection.
      * @param color The color of the selection.
      */
-    void setPageTextSelection(int page, RegularAreaRect *rect, const QColor &color);
+    void setPageTextSelection(int page, std::unique_ptr<RegularAreaRect> &&rect, const QColor &color);
 
     /**
      * Returns true if there is an undo command available; otherwise returns false.
@@ -711,6 +702,13 @@ public:
      * @since 1.9
      */
     void processValidateAction(const Action *action, Okular::FormFieldText *fft, bool &returnCode);
+
+    /**
+     * Processes the mouse up @p action on @p ff.
+     *
+     * @since 23.12
+     */
+    void processFormMouseUpScripAction(const Action *action, Okular::FormField *ff);
 
     /**
      * Returns a list of the bookmarked.pages
@@ -962,7 +960,7 @@ public:
      *
      * @since 0.14 (KDE 4.8)
      */
-    QPrinter::Orientation orientation() const;
+    QPageLayout::Orientation orientation() const;
 
     /**
      * Control annotation editing (creation, modification and removal),
@@ -1564,6 +1562,24 @@ public:
 
     /// @since 22.04
     void setDocumentPassword(const QString &password);
+
+    /// @since 23.08
+    QString reason() const;
+
+    /// @since 23.08
+    void setReason(const QString &reason);
+
+    /// @since 23.08
+    QString location() const;
+
+    /// @since 23.08
+    void setLocation(const QString &location);
+
+    /// @since 23.08
+    QString backgroundImagePath() const;
+
+    /// @since 23.08
+    void setBackgroundImagePath(const QString &path);
 
 private:
     NewSignatureDataPrivate *const d;

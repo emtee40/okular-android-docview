@@ -4,6 +4,19 @@
     SPDX-License-Identifier: GPL-2.0-or-later
 */
 
+/* QJSEngine limits what we can do with the global object in C++, so map Doc into this here. */
+{
+    const props = Object.getOwnPropertyDescriptors(Doc);
+    for (prop in props) {
+        Object.defineProperty(this, prop, props[prop]);
+    }
+    for (const name of Object.getOwnPropertyNames(Doc)) {
+        if (typeof Doc[name] === 'function') {
+            this.__proto__[name] = Doc[name];
+        }
+    }
+}
+
 /* Builtin functions for Okular's PDF JavaScript interpretation. */
 
 /** AFSimple_Calculate
@@ -347,4 +360,50 @@ function AFPercent_Keystroke( nDec, sepStyle )
         // TODO Make separator locale-dependen/use sepStyle properly
         event.rc = !isNaN(event.change) || event.change == "." || event.change == ","
     }
+}
+
+app.popUpMenuEx = function() {
+    return app.okular_popUpMenuEx(arguments);
+}
+
+app.popUpMenu = function() {
+    // Convert arguments like this:
+    //   app.popUpMenu(["Fruits","Apples","Oranges"], "-","Beans","Corn");
+    // into this:
+    //   app.popUpMenuEx(
+    //     {cName:"Fruits", oSubMenu:[
+    //       {cName:"Apples"},
+    //       {cName:"Oranges"}
+    //     ]},
+    //     {cName:"-"},
+    //     {cName:"Beans"},
+    //     {cName:"Corn"}
+    //   );
+    function convertArgument(arg) {
+        var exArguments = [];
+
+        for (element of arg) {
+            var newElement = null;
+
+            if (Array.isArray(element) && element.length > 0) {
+                newElement = {
+                    cName: element[0],
+                    oSubMenu: convertArgument(element.slice(1))
+                };
+            } else if (!Array.isArray(element)) {
+                newElement = {
+                    cName: element
+                };
+            }
+
+            if (newElement !== null)
+                exArguments.push(newElement);
+        }
+
+        return exArguments;
+    }
+
+    var exArguments = convertArgument(arguments);
+    var result =  app.okular_popUpMenuEx(exArguments);
+    return result;
 }

@@ -88,20 +88,14 @@ Qt::ToolButtonStyle ToggleActionMenu::styleFor(QToolButton *button) const
 
 void ToggleActionMenu::updateButtons()
 {
-    for (QToolButton *button : qAsConst(m_buttons)) {
+    for (QToolButton *button : std::as_const(m_buttons)) {
         if (button) {
             button->setDefaultAction(this->defaultAction());
             // If *this action* is low priority we need to tell the button
             // so that it hides the text
             button->setToolButtonStyle(styleFor(button));
 
-            if (delayed()) { // TODO deprecated interface.
-                button->setPopupMode(QToolButton::DelayedPopup);
-            } else if (stickyMenu()) {
-                button->setPopupMode(QToolButton::InstantPopup);
-            } else {
-                button->setPopupMode(QToolButton::MenuButtonPopup);
-            }
+            button->setPopupMode(popupMode());
         }
     }
 }

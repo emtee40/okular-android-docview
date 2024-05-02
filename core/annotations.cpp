@@ -10,6 +10,7 @@
 // qt/kde includes
 #include <QApplication>
 #include <QColor>
+#include <QFile>
 #include <QIcon>
 #include <QPainter>
 #include <QStandardPaths>
@@ -46,12 +47,11 @@ static bool isLeftOfVector(const NormalizedPoint &a, const NormalizedPoint &b, c
 static double distanceSqr(double x, double y, double xScale, double yScale, const QList<NormalizedPoint> &path)
 {
     double distance = DBL_MAX;
-    double thisDistance;
     QList<NormalizedPoint>::const_iterator i = path.constBegin();
     NormalizedPoint lastPoint = *i;
 
     for (++i; i != path.constEnd(); ++i) {
-        thisDistance = NormalizedPoint::distanceSqr(x, y, xScale, yScale, lastPoint, (*i));
+        double thisDistance = NormalizedPoint::distanceSqr(x, y, xScale, yScale, lastPoint, (*i));
 
         if (thisDistance < distance) {
             distance = thisDistance;
@@ -154,7 +154,7 @@ QDomElement AnnotationUtils::findChildElement(const QDomNode &parentNode, const 
 QRect AnnotationUtils::annotationGeometry(const Annotation *annotation, double scaleX, double scaleY)
 {
     const QRect rect = annotation->transformedBoundingRectangle().geometry((int)scaleX, (int)scaleY);
-    if (annotation->subType() == Annotation::AText && (((TextAnnotation *)annotation)->textType() == TextAnnotation::Linked)) {
+    if (annotation->subType() == Annotation::AText && (static_cast<const TextAnnotation *>(annotation)->textType() == TextAnnotation::Linked)) {
         // To be honest i have no clue of why the 24,24 is here, maybe to make sure it's not too small?
         // But why only for linked text?
         const QRect rect24 = QRect((int)(annotation->transformedBoundingRectangle().left * scaleX), (int)(annotation->transformedBoundingRectangle().top * scaleY), 24, 24);
@@ -192,11 +192,16 @@ QPixmap AnnotationUtils::loadStamp(const QString &nameOrPath, int size, bool kee
     }
 
     // _name is a path (do this before loading as icon name to avoid some rare weirdness )
-    QPixmap pixmap;
-    pixmap.load(nameOrPath);
-    if (!pixmap.isNull()) {
-        pixmap = pixmap.scaled(size, size, keepAspectRatio ? Qt::KeepAspectRatioByExpanding : Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-        return pixmap;
+    // Check that it exists up front. While pixmap.load() fails, if it is
+    // actually an icon from theme, the loader will try all supported
+    // extensions in current workdir before failing
+    if (QFile::exists(nameOrPath)) {
+        QPixmap pixmap;
+        pixmap.load(nameOrPath);
+        if (!pixmap.isNull()) {
+            pixmap = pixmap.scaled(size, size, keepAspectRatio ? Qt::KeepAspectRatioByExpanding : Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+            return pixmap;
+        }
     }
 
     // _name is an icon name
@@ -554,7 +559,7 @@ AnnotationPrivate::~AnnotationPrivate()
         return;
     }
 
-    for (const Annotation::Revision &revision : qAsConst(m_revisions)) {
+    for (const Annotation::Revision &revision : std::as_const(m_revisions)) {
         delete revision.annotation();
     }
 }
@@ -869,7 +874,7 @@ void Annotation::store(QDomNode &annNode, QDomDocument &document) const
     }
 
     // add all revisions as children of revisions element
-    for (const Revision &revision : qAsConst(d->m_revisions)) {
+    for (const Revision &revision : std::as_const(d->m_revisions)) {
         // create revision element
         QDomElement r = document.createElement(QStringLiteral("revision"));
         annNode.appendChild(r);
@@ -1602,7 +1607,7 @@ void LineAnnotation::store(QDomNode &node, QDomDocument &document) const
             lineElement.appendChild(pElement);
             pElement.setAttribute(QStringLiteral("x"), QString::number(p.x));
             pElement.setAttribute(QStringLiteral("y"), QString::number(p.y));
-            it++; // to avoid loop
+            ++it; // to avoid loop
         }
     }
 }
@@ -1723,7 +1728,7 @@ double LineAnnotationPrivate::distanceSqr(double x, double y, double xScale, dou
 
     if (m_lineInnerColor.isValid()) {
         QPolygonF polygon;
-        for (const NormalizedPoint &p : qAsConst(transformedLinePoints)) {
+        for (const NormalizedPoint &p : std::as_const(transformedLinePoints)) {
             polygon.append(QPointF(p.x, p.y));
         }
 
@@ -1930,6 +1935,9 @@ class HighlightAnnotation::Quad::Private
 {
 public:
     Private()
+        : m_capStart(false)
+        , m_capEnd(false)
+        , m_feather(0.0)
     {
     }
 

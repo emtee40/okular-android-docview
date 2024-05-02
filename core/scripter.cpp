@@ -6,11 +6,13 @@
 
 #include "scripter.h"
 
+#include "config-okular.h"
+
 #include <QDebug>
 #include <QFile>
 
 #include "debug_p.h"
-#include "script/executor_kjs_p.h"
+#include "script/executor_js_p.h"
 
 using namespace Okular;
 
@@ -19,16 +21,16 @@ class Okular::ScripterPrivate
 public:
     explicit ScripterPrivate(DocumentPrivate *doc)
         : m_doc(doc)
-#ifdef WITH_KJS
-        , m_kjs(nullptr)
+#if HAVE_JS
+        , m_js(nullptr)
 #endif
         , m_event(nullptr)
     {
     }
 
     DocumentPrivate *m_doc;
-#ifdef WITH_KJS
-    QScopedPointer<ExecutorKJS> m_kjs;
+#if HAVE_JS
+    QScopedPointer<ExecutorJS> m_js;
 #endif
     Event *m_event;
 };
@@ -45,8 +47,8 @@ Scripter::~Scripter()
 
 void Scripter::execute(ScriptType type, const QString &script)
 {
-    qCDebug(OkularCoreDebug) << "executing the script:";
-#ifdef WITH_KJS
+    qCDebug(OkularCoreDebug) << "executing the script:" << script;
+#if HAVE_JS
     static QString builtInScript;
     if (builtInScript.isNull()) {
         QFile builtInResource(QStringLiteral(":/script/builtin.js"));
@@ -60,10 +62,10 @@ void Scripter::execute(ScriptType type, const QString &script)
 
     switch (type) {
     case JavaScript:
-        if (!d->m_kjs) {
-            d->m_kjs.reset(new ExecutorKJS(d->m_doc));
+        if (!d->m_js) {
+            d->m_js.reset(new ExecutorJS(d->m_doc));
         }
-        d->m_kjs->execute(builtInScript + script, d->m_event);
+        d->m_js->execute(builtInScript + script, d->m_event);
     }
 #endif
 }

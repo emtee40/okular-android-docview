@@ -337,14 +337,16 @@ EditTextCommand::EditTextCommand(const QString &newContents, int newCursorPos, c
     if (m_prevCursorPos != m_prevAnchorPos) {
         qCDebug(OkularCoreDebug) << "OtherEdit, selection";
         m_editType = OtherEdit;
-    } else if (newContentsRightOfCursor() == oldContentsRightOfCursor() && newContentsLeftOfCursor() == oldContentsLeftOfCursor().left(oldContentsLeftOfCursor().length() - 1) && oldContentsLeftOfCursor().rightRef(1) != QLatin1Char('\n')) {
+    } else if (newContentsRightOfCursor() == oldContentsRightOfCursor() && newContentsLeftOfCursor() == oldContentsLeftOfCursor().left(oldContentsLeftOfCursor().length() - 1) &&
+               QStringView {oldContentsLeftOfCursor()}.right(1) != QLatin1Char('\n')) {
         qCDebug(OkularCoreDebug) << "CharBackspace";
         m_editType = CharBackspace;
     } else if (newContentsLeftOfCursor() == oldContentsLeftOfCursor() && newContentsRightOfCursor() == oldContentsRightOfCursor().right(oldContentsRightOfCursor().length() - 1) &&
-               oldContentsRightOfCursor().leftRef(1) != QLatin1Char('\n')) {
+               QStringView {oldContentsRightOfCursor()}.left(1) != QLatin1Char('\n')) {
         qCDebug(OkularCoreDebug) << "CharDelete";
         m_editType = CharDelete;
-    } else if (newContentsRightOfCursor() == oldContentsRightOfCursor() && newContentsLeftOfCursor().left(newContentsLeftOfCursor().length() - 1) == oldContentsLeftOfCursor() && newContentsLeftOfCursor().rightRef(1) != QLatin1Char('\n')) {
+    } else if (newContentsRightOfCursor() == oldContentsRightOfCursor() && newContentsLeftOfCursor().left(newContentsLeftOfCursor().length() - 1) == oldContentsLeftOfCursor() &&
+               QStringView {newContentsLeftOfCursor()}.right(1) != QLatin1Char('\n')) {
         qCDebug(OkularCoreDebug) << "CharInsert";
         m_editType = CharInsert;
     } else {
@@ -598,34 +600,23 @@ EditFormButtonsCommand::EditFormButtonsCommand(Okular::DocumentPrivate *docPriv,
     , m_prevButtonStates(QList<bool>())
 {
     setText(i18nc("Edit the state of a group of form buttons", "edit form button states"));
-    for (const FormFieldButton *formButton : qAsConst(m_formButtons)) {
+    for (const FormFieldButton *formButton : std::as_const(m_formButtons)) {
         m_prevButtonStates.append(formButton->state());
+        m_pageNumbers.append(formButton->page()->number());
     }
 }
 
 void EditFormButtonsCommand::undo()
 {
     clearFormButtonStates();
+    QSet<int> extraPages;
     for (int i = 0; i < m_formButtons.size(); i++) {
         bool checked = m_prevButtonStates.at(i);
         if (checked) {
             m_formButtons.at(i)->setState(checked);
         }
-    }
-
-    Okular::NormalizedRect boundingRect = buildBoundingRectangleForButtons(m_formButtons);
-    moveViewportIfBoundingRectNotFullyVisible(boundingRect, m_docPriv, m_pageNumber);
-    Q_EMIT m_docPriv->m_parent->formButtonsChangedByUndoRedo(m_pageNumber, m_formButtons);
-    m_docPriv->notifyFormChanges(m_pageNumber);
-}
-
-void EditFormButtonsCommand::redo()
-{
-    clearFormButtonStates();
-    for (int i = 0; i < m_formButtons.size(); i++) {
-        bool checked = m_newButtonStates.at(i);
-        if (checked) {
-            m_formButtons.at(i)->setState(checked);
+        if (m_pageNumbers.at(i) != m_pageNumber) {
+            extraPages << m_pageNumbers.at(i);
         }
     }
 
@@ -633,14 +624,40 @@ void EditFormButtonsCommand::redo()
     moveViewportIfBoundingRectNotFullyVisible(boundingRect, m_docPriv, m_pageNumber);
     Q_EMIT m_docPriv->m_parent->formButtonsChangedByUndoRedo(m_pageNumber, m_formButtons);
     m_docPriv->notifyFormChanges(m_pageNumber);
+    for (auto page : std::as_const(extraPages)) {
+        m_docPriv->notifyFormChanges(page);
+    }
+}
+
+void EditFormButtonsCommand::redo()
+{
+    clearFormButtonStates();
+    QSet<int> extraPages;
+    for (int i = 0; i < m_formButtons.size(); i++) {
+        bool checked = m_newButtonStates.at(i);
+        if (checked) {
+            m_formButtons.at(i)->setState(checked);
+        }
+        if (m_pageNumbers.at(i) != m_pageNumber) {
+            extraPages << m_pageNumbers.at(i);
+        }
+    }
+
+    Okular::NormalizedRect boundingRect = buildBoundingRectangleForButtons(m_formButtons);
+    moveViewportIfBoundingRectNotFullyVisible(boundingRect, m_docPriv, m_pageNumber);
+    Q_EMIT m_docPriv->m_parent->formButtonsChangedByUndoRedo(m_pageNumber, m_formButtons);
+    m_docPriv->notifyFormChanges(m_pageNumber);
+    for (auto page : std::as_const(extraPages)) {
+        m_docPriv->notifyFormChanges(page);
+    }
 }
 
 bool EditFormButtonsCommand::refreshInternalPageReferences(const QVector<Okular::Page *> &newPagesVector)
 {
     const QList<FormFieldButton *> oldFormButtons = m_formButtons;
     m_formButtons.clear();
-    for (FormFieldButton *oldFormButton : oldFormButtons) {
-        FormFieldButton *button = dynamic_cast<FormFieldButton *>(Okular::PagePrivate::findEquivalentForm(newPagesVector[m_pageNumber], oldFormButton));
+    for (int i = 0; i < oldFormButtons.size(); i++) {
+        FormFieldButton *button = dynamic_cast<FormFieldButton *>(Okular::PagePrivate::findEquivalentForm(newPagesVector[m_pageNumbers[i]], oldFormButtons[i]));
         if (!button) {
             return false;
         }
@@ -652,7 +669,7 @@ bool EditFormButtonsCommand::refreshInternalPageReferences(const QVector<Okular:
 
 void EditFormButtonsCommand::clearFormButtonStates()
 {
-    for (FormFieldButton *formButton : qAsConst(m_formButtons)) {
+    for (FormFieldButton *formButton : std::as_const(m_formButtons)) {
         formButton->setState(false);
     }
 }

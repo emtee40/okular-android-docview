@@ -19,7 +19,6 @@
 
 #include <KLocalizedString>
 #include <KPluginFactory>
-#include <KPluginLoader>
 #include <KSharedConfig>
 #include <KWindowConfig>
 #include <QLoggingCategory>
@@ -66,7 +65,12 @@ public:
     QWidget *failMessage;
 
     KSharedConfig::Ptr config;
+    Q_DISABLE_COPY(FilePrinterPreviewPrivate)
 };
+static inline QString ConfigGroupKey()
+{
+    return QStringLiteral("Print Preview");
+}
 
 void FilePrinterPreviewPrivate::getPart()
 {
@@ -75,18 +79,12 @@ void FilePrinterPreviewPrivate::getPart()
         return;
     }
 
-    KPluginLoader loader(QStringLiteral("okularpart"));
-    KPluginFactory *factory = loader.factory();
+    auto result = KPluginFactory::instantiatePlugin<KParts::ReadOnlyPart>(KPluginMetaData(QStringLiteral("kf6/parts/okularpart")), q, QVariantList() << QStringLiteral("Print/Preview"));
 
-    if (!factory) {
-        qCDebug(OkularUiDebug) << "Loading failed:" << loader.errorString();
-        return;
-    }
-
-    qCDebug(OkularUiDebug) << "Trying to create a part";
-    previewPart = factory->create<KParts::ReadOnlyPart>(q, (QVariantList() << QStringLiteral("Print/Preview")));
-    if (!previewPart) {
-        qCDebug(OkularUiDebug) << "Part creation failed";
+    if (!result) {
+        qCWarning(OkularUiDebug) << "Part creation failed" << result.errorText;
+    } else {
+        previewPart = result.plugin;
     }
 }
 
@@ -128,12 +126,12 @@ FilePrinterPreview::FilePrinterPreview(const QString &filename, QWidget *parent)
 
     connect(d->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
-    KWindowConfig::restoreWindowSize(windowHandle(), d->config->group("Print Preview"));
+    KWindowConfig::restoreWindowSize(windowHandle(), d->config->group(ConfigGroupKey()));
 }
 
 FilePrinterPreview::~FilePrinterPreview()
 {
-    KConfigGroup group(d->config->group("Print Preview"));
+    KConfigGroup group(d->config->group(ConfigGroupKey()));
     KWindowConfig::saveWindowSize(windowHandle(), group);
 
     delete d;

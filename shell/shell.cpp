@@ -25,27 +25,36 @@
 #include <KLocalizedString>
 #include <KMessageBox>
 #include <KPluginFactory>
-#include <KPluginLoader>
 #include <KRecentFilesAction>
 #include <KSharedConfig>
 #include <KStandardAction>
+#if !defined(Q_OS_WIN) && !defined(Q_OS_OSX)
+#include <KStartupInfo>
+#include <KWindowInfo>
+#endif
 #include <KToggleFullScreenAction>
 #include <KToolBar>
 #include <KUrlMimeData>
 #include <KWindowSystem>
 #include <KXMLGUIFactory>
 #include <QApplication>
+#if HAVE_DBUS
 #include <QDBusConnection>
+#endif // HAVE_DBUS
+#include <QDockWidget>
 #include <QDragMoveEvent>
 #include <QFileDialog>
+#include <QJsonArray>
 #include <QMenuBar>
+#include <QMimeData>
 #include <QObject>
+#include <QPointer>
 #include <QScreen>
 #include <QTabBar>
 #include <QTabWidget>
 #include <QTimer>
 #ifdef WITH_KACTIVITIES
-#include <KActivities/ResourceInstance>
+#include <PlasmaActivities/ResourceInstance>
 #endif
 
 #include <kio_version.h>
@@ -62,13 +71,122 @@ static const char *shouldShowToolBarComingFromFullScreen = "shouldShowToolBarCom
 static const char *const SESSION_URL_KEY = "Urls";
 static const char *const SESSION_TAB_KEY = "ActiveTab";
 
+static constexpr char SIDEBAR_LOCKED_KEY[] = "LockSidebar";
+static constexpr char SIDEBAR_VISIBLE_KEY[] = "ShowSidebar";
+
+static inline QString DesktopEntryGroupKey()
+{
+    return QStringLiteral("Desktop Entry");
+}
+static inline QString RecentFilesGroupKey()
+{
+    return QStringLiteral("Recent Files");
+}
+static inline QString GeneralGroupKey()
+{
+    return QStringLiteral("General");
+}
+
+class ResizableStackedWidget : public QStackedWidget
+{
+    Q_OBJECT
+
+public:
+    QSize sizeHint() const override
+    {
+        return currentWidget()->sizeHint();
+    }
+    QSize minimumSizeHint() const override
+    {
+        return currentWidget()->minimumSizeHint();
+    }
+};
+
+/**
+ * Groups sidebar containers in a QDockWidget.
+ *
+ * This control groups all the sidebar containers provided by each tab (the Part object),
+ * allowing the user to dock it to the left and right sides of the window,
+ * or detach it from the window altogether.
+ */
+class Sidebar : public QDockWidget
+{
+    Q_OBJECT
+
+public:
+    explicit Sidebar(QWidget *parent = nullptr)
+        : QDockWidget(parent)
+    {
+        setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
+        setFeatures(defaultFeatures());
+
+        m_stackedWidget = new QStackedWidget;
+        setWidget(m_stackedWidget);
+        // It seems that without requesting a specific minimum size, Qt
+        // somehow calculates a (0,-1) minimum size, and then Qt gets angry
+        // that negative sizes is not possible.
+        setMinimumSize(10, 10);
+    }
+
+    bool isLocked() const
+    {
+        return features().testFlag(NoDockWidgetFeatures);
+    }
+
+    void setLocked(bool locked)
+    {
+        setFeatures(locked ? NoDockWidgetFeatures : defaultFeatures());
+
+        // show titlebar only if not locked
+        if (locked) {
+            if (!m_dumbTitleWidget) {
+                m_dumbTitleWidget = new QWidget;
+            }
+            setTitleBarWidget(m_dumbTitleWidget);
+        } else {
+            setTitleBarWidget(nullptr);
+        }
+    }
+
+    int indexOf(QWidget *widget) const
+    {
+        return m_stackedWidget->indexOf(widget);
+    }
+
+    void addWidget(QWidget *widget)
+    {
+        m_stackedWidget->addWidget(widget);
+    }
+
+    void removeWidget(QWidget *widget)
+    {
+        m_stackedWidget->removeWidget(widget);
+    }
+
+    void setCurrentWidget(QWidget *widget)
+    {
+        m_stackedWidget->setCurrentWidget(widget);
+    }
+
+private:
+    static DockWidgetFeatures defaultFeatures()
+    {
+        DockWidgetFeatures dockFeatures = DockWidgetClosable | DockWidgetMovable;
+        if (!KWindowSystem::isPlatformWayland()) { // TODO : Remove this check when QTBUG-87332 is fixed
+            dockFeatures |= DockWidgetFloatable;
+        }
+
+        return dockFeatures;
+    }
+
+    QStackedWidget *m_stackedWidget = nullptr;
+    QWidget *m_dumbTitleWidget = nullptr;
+};
+
 Shell::Shell(const QString &serializedOptions)
     : KParts::MainWindow()
     , m_menuBarWasShown(true)
     , m_toolBarWasShown(true)
-#ifndef Q_OS_WIN
-    , m_activityResource(nullptr)
-#endif
     , m_isValid(true)
 {
     setObjectName(QStringLiteral("okular::Shell#"));
@@ -82,21 +200,24 @@ Shell::Shell(const QString &serializedOptions)
     // this routine will find and load our Part.  it finds the Part by
     // name which is a bad idea usually.. but it's alright in this
     // case since our Part is made for this Shell
-    KPluginLoader loader(QStringLiteral("okularpart"));
-    m_partFactory = loader.factory();
-    if (!m_partFactory) {
+
+    const auto result = KPluginFactory::loadFactory(KPluginMetaData(QStringLiteral("kf6/parts/okularpart")));
+
+    if (!result) {
         // if we couldn't find our Part, we exit since the Shell by
         // itself can't do anything useful
         m_isValid = false;
-        KMessageBox::error(this, i18n("Unable to find the Okular component: %1", loader.errorString()));
+        KMessageBox::error(this, i18n("Unable to find the Okular component: %1", result.errorString));
         return;
+    } else {
+        m_partFactory = result.plugin;
     }
 
     // now that the Part plugin is loaded, create the part
     KParts::ReadWritePart *const firstPart = m_partFactory->create<KParts::ReadWritePart>(this);
     if (firstPart) {
         // Setup the central widget
-        m_centralStackedWidget = new QStackedWidget();
+        m_centralStackedWidget = new ResizableStackedWidget();
         setCentralWidget(m_centralStackedWidget);
 
         // Setup the welcome screen
@@ -126,11 +247,32 @@ Shell::Shell(const QString &serializedOptions)
         connect(m_tabWidget, &QTabWidget::tabCloseRequested, this, &Shell::closeTab);
         connect(m_tabWidget->tabBar(), &QTabBar::tabMoved, this, &Shell::moveTabData);
 
+        m_sidebar = new Sidebar;
+        m_sidebar->setObjectName(QStringLiteral("okular_sidebar"));
+        m_sidebar->setContextMenuPolicy(Qt::ActionsContextMenu);
+        m_sidebar->setWindowTitle(i18n("Sidebar"));
+        connect(m_sidebar, &QDockWidget::visibilityChanged, this, [this](bool visible) {
+            // sync sidebar visibility with the m_showSidebarAction only if welcome screen is hidden
+            if (m_showSidebarAction && m_centralStackedWidget->currentWidget() != m_welcomeScreen) {
+                m_showSidebarAction->setChecked(visible);
+            }
+            if (m_centralStackedWidget->currentWidget() == m_welcomeScreen) {
+                // MainWindow tries hard to make its child dockwidgets shown, but during
+                // welcome screen we don't want to see the sidebar,
+                // so try a bit more to actually hide it.
+                m_sidebar->hide();
+            }
+        });
+        addDockWidget(Qt::LeftDockWidgetArea, m_sidebar);
+
         // then, setup our actions
         setupActions();
         connect(QCoreApplication::instance(), &QCoreApplication::aboutToQuit, this, &QObject::deleteLater);
         // and integrate the part's GUI with the shell's
         setupGUI(Keys | ToolBar | Save);
+
+        // NOTE : apply default sidebar width only after calling setupGUI(...)
+        resizeDocks({m_sidebar}, {200}, Qt::Horizontal);
 
         m_tabs.append(TabState(firstPart));
         m_tabWidget->addTab(firstPart->widget(), QString()); // triggers setActiveTab that calls createGUI( part )
@@ -140,6 +282,7 @@ Shell::Shell(const QString &serializedOptions)
         readSettings();
 
         m_unique = ShellUtils::unique(serializedOptions);
+#if HAVE_DBUS
         if (m_unique) {
             m_unique = QDBusConnection::sessionBus().registerService(QStringLiteral("org.kde.okular"));
             if (!m_unique) {
@@ -161,6 +304,7 @@ Shell::Shell(const QString &serializedOptions)
         }
 
         QDBusConnection::sessionBus().registerObject(QStringLiteral("/okularshell"), this, QDBusConnection::ExportScriptableSlots);
+#endif // HAVE_DBUS
 
         // Make sure that the welcome scren is visible on startup.
         showWelcomeScreen();
@@ -169,14 +313,12 @@ Shell::Shell(const QString &serializedOptions)
         KMessageBox::error(this, i18n("Unable to find the Okular component."));
     }
 
-#if KXMLGUI_VERSION > QT_VERSION_CHECK(5, 78, 0)
     connect(guiFactory(), &KXMLGUIFactory::shortcutsSaved, this, &Shell::reloadAllXML);
-#endif
 }
 
 void Shell::reloadAllXML()
 {
-    for (const TabState &tab : qAsConst(m_tabs)) {
+    for (const TabState &tab : std::as_const(m_tabs)) {
         tab.part->reloadXML();
     }
 }
@@ -233,14 +375,16 @@ Shell::~Shell()
 {
     if (!m_tabs.empty()) {
         writeSettings();
-        for (const TabState &tab : qAsConst(m_tabs)) {
+        for (const TabState &tab : std::as_const(m_tabs)) {
             tab.part->closeUrl(false);
         }
         m_tabs.clear();
     }
+#if HAVE_DBUS
     if (m_unique) {
         QDBusConnection::sessionBus().unregisterService(QStringLiteral("org.kde.okular"));
     }
+#endif // HAVE_DBUS
 
     delete m_tabWidget;
 }
@@ -285,10 +429,12 @@ bool Shell::canOpenDocs(int numDocs, int desktop)
         return false;
     }
 
-    const KWindowInfo winfo(window()->effectiveWinId(), KWindowSystem::WMDesktop);
+#if !defined(Q_OS_WIN) && !defined(Q_OS_OSX)
+    const KWindowInfo winfo(window()->effectiveWinId(), NET::WMDesktop);
     if (winfo.desktop() != desktop) {
         return false;
     }
+#endif
 
     return true;
 }
@@ -298,42 +444,36 @@ void Shell::openUrl(const QUrl &url, const QString &serializedOptions)
     hideWelcomeScreen();
 
     const int activeTab = m_tabWidget->currentIndex();
-    if (activeTab < m_tabs.size()) {
-        KParts::ReadWritePart *const activePart = m_tabs[activeTab].part;
-        if (!activePart->url().isEmpty()) {
-            if (m_unique) {
-                applyOptionsToPart(activePart, serializedOptions);
-                activePart->openUrl(url);
-            } else {
-                if (qobject_cast<Okular::ViewerInterface *>(activePart)->openNewFilesInTabs()) {
-                    openNewTab(url, serializedOptions);
-                } else {
-                    Shell *newShell = new Shell(serializedOptions);
-                    newShell->show();
-                    newShell->openUrl(url, serializedOptions);
-                }
-            }
-        } else {
-            m_tabWidget->setTabText(activeTab, url.fileName());
-            m_tabWidget->setTabToolTip(activeTab, url.fileName());
-
+    KParts::ReadWritePart *const activePart = m_tabs[activeTab].part;
+    if (!activePart->url().isEmpty()) {
+        if (m_unique) {
             applyOptionsToPart(activePart, serializedOptions);
-            bool openOk = activePart->openUrl(url);
-            const bool isstdin = url.fileName() == QLatin1String("-") || url.scheme() == QLatin1String("fd");
-            if (!isstdin) {
-                if (openOk) {
-#ifdef WITH_KACTIVITIES
-                    if (!m_activityResource) {
-                        m_activityResource = new KActivities::ResourceInstance(window()->winId(), this);
-                    }
+            activePart->openUrl(url);
+        } else {
+            if (qobject_cast<Okular::ViewerInterface *>(activePart)->openNewFilesInTabs()) {
+                openNewTab(url, serializedOptions);
+            } else {
+                Shell *newShell = new Shell(serializedOptions);
+                newShell->show();
+                newShell->openUrl(url, serializedOptions);
+            }
+        }
+    } else {
+        m_tabWidget->setTabText(activeTab, url.fileName());
+        m_tabWidget->setTabToolTip(activeTab, url.fileName());
 
-                    m_activityResource->setUri(url);
+        applyOptionsToPart(activePart, serializedOptions);
+        bool openOk = activePart->openUrl(url);
+        const bool isstdin = url.fileName() == QLatin1String("-") || url.scheme() == QLatin1String("fd");
+        if (!isstdin) {
+            if (openOk) {
+#ifdef WITH_KACTIVITIES
+                KActivities::ResourceInstance::notifyAccessed(url);
 #endif
-                    m_recent->addUrl(url);
-                } else {
-                    m_recent->removeUrl(url);
-                    closeTab(activeTab);
-                }
+                m_recent->addUrl(url);
+            } else {
+                m_recent->removeUrl(url);
+                closeTab(activeTab);
             }
         }
     }
@@ -358,10 +498,10 @@ void Shell::closeUrl()
 
 void Shell::readSettings()
 {
-    m_recent->loadEntries(KSharedConfig::openConfig()->group("Recent Files"));
+    m_recent->loadEntries(KSharedConfig::openConfig()->group(RecentFilesGroupKey()));
     m_recent->setEnabled(true); // force enabling
 
-    const KConfigGroup group = KSharedConfig::openConfig()->group("Desktop Entry");
+    const KConfigGroup group = KSharedConfig::openConfig()->group(DesktopEntryGroupKey());
     bool fullScreen = group.readEntry("FullScreen", false);
     setFullScreen(fullScreen);
 
@@ -369,12 +509,26 @@ void Shell::readSettings()
         m_menuBarWasShown = group.readEntry(shouldShowMenuBarComingFromFullScreen, true);
         m_toolBarWasShown = group.readEntry(shouldShowToolBarComingFromFullScreen, true);
     }
+
+    const KConfigGroup sidebarGroup = KSharedConfig::openConfig()->group(GeneralGroupKey());
+    m_sidebar->setVisible(sidebarGroup.readEntry(SIDEBAR_VISIBLE_KEY, true));
+    m_sidebar->setLocked(sidebarGroup.readEntry(SIDEBAR_LOCKED_KEY, true));
+
+    m_showSidebarAction->setChecked(m_sidebar->isVisibleTo(this));
+    m_lockSidebarAction->setChecked(m_sidebar->isLocked());
 }
 
 void Shell::writeSettings()
 {
     saveRecents();
-    KConfigGroup group = KSharedConfig::openConfig()->group("Desktop Entry");
+
+    KConfigGroup sidebarGroup = KSharedConfig::openConfig()->group(GeneralGroupKey());
+    sidebarGroup.writeEntry(SIDEBAR_LOCKED_KEY, m_sidebar->isLocked());
+    // NOTE : Consider whether the m_showSidebarAction is checked, because
+    // the sidebar can be forcibly hidden if the welcome screen is displayed
+    sidebarGroup.writeEntry(SIDEBAR_VISIBLE_KEY, m_sidebar->isVisibleTo(this) || m_showSidebarAction->isChecked());
+
+    KConfigGroup group = KSharedConfig::openConfig()->group(DesktopEntryGroupKey());
     group.writeEntry("FullScreen", m_fullScreenAction->isChecked());
     if (m_fullScreenAction->isChecked()) {
         group.writeEntry(shouldShowMenuBarComingFromFullScreen, m_menuBarWasShown);
@@ -385,7 +539,7 @@ void Shell::writeSettings()
 
 void Shell::saveRecents()
 {
-    m_recent->saveEntries(KSharedConfig::openConfig()->group("Recent Files"));
+    m_recent->saveEntries(KSharedConfig::openConfig()->group(RecentFilesGroupKey()));
 }
 
 void Shell::setupActions()
@@ -427,6 +581,13 @@ void Shell::setupActions()
     m_undoCloseTab->setIcon(QIcon::fromTheme(QStringLiteral("edit-undo")));
     m_undoCloseTab->setEnabled(false);
     connect(m_undoCloseTab, &QAction::triggered, this, &Shell::undoCloseTab);
+
+    m_lockSidebarAction = actionCollection()->addAction(QStringLiteral("okular_lock_sidebar"));
+    m_lockSidebarAction->setCheckable(true);
+    m_lockSidebarAction->setIcon(QIcon::fromTheme(QStringLiteral("lock")));
+    m_lockSidebarAction->setText(i18n("Lock Sidebar"));
+    connect(m_lockSidebarAction, &QAction::triggered, m_sidebar, &Sidebar::setLocked);
+    m_sidebar->addAction(m_lockSidebarAction);
 }
 
 void Shell::saveProperties(KConfigGroup &group)
@@ -437,7 +598,7 @@ void Shell::saveProperties(KConfigGroup &group)
 
     // Gather lists of settings to preserve
     QStringList urls;
-    for (const TabState &tab : qAsConst(m_tabs)) {
+    for (const TabState &tab : std::as_const(m_tabs)) {
         urls.append(tab.part->url().url());
     }
     group.writePathEntry(SESSION_URL_KEY, urls);
@@ -479,6 +640,9 @@ void Shell::fileOpen()
     if (curPart->url().isLocalFile()) {
         startDir = KIO::upUrl(curPart->url());
     }
+    if (startDir.isEmpty() || (startDir == QUrl::fromLocalFile(QDir::rootPath()))) {
+        startDir = QUrl::fromLocalFile(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation));
+    }
 
     QPointer<QFileDialog> dlg(new QFileDialog(this));
     dlg->setDirectoryUrl(startDir);
@@ -492,14 +656,10 @@ void Shell::fileOpen()
     // worse because doesn't show you pdf files named bla.blo when you say "show me the pdf files", but
     // that's solvable by choosing "All Files" and it's not that common while it's more convenient to
     // only get shown the files that the application can open by default instead of all of them
-#if KIO_VERSION >= QT_VERSION_CHECK(5, 73, 0)
     const bool useMimeTypeFilters = qgetenv("XDG_CURRENT_DESKTOP").toLower() == "kde";
-#else
-    const bool useMimeTypeFilters = false;
-#endif
     if (useMimeTypeFilters) {
         QStringList mimetypes;
-        for (const QString &mimeName : qAsConst(m_fileformats)) {
+        for (const QString &mimeName : std::as_const(m_fileformats)) {
             QMimeType mimeType = mimeDatabase.mimeTypeForName(mimeName);
             mimetypes << mimeType.name();
         }
@@ -508,18 +668,14 @@ void Shell::fileOpen()
     } else {
         QSet<QString> globPatterns;
         QMap<QString, QStringList> namedGlobs;
-        for (const QString &mimeName : qAsConst(m_fileformats)) {
+        for (const QString &mimeName : std::as_const(m_fileformats)) {
             QMimeType mimeType = mimeDatabase.mimeTypeForName(mimeName);
             const QStringList globs(mimeType.globPatterns());
             if (globs.isEmpty()) {
                 continue;
             }
 
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
             globPatterns.unite(QSet<QString>(globs.begin(), globs.end()));
-#else
-            globPatterns.unite(globs.toSet());
-#endif
 
             namedGlobs[mimeType.comment()].append(globs);
         }
@@ -547,9 +703,19 @@ void Shell::fileOpen()
     }
 }
 
-void Shell::tryRaise()
+void Shell::tryRaise(const QString &startupId)
 {
-    KWindowSystem::forceActiveWindow(window()->effectiveWinId());
+#if !defined(Q_OS_WIN) && !defined(Q_OS_OSX)
+    if (KWindowSystem::isPlatformWayland()) {
+        KWindowSystem::setCurrentXdgActivationToken(startupId);
+    } else if (KWindowSystem::isPlatformX11()) {
+        KStartupInfo::setNewStartupId(window()->windowHandle(), startupId.toUtf8());
+    }
+#else
+    Q_UNUSED(startupId);
+#endif
+
+    KWindowSystem::activateWindow(window()->windowHandle());
 }
 
 // only called when starting the program
@@ -567,7 +733,7 @@ void Shell::setCaption(const QString &caption)
     bool modified = false;
 
     const int activeTab = m_tabWidget->currentIndex();
-    if (activeTab >= 0 && activeTab < m_tabs.size()) {
+    if (activeTab != -1) {
         KParts::ReadWritePart *const activePart = m_tabs[activeTab].part;
         QString tabCaption = activePart->url().fileName();
         if (activePart->isModified()) {
@@ -635,8 +801,8 @@ bool Shell::queryClose()
 {
     if (m_tabs.count() > 1) {
         const QString dontAskAgainName = QStringLiteral("ShowTabWarning");
-        KMessageBox::ButtonCode dummy = KMessageBox::Yes;
-        if (shouldBeShownYesNo(dontAskAgainName, dummy)) {
+        KMessageBox::ButtonCode dummy = KMessageBox::PrimaryAction;
+        if (KMessageBox::shouldBeShownTwoActions(dontAskAgainName, dummy)) {
             QDialog *dialog = new QDialog(this);
             dialog->setWindowTitle(i18n("Confirm Close"));
 
@@ -656,7 +822,7 @@ bool Shell::queryClose()
                                                               KMessageBox::Notify);
 
             if (!checkboxResult) {
-                saveDontShowAgainYesNo(dontAskAgainName, dummy);
+                KMessageBox::saveDontShowAgainTwoActions(dontAskAgainName, dummy);
             }
 
             if (result != QDialogButtonBox::Yes) {
@@ -682,11 +848,35 @@ bool Shell::queryClose()
 
 void Shell::setActiveTab(int tab)
 {
+    if (m_showSidebarAction) {
+        m_showSidebarAction->disconnect();
+    }
+
     m_tabWidget->setCurrentIndex(tab);
-#if KXMLGUI_VERSION <= QT_VERSION_CHECK(5, 78, 0)
-    m_tabs[tab].part->reloadXML();
-#endif
+
+    // NOTE : createGUI(...) breaks the visibility of the sidebar, so we need
+    // to save and restore it
+    const bool isSidebarVisible = m_sidebar->isVisible();
     createGUI(m_tabs[tab].part);
+    m_sidebar->setVisible(isSidebarVisible);
+
+    // dock KPart's sidebar if new and make it current
+    Okular::ViewerInterface *iPart = qobject_cast<Okular::ViewerInterface *>(m_tabs[tab].part);
+    Q_ASSERT(iPart);
+    QWidget *sideContainer = iPart->getSideContainer();
+    if (m_sidebar->indexOf(sideContainer) == -1) {
+        m_sidebar->addWidget(sideContainer);
+        if (m_sidebar->maximumWidth() > sideContainer->maximumWidth()) {
+            m_sidebar->setMaximumWidth(sideContainer->maximumWidth());
+        }
+    }
+    m_sidebar->setCurrentWidget(sideContainer);
+
+    m_showSidebarAction = m_tabs[tab].part->actionCollection()->action(QStringLiteral("show_leftpanel"));
+    Q_ASSERT(m_showSidebarAction);
+    m_showSidebarAction->disconnect();
+    m_showSidebarAction->setChecked(m_sidebar->isVisibleTo(this));
+    connect(m_showSidebarAction, &QAction::triggered, m_sidebar, &Sidebar::setVisible);
 
     m_printAction->setEnabled(m_tabs[tab].printEnabled);
     m_closeAction->setEnabled(m_tabs[tab].closeEnabled);
@@ -702,6 +892,13 @@ void Shell::closeTab(int tab)
             part->factory()->removeClient(part);
         }
         part->disconnect();
+
+        Okular::ViewerInterface *iPart = qobject_cast<Okular::ViewerInterface *>(m_tabs[tab].part);
+        Q_ASSERT(iPart);
+        QWidget *sideContainer = iPart->getSideContainer();
+        m_sidebar->removeWidget(sideContainer);
+        connect(part, &QObject::destroyed, sideContainer, &QObject::deleteLater);
+
         part->deleteLater();
         m_tabs.removeAt(tab);
         m_tabWidget->removeTab(tab);
@@ -789,7 +986,7 @@ void Shell::applyOptionsToPart(QObject *part, const QString &serializedOptions)
     }
 }
 
-void Shell::connectPart(QObject *part)
+void Shell::connectPart(const KParts::ReadWritePart *part)
 {
     // We're abusing the fact we know the part is our part here
     connect(this, SIGNAL(moveSplitter(int)), part, SLOT(moveSplitter(int)));                     // clazy:exclude=old-style-connect
@@ -917,11 +1114,16 @@ void Shell::slotFitWindowToPage(const QSize pageViewSize, const QSize pageSize)
 void Shell::hideWelcomeScreen()
 {
     m_centralStackedWidget->setCurrentWidget(m_tabWidget);
+    m_sidebar->setVisible(m_showSidebarAction->isChecked());
+    m_showSidebarAction->setEnabled(true);
 }
 
 void Shell::showWelcomeScreen()
 {
+    m_showSidebarAction->setEnabled(false);
     m_centralStackedWidget->setCurrentWidget(m_welcomeScreen);
+    m_sidebar->setVisible(false);
+
     refreshRecentsOnWelcomeScreen();
 }
 
@@ -939,5 +1141,7 @@ void Shell::forgetRecentItem(QUrl const &url)
         refreshRecentsOnWelcomeScreen();
     }
 }
+
+#include "shell.moc"
 
 /* kate: replace-tabs on; indent-width 4; */

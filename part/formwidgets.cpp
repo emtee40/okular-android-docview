@@ -9,6 +9,7 @@
 */
 
 #include "formwidgets.h"
+#include "core/page.h"
 #include "pageview.h"
 #include "pageviewutils.h"
 #include "revisionviewer.h"
@@ -71,6 +72,11 @@ FormWidgetsController::~FormWidgetsController()
 void FormWidgetsController::signalAction(Okular::Action *a)
 {
     Q_EMIT action(a);
+}
+
+void FormWidgetsController::signalMouseUpAction(Okular::Action *action, Okular::FormField *form)
+{
+    Q_EMIT mouseUpAction(action, form);
 }
 
 void FormWidgetsController::processScriptAction(Okular::Action *a, Okular::FormField *field, Okular::Annotation::AdditionalActionType type)
@@ -207,12 +213,16 @@ void FormWidgetsController::slotButtonClicked(QAbstractButton *button)
 
 void FormWidgetsController::slotFormButtonsChangedByUndoRedo(int pageNumber, const QList<Okular::FormFieldButton *> &formButtons)
 {
+    QList<int> extraPages;
     for (const Okular::FormFieldButton *formButton : formButtons) {
         int id = formButton->id();
         QAbstractButton *button = m_buttons[id];
-        CheckBoxEdit *check = qobject_cast<CheckBoxEdit *>(button);
-        if (check) {
+        int itemPageNumber = -1;
+        if (CheckBoxEdit *check = qobject_cast<CheckBoxEdit *>(button)) {
+            itemPageNumber = check->pageItem()->pageNumber();
             Q_EMIT refreshFormWidget(check->formField());
+        } else if (RadioButtonEdit *radio = qobject_cast<RadioButtonEdit *>(button)) {
+            itemPageNumber = radio->pageItem()->pageNumber();
         }
         // temporarily disable exclusiveness of the button group
         // since it breaks doing/redoing steps into which all the checkboxes
@@ -223,8 +233,14 @@ void FormWidgetsController::slotFormButtonsChangedByUndoRedo(int pageNumber, con
         button->setChecked(checked);
         button->group()->setExclusive(wasExclusive);
         button->setFocus();
+        if (itemPageNumber != -1 && itemPageNumber != pageNumber) {
+            extraPages << itemPageNumber;
+        }
     }
     Q_EMIT changed(pageNumber);
+    for (auto page : std::as_const(extraPages)) {
+        Q_EMIT changed(page);
+    }
 }
 
 Okular::Document *FormWidgetsController::document() const
@@ -748,7 +764,7 @@ FileEdit::FileEdit(Okular::FormFieldText *text, PageView *pageView)
     , FormWidgetIface(this, text)
 {
     setMode(KFile::File | KFile::ExistingOnly | KFile::LocalOnly);
-    setFilter(i18n("*|All Files"));
+    setNameFilter(i18n("All Files (*)"));
     setUrl(QUrl::fromUserInput(text->text()));
     lineEdit()->setAlignment(text->textAlignment());
 
@@ -1205,22 +1221,22 @@ void SignatureEdit::signUnsignedSignature()
     }                                                                                                                                                                                                                                          \
     void FormClass::mouseReleaseEvent(QMouseEvent *event)                                                                                                                                                                                      \
     {                                                                                                                                                                                                                                          \
-        if (!QWidget::rect().contains(event->localPos().toPoint())) {                                                                                                                                                                          \
+        if (!QWidget::rect().contains(event->position().toPoint())) {                                                                                                                                                                          \
             BaseClass::mouseReleaseEvent(event);                                                                                                                                                                                               \
             return;                                                                                                                                                                                                                            \
         }                                                                                                                                                                                                                                      \
         Okular::Action *act = m_ff->activationAction();                                                                                                                                                                                        \
         if (act && !qobject_cast<CheckBoxEdit *>(this)) {                                                                                                                                                                                      \
-            m_controller->signalAction(act);                                                                                                                                                                                                   \
+            m_controller->signalMouseUpAction(act, m_ff);                                                                                                                                                                                      \
         } else if ((act = m_ff->additionalAction(Okular::Annotation::MouseReleased))) {                                                                                                                                                        \
-            m_controller->signalAction(act);                                                                                                                                                                                                   \
+            m_controller->signalMouseUpAction(act, m_ff);                                                                                                                                                                                      \
         }                                                                                                                                                                                                                                      \
         BaseClass::mouseReleaseEvent(event);                                                                                                                                                                                                   \
     }                                                                                                                                                                                                                                          \
     void FormClass::focusInEvent(QFocusEvent *event)                                                                                                                                                                                           \
     {                                                                                                                                                                                                                                          \
         Okular::Action *act = m_ff->additionalAction(Okular::Annotation::FocusIn);                                                                                                                                                             \
-        if (act) {                                                                                                                                                                                                                             \
+        if (act && event->reason() != Qt::ActiveWindowFocusReason) {                                                                                                                                                                           \
             m_controller->processScriptAction(act, m_ff, Okular::Annotation::FocusIn);                                                                                                                                                         \
         }                                                                                                                                                                                                                                      \
         BaseClass::focusInEvent(event);                                                                                                                                                                                                        \
@@ -1241,7 +1257,7 @@ void SignatureEdit::signUnsignedSignature()
         }                                                                                                                                                                                                                                      \
         BaseClass::leaveEvent(event);                                                                                                                                                                                                          \
     }                                                                                                                                                                                                                                          \
-    void FormClass::enterEvent(QEvent *event)                                                                                                                                                                                                  \
+    void FormClass::enterEvent(QEnterEvent *event)                                                                                                                                                                                             \
     {                                                                                                                                                                                                                                          \
         Okular::Action *act = m_ff->additionalAction(Okular::Annotation::CursorEntering);                                                                                                                                                      \
         if (act) {                                                                                                                                                                                                                             \

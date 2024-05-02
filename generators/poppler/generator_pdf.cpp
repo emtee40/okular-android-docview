@@ -22,6 +22,7 @@
 #include <QDir>
 #include <QFile>
 #include <QImage>
+#include <QImageReader>
 #include <QLayout>
 #include <QMutex>
 #include <QPainter>
@@ -56,6 +57,7 @@
 #include "annots.h"
 #include "debug_pdf.h"
 #include "formfields.h"
+#include "imagescaling.h"
 #include "pdfsettingswidget.h"
 #include "pdfsignatureutils.h"
 #include "popplerembeddedfile.h"
@@ -103,6 +105,14 @@ public:
         m_scaleMode->insertItem(None, i18n("None; print original size"), None);
         m_scaleMode->setToolTip(i18n("Scaling mode for the printed pages"));
         printBackendLayout->addRow(i18n("Scale mode:"), m_scaleMode);
+
+        // Set scale mode to users default
+        m_scaleMode->setCurrentIndex(PDFSettings::printScaleMode());
+
+        // Set rasterizing if scale mode is 1 or 2
+        if (m_scaleMode->currentIndex() != 0) {
+            m_forceRaster->setCheckState(Qt::Checked);
+        }
 
         // If the user selects a scaling mode that requires the use of the
         // "Force rasterization" feature, enable it automatically so they don't
@@ -218,6 +228,7 @@ Okular::Movie *createMovieFromPopplerMovie(const Poppler::MovieObject *popplerMo
     movie->setShowControls(popplerMovie->showControls());
     movie->setPlayMode((Okular::Movie::PlayMode)popplerMovie->playMode());
     movie->setAutoPlay(false); // will be triggered by external MovieAnnotation
+    movie->setStartPaused(false);
     movie->setShowPosterImage(popplerMovie->showPosterImage());
     movie->setPosterImage(popplerMovie->posterImage());
     return movie;
@@ -240,7 +251,13 @@ Okular::Movie *createMovieFromPopplerScreen(const Poppler::LinkRendition *popple
         movie->setPlayMode(Okular::Movie::PlayLimited);
         movie->setPlayRepetitions(rendition->repeatCount());
     }
-    movie->setAutoPlay(rendition->autoPlay());
+    /**
+     * Warning: Confusing flag name from PDF spec. Described as:
+     * > If true, the media should automatically play when activated.
+     * > If false, the media should be initially paused when activated
+     * To set autoplay, page actions are used.
+     */
+    movie->setStartPaused(!rendition->autoPlay());
     return movie;
 }
 
@@ -393,7 +410,7 @@ static Okular::DocumentAction::DocumentActionType popplerToOkular(Poppler::LinkA
 /**
  * Note: the function will take ownership of the popplerLink object.
  */
-Okular::Action *createLinkFromPopplerLink(const Poppler::Link *popplerLink, bool deletePopplerLink = true)
+Okular::Action *createLinkFromPopplerLink(const Poppler::Link *popplerLink, bool deletePopplerLink)
 {
     if (!popplerLink) {
         return nullptr;
@@ -564,14 +581,14 @@ Okular::Action *createLinkFromPopplerLink(const Poppler::Link *popplerLink, bool
 /**
  * Note: the function will take ownership of the popplerLink objects.
  */
-static QList<Okular::ObjectRect *> generateLinks(const QList<Poppler::Link *> &popplerLinks)
+static QList<Okular::ObjectRect *> generateLinks(std::vector<std::unique_ptr<Poppler::Link>> &&popplerLinks)
 {
     QList<Okular::ObjectRect *> links;
-    for (const Poppler::Link *popplerLink : popplerLinks) {
+    for (const auto &popplerLink : popplerLinks) {
         QRectF linkArea = popplerLink->linkArea();
         double nl = linkArea.left(), nt = linkArea.top(), nr = linkArea.right(), nb = linkArea.bottom();
         // create the rect using normalized coords and attach the Okular::Link to it
-        Okular::ObjectRect *rect = new Okular::ObjectRect(nl, nt, nr, nb, false, Okular::ObjectRect::Action, createLinkFromPopplerLink(popplerLink));
+        Okular::ObjectRect *rect = new Okular::ObjectRect(nl, nt, nr, nb, false, Okular::ObjectRect::Action, createLinkFromPopplerLink(popplerLink.get(), false));
         // add the ObjectRect to the container
         links.push_front(rect);
     }
@@ -630,9 +647,13 @@ PDFGenerator::PDFGenerator(QObject *parent, const QVariantList &args)
     // You only need to do it once not for each of the documents but it is cheap enough
     // so doing it all the time won't hurt either
     Poppler::setDebugErrorFunction(PDFGeneratorPopplerDebugFunction, QVariant());
-#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(21, 1, 0)
     if (!PDFSettings::useDefaultCertDB()) {
         Poppler::setNSSDir(QUrl(PDFSettings::dBCertificatePath()).toLocalFile());
+    }
+#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 06, 0)
+    auto activeBackend = PDFSettingsWidget::settingStringToPopplerEnum(PDFSettings::signatureBackend());
+    if (activeBackend) {
+        Poppler::setActiveCryptoSignBackend(activeBackend.value());
     }
 #endif
 }
@@ -678,33 +699,32 @@ Okular::Document::OpenResult PDFGenerator::init(QVector<Okular::Page *> &pagesVe
 
     if (pdfdoc->isLocked()) {
         pdfdoc->unlock(password.toLatin1(), password.toLatin1());
+        documentHasPassword = !password.isEmpty();
 
         if (pdfdoc->isLocked()) {
             pdfdoc->unlock(password.toUtf8(), password.toUtf8());
 
             if (pdfdoc->isLocked()) {
-                delete pdfdoc;
-                pdfdoc = nullptr;
+                pdfdoc.reset();
                 return Okular::Document::OpenNeedsPassword;
             }
         }
+    } else {
+        documentHasPassword = false;
     }
 
     xrefReconstructed = false;
-#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(21, 6, 0)
     if (pdfdoc->xrefWasReconstructed()) {
         xrefReconstructionHandler();
     } else {
         std::function<void()> cb = std::bind(&PDFGenerator::xrefReconstructionHandler, this);
         pdfdoc->setXRefReconstructedCallback(cb);
     }
-#endif
 
     // build Pages (currentPage was set -1 by deletePages)
     int pageCount = pdfdoc->numPages();
     if (pageCount < 0) {
-        delete pdfdoc;
-        pdfdoc = nullptr;
+        pdfdoc.reset();
         return Okular::Document::OpenError;
     }
     pagesVector.resize(pageCount);
@@ -718,7 +738,7 @@ Okular::Document::OpenResult PDFGenerator::init(QVector<Okular::Page *> &pagesVe
     reparseConfig();
 
     // create annotation proxy
-    annotProxy = new PopplerAnnotationProxy(pdfdoc, userMutex(), &annotationsOnOpenHash);
+    annotProxy = new PopplerAnnotationProxy(pdfdoc.get(), userMutex(), &annotationsOnOpenHash);
 
     // the file has been loaded correctly
     return Okular::Document::OpenSuccess;
@@ -740,12 +760,12 @@ PDFGenerator::SwapBackingFileResult PDFGenerator::swapBackingFile(QString const 
         for (int i = 0; i < oldRectsGenerated.count(); ++i) {
             if (oldRectsGenerated[i]) {
                 Okular::Page *page = newPagesVector[i];
-                Poppler::Page *pp = pdfdoc->page(i);
+
+                std::unique_ptr<Poppler::Page> pp = pdfdoc->page(i);
                 if (pp) {
                     page->setObjectRects(generateLinks(pp->links()));
                     rectsGenerated[i] = true;
                     resolveMediaLinkReferences(page);
-                    delete pp;
                 }
             }
         }
@@ -760,7 +780,6 @@ bool PDFGenerator::doCloseDocument()
     userMutex()->lock();
     delete annotProxy;
     annotProxy = nullptr;
-    delete pdfdoc;
     pdfdoc = nullptr;
     userMutex()->unlock();
     docSynopsisDirty = true;
@@ -781,7 +800,7 @@ void PDFGenerator::loadPages(QVector<Okular::Page *> &pagesVector, int rotation,
     double w = 0, h = 0;
     for (int i = 0; i < count; i++) {
         // get xpdf page
-        Poppler::Page *p = pdfdoc->page(i);
+        std::unique_ptr<Poppler::Page> p = pdfdoc->page(i);
         Okular::Page *page;
         if (p) {
             const QSizeF pSize = p->pageSizeF();
@@ -807,29 +826,25 @@ void PDFGenerator::loadPages(QVector<Okular::Page *> &pagesVector, int rotation,
             }
             // init a Okular::page, add transition and annotation information
             page = new Okular::Page(i, w, h, orientation);
-            addTransition(p, page);
+            addTransition(p.get(), page);
             if (true) { // TODO real check
-                addAnnotations(p, page);
+                addAnnotations(p.get(), page);
             }
-            Poppler::Link *tmplink = p->action(Poppler::Page::Opening);
+            std::unique_ptr<Poppler::Link> tmplink = p->action(Poppler::Page::Opening);
             if (tmplink) {
-                page->setPageAction(Okular::Page::Opening, createLinkFromPopplerLink(tmplink));
+                page->setPageAction(Okular::Page::Opening, createLinkFromPopplerLink(tmplink.get(), false));
             }
             tmplink = p->action(Poppler::Page::Closing);
             if (tmplink) {
-                page->setPageAction(Okular::Page::Closing, createLinkFromPopplerLink(tmplink));
+                page->setPageAction(Okular::Page::Closing, createLinkFromPopplerLink(tmplink.get(), false));
             }
             page->setDuration(p->duration());
             page->setLabel(p->label());
 
             QList<Okular::FormField *> okularFormFields;
-#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(0, 89, 0)
             if (i > 0) { // for page 0 we handle the form fields at the end
-                okularFormFields = getFormFields(p);
+                okularFormFields = getFormFields(p.get());
             }
-#else
-            okularFormFields = getFormFields(p);
-#endif
             if (!okularFormFields.isEmpty()) {
                 page->setFormFields(okularFormFields);
             }
@@ -838,8 +853,6 @@ void PDFGenerator::loadPages(QVector<Okular::Page *> &pagesVector, int rotation,
 #ifdef PDFGENERATOR_DEBUG
             qCDebug(OkularPdfDebug) << "load page" << i << "with rotation" << rotation << "and orientation" << orientation;
 #endif
-            delete p;
-
             if (clear && pagesVector[i]) {
                 delete pagesVector[i];
             }
@@ -853,33 +866,30 @@ void PDFGenerator::loadPages(QVector<Okular::Page *> &pagesVector, int rotation,
     // Once we've added the signatures to all pages except page 0, we add all the missing signatures there
     // we do that because there's signatures that don't belong to any page, but okular needs a page<->signature mapping
     if (count > 0) {
-#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(0, 89, 0)
-        const QVector<Poppler::FormFieldSignature *> allSignatures = pdfdoc->signatures();
+        std::vector<std::unique_ptr<Poppler::FormFieldSignature>> allSignatures = pdfdoc->signatures();
         std::unique_ptr<Poppler::Page> page0(pdfdoc->page(0));
         QList<Okular::FormField *> page0FormFields = getFormFields(page0.get());
 
-        for (Poppler::FormFieldSignature *s : allSignatures) {
+        for (auto &s : allSignatures) {
             bool createSignature = true;
             const QString fullyQualifiedName = s->fullyQualifiedName();
             auto compareSignatureByFullyQualifiedName = [&fullyQualifiedName](const Okular::FormField *off) { return off->fullyQualifiedName() == fullyQualifiedName; };
 
             // See if the signature is in one of the already loaded page (i.e. 1 to end)
-            for (Okular::Page *p : qAsConst(pagesVector)) {
+            for (Okular::Page *p : std::as_const(pagesVector)) {
                 const QList<Okular::FormField *> pageFormFields = p->formFields();
                 if (std::find_if(pageFormFields.begin(), pageFormFields.end(), compareSignatureByFullyQualifiedName) != pageFormFields.end()) {
-                    delete s;
                     createSignature = false;
                     break;
                 }
             }
             // See if the signature is in page 0
             if (createSignature && std::find_if(page0FormFields.constBegin(), page0FormFields.constEnd(), compareSignatureByFullyQualifiedName) != page0FormFields.constEnd()) {
-                delete s;
                 createSignature = false;
             }
             // Otherwise it's a page-less signature, add it to page 0
             if (createSignature) {
-                Okular::FormField *of = new PopplerFormFieldSignature(std::unique_ptr<Poppler::FormFieldSignature>(s));
+                Okular::FormField *of = new PopplerFormFieldSignature(std::move(s));
                 page0FormFields.append(of);
             }
         }
@@ -887,7 +897,6 @@ void PDFGenerator::loadPages(QVector<Okular::Page *> &pagesVector, int rotation,
         if (!page0FormFields.isEmpty()) {
             pagesVector[0]->setFormFields(page0FormFields);
         }
-#endif
     }
 }
 
@@ -926,7 +935,9 @@ Okular::DocumentInfo PDFGenerator::generateDocumentInfo(const QSet<Okular::Docum
         }
         if (keys.contains(Okular::DocumentInfo::CustomKeys)) {
             int major, minor;
-            pdfdoc->getPdfVersion(&major, &minor);
+            auto version = pdfdoc->getPdfVersion();
+            major = version.major;
+            minor = version.minor;
             docInfo.set(QStringLiteral("format"), i18nc("PDF v. <version>", "PDF v. %1.%2", major, minor), i18n("Format"));
             docInfo.set(QStringLiteral("encryption"), pdfdoc->isEncrypted() ? i18n("Encrypted") : i18n("Unencrypted"), i18n("Security"));
             docInfo.set(QStringLiteral("optimization"), pdfdoc->isLinearized() ? i18n("Yes") : i18n("No"), i18n("Optimized"));
@@ -1029,14 +1040,15 @@ Okular::FontInfo::List PDFGenerator::fontsForPage(int page)
     QList<Poppler::FontInfo> fonts;
     userMutex()->lock();
 
-    Poppler::FontIterator *it = pdfdoc->newFontIterator(page);
-    if (it->hasNext()) {
-        fonts = it->next();
+    {
+        std::unique_ptr<Poppler::FontIterator> it = pdfdoc->newFontIterator(page);
+        if (it->hasNext()) {
+            fonts = it->next();
+        }
     }
-    delete it;
     userMutex()->unlock();
 
-    for (const Poppler::FontInfo &font : qAsConst(fonts)) {
+    for (const Poppler::FontInfo &font : std::as_const(fonts)) {
         Okular::FontInfo of;
         of.setName(font.name());
         of.setSubstituteName(font.substituteName());
@@ -1188,7 +1200,7 @@ QImage PDFGenerator::image(Okular::PixmapRequest *request)
 
     // 1. Set OutputDev parameters and Generate contents
     // note: thread safety is set on 'false' for the GUI (this) thread
-    Poppler::Page *p = pdfdoc->page(page->number());
+    std::unique_ptr<Poppler::Page> p = pdfdoc->page(page->number());
 
     // 2. Take data from outputdev and attach it to the Page
     QImage img;
@@ -1229,8 +1241,6 @@ QImage PDFGenerator::image(Okular::PixmapRequest *request)
 
     // 3. UNLOCK [re-enables shared access]
     userMutex()->unlock();
-
-    delete p;
 
     return img;
 }
@@ -1322,10 +1332,14 @@ Okular::TextPage *PDFGenerator::textPage(Okular::TextRequest *request)
     qCDebug(OkularPdfDebug) << "page" << page->number();
 #endif
     // build a TextList...
-    QList<Poppler::TextBox *> textList;
+    std::vector<std::unique_ptr<Poppler::TextBox>> textList;
     double pageWidth, pageHeight;
     userMutex()->lock();
-    Poppler::Page *pp = pdfdoc->page(page->number());
+    if (request->shouldAbortExtraction()) {
+        userMutex()->unlock();
+        return nullptr;
+    }
+    std::unique_ptr<Poppler::Page> pp = pdfdoc->page(page->number());
     if (pp) {
         TextExtractionPayload payload(request);
         textList = pp->textList(Poppler::Page::Rotate0, shouldAbortTextExtractionCallback, QVariant::fromValue(&payload));
@@ -1336,15 +1350,13 @@ Okular::TextPage *PDFGenerator::textPage(Okular::TextRequest *request)
         pageWidth = defaultPageWidth;
         pageHeight = defaultPageHeight;
     }
-    delete pp;
     userMutex()->unlock();
 
-    if (textList.isEmpty() && request->shouldAbortExtraction()) {
+    if (textList.empty() && request->shouldAbortExtraction()) {
         return nullptr;
     }
 
     Okular::TextPage *tp = abstractTextPage(textList, pageHeight, pageWidth, (Poppler::Page::Rotation)page->orientation());
-    qDeleteAll(textList);
     return tp;
 }
 
@@ -1354,7 +1366,6 @@ QByteArray PDFGenerator::requestFontData(const Okular::FontInfo &font)
     return pdfdoc->fontData(fi);
 }
 
-#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(21, 1, 0)
 void PDFGenerator::okularToPoppler(const Okular::NewSignatureData &oData, Poppler::PDFConverter::NewSignatureData *pData)
 {
     pData->setCertNickname(oData.certNickname());
@@ -1362,19 +1373,16 @@ void PDFGenerator::okularToPoppler(const Okular::NewSignatureData &oData, Popple
     pData->setPage(oData.page());
     const QString datetime = QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd hh:mm:ss t"));
     pData->setSignatureText(i18n("Signed by: %1\n\nDate: %2", oData.certSubjectCommonName(), datetime));
-#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(21, 6, 0)
     pData->setSignatureLeftText(oData.certSubjectCommonName());
-#endif
     const Okular::NormalizedRect bRect = oData.boundingRectangle();
     pData->setBoundingRectangle({bRect.left, bRect.top, bRect.width(), bRect.height()});
     pData->setFontColor(Qt::black);
     pData->setBorderColor(Qt::black);
-#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(22, 2, 0)
+    pData->setReason(oData.reason());
+    pData->setLocation(oData.location());
     pData->setDocumentOwnerPassword(oData.documentPassword().toLatin1());
     pData->setDocumentUserPassword(oData.documentPassword().toLatin1());
-#endif
 }
-#endif
 
 #define DUMMY_QPRINTER_COPY
 Okular::Document::PrintError PDFGenerator::print(QPrinter &printer)
@@ -1389,6 +1397,8 @@ Okular::Document::PrintError PDFGenerator::print(QPrinter &printer)
         scaleMode = pdfOptionsPage->scaleMode();
     }
 
+    const auto overprintPreviewEnabled = PDFSettings::overprintPreviewEnabled();
+
 #ifdef Q_OS_WIN
     // Windows can only print by rasterization, because that is
     // currently the only way Okular implements printing without using UNIX-specific
@@ -1398,6 +1408,7 @@ Okular::Document::PrintError PDFGenerator::print(QPrinter &printer)
 
     if (forceRasterize) {
         pdfdoc->setRenderHint(Poppler::Document::HideAnnotations, !printAnnots);
+        pdfdoc->setRenderHint(Poppler::Document::OverprintPreview, overprintPreviewEnabled);
 
         if (pdfOptionsPage) {
             // If requested, scale to full page instead of the printable area
@@ -1451,9 +1462,8 @@ Okular::Document::PrintError PDFGenerator::print(QPrinter &printer)
     // Get the real page size to pass to the ps generator
     QPrinter dummy(QPrinter::PrinterResolution);
     dummy.setFullPage(true);
-    dummy.setOrientation(printer.orientation());
-    dummy.setPageSize(printer.pageSize());
-    dummy.setPaperSize(printer.paperSize(QPrinter::Millimeter), QPrinter::Millimeter);
+    dummy.setPageOrientation(printer.pageLayout().orientation());
+    dummy.setPageSize(printer.pageLayout().pageSize());
     int width = dummy.width();
     int height = dummy.height();
 #else
@@ -1484,7 +1494,7 @@ Okular::Document::PrintError PDFGenerator::print(QPrinter &printer)
         pstitle = document()->currentDocument().fileName();
     }
 
-    Poppler::PSConverter *psConverter = pdfdoc->psConverter();
+    std::unique_ptr<Poppler::PSConverter> psConverter = pdfdoc->psConverter();
 
     psConverter->setOutputDevice(&tf);
 
@@ -1499,6 +1509,11 @@ Okular::Document::PrintError PDFGenerator::print(QPrinter &printer)
     psConverter->setForceRasterize(forceRasterize);
     psConverter->setTitle(pstitle);
 
+#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 9, 0)
+    const auto isPdfOutput = printer.outputFormat() == QPrinter::PdfFormat;
+    psConverter->setForceOverprintPreview(!isPdfOutput && overprintPreviewEnabled);
+#endif
+
     if (!printAnnots) {
         psConverter->setPSOptions(psConverter->psOptions() | Poppler::PSConverter::HideAnnotations);
     }
@@ -1506,14 +1521,12 @@ Okular::Document::PrintError PDFGenerator::print(QPrinter &printer)
     userMutex()->lock();
     if (psConverter->convert()) {
         userMutex()->unlock();
-        delete psConverter;
         tf.close();
 
         const Okular::FilePrinter::ScaleMode filePrinterScaleMode = (scaleMode == PDFOptionsPage::None) ? Okular::FilePrinter::ScaleMode::NoScaling : Okular::FilePrinter::ScaleMode::FitToPrintArea;
 
         return Okular::FilePrinter::printFile(printer, tempfilename, document()->orientation(), Okular::FilePrinter::SystemDeletesFiles, Okular::FilePrinter::ApplicationSelectsPages, document()->bookmarkedPageRange(), filePrinterScaleMode);
     } else {
-        delete psConverter;
         userMutex()->unlock();
 
         tf.close();
@@ -1537,12 +1550,11 @@ QVariant PDFGenerator::metaData(const QString &key, const QVariant &option) cons
         // asking for the page related to a 'named link destination'. the
         // option is the link name. @see addSynopsisChildren.
         userMutex()->lock();
-        Poppler::LinkDestination *ld = pdfdoc->linkDestination(optionString);
+        std::unique_ptr<Poppler::LinkDestination> ld = pdfdoc->linkDestination(optionString);
         userMutex()->unlock();
         if (ld) {
             fillViewportFromLinkDestination(viewport, *ld);
         }
-        delete ld;
         if (viewport.pageNumber >= 0) {
             return viewport.toString();
         }
@@ -1571,20 +1583,8 @@ QVariant PDFGenerator::metaData(const QString &key, const QVariant &option) cons
         } else {
             return i18n("Using Poppler %1\n\nBuilt against Poppler %2", Poppler::Version::string(), QStringLiteral(POPPLER_VERSION));
         }
-    } else if (key == QLatin1String("ShowStampsWarning")) {
-#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(21, 10, 0)
-        return QStringLiteral("no");
-#else
-        return QStringLiteral("yes");
-#endif
     } else if (key == QLatin1String("DocumentHasPassword")) {
-        return pdfdoc->isEncrypted() ? QStringLiteral("yes") : QStringLiteral("no");
-    } else if (key == QLatin1String("CanSignDocumentWithPassword")) {
-#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(22, 2, 0)
-        return QStringLiteral("yes");
-#else
-        return QStringLiteral("no");
-#endif
+        return documentHasPassword ? QStringLiteral("yes") : QStringLiteral("no");
     }
     return QVariant();
 }
@@ -1615,7 +1615,7 @@ bool PDFGenerator::reparseConfig()
 void PDFGenerator::addPages(KConfigDialog *dlg)
 {
     PDFSettingsWidget *w = new PDFSettingsWidget(dlg);
-    ;
+
     dlg->addPage(w, PDFSettings::self(), i18n("PDF"), QStringLiteral("application-pdf"), i18n("PDF Backend Configuration"));
 }
 
@@ -1637,10 +1637,24 @@ bool PDFGenerator::setDocumentRenderHints()
 #undef SET_HINT
     // load thin line mode
     const int thinLineMode = PDFSettings::enhanceThinLines();
+#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 07, 0)
+    const bool enableOverprintPreview = PDFSettings::overprintPreviewEnabled();
+#endif
     const bool enableThinLineSolid = thinLineMode == PDFSettings::EnumEnhanceThinLines::Solid;
     const bool enableShapeLineSolid = thinLineMode == PDFSettings::EnumEnhanceThinLines::Shape;
+
+#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 07, 0)
+    const bool overprintPreviewWasEnabled = (oldhints & Poppler::Document::OverprintPreview) == Poppler::Document::OverprintPreview;
+#endif
     const bool thinLineSolidWasEnabled = (oldhints & Poppler::Document::ThinLineSolid) == Poppler::Document::ThinLineSolid;
     const bool thinLineShapeWasEnabled = (oldhints & Poppler::Document::ThinLineShape) == Poppler::Document::ThinLineShape;
+
+#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 07, 0)
+    if (enableOverprintPreview != overprintPreviewWasEnabled) {
+        pdfdoc->setRenderHint(Poppler::Document::OverprintPreview, enableOverprintPreview);
+        changed = true;
+    }
+#endif
     if (enableThinLineSolid != thinLineSolidWasEnabled) {
         pdfdoc->setRenderHint(Poppler::Document::ThinLineSolid, enableThinLineSolid);
         changed = true;
@@ -1675,13 +1689,12 @@ bool PDFGenerator::exportTo(const QString &fileName, const Okular::ExportFormat 
         for (int i = 0; i < num; ++i) {
             QString text;
             userMutex()->lock();
-            Poppler::Page *pp = pdfdoc->page(i);
+            std::unique_ptr<Poppler::Page> pp = pdfdoc->page(i);
             if (pp) {
                 text = pp->text(QRect()).normalized(QString::NormalizationForm_KC);
             }
             userMutex()->unlock();
             ts << text;
-            delete pp;
         }
         f.close();
 
@@ -1696,10 +1709,10 @@ bool PDFGenerator::exportTo(const QString &fileName, const Okular::ExportFormat 
 inline void append(Okular::TextPage *ktp, const QString &s, double l, double b, double r, double t)
 {
     //    qWarning(PDFDebug).nospace() << "text: " << s << " at (" << l << "," << t << ")x(" << r <<","<<b<<")";
-    ktp->append(s, new Okular::NormalizedRect(l, t, r, b));
+    ktp->append(s, Okular::NormalizedRect(l, t, r, b));
 }
 
-Okular::TextPage *PDFGenerator::abstractTextPage(const QList<Poppler::TextBox *> &text, double height, double width, int rot)
+Okular::TextPage *PDFGenerator::abstractTextPage(const std::vector<std::unique_ptr<Poppler::TextBox>> &text, double height, double width, int rot)
 {
     Q_UNUSED(rot);
     Okular::TextPage *ktp = new Okular::TextPage;
@@ -1709,7 +1722,7 @@ Okular::TextPage *PDFGenerator::abstractTextPage(const QList<Poppler::TextBox *>
 #endif
     QString s;
     bool addChar;
-    for (const Poppler::TextBox *word : text) {
+    for (const auto &word : text) {
         const int qstringCharCount = word->text().length();
         next = word->nextWord();
         int textBoxChar = 0;
@@ -1779,58 +1792,58 @@ void PDFGenerator::addAnnotations(Poppler::Page *popplerPage, Okular::Page *page
     subtypes << Poppler::Annotation::AFileAttachment << Poppler::Annotation::ASound << Poppler::Annotation::AMovie << Poppler::Annotation::AWidget << Poppler::Annotation::AScreen << Poppler::Annotation::AText << Poppler::Annotation::ALine
              << Poppler::Annotation::AGeom << Poppler::Annotation::AHighlight << Poppler::Annotation::AInk << Poppler::Annotation::AStamp << Poppler::Annotation::ACaret;
 
-    const QList<Poppler::Annotation *> popplerAnnotations = popplerPage->annotations(subtypes);
+    std::vector<std::unique_ptr<Poppler::Annotation>> popplerAnnotations = popplerPage->annotations(subtypes);
 
-    for (Poppler::Annotation *a : popplerAnnotations) {
+    for (auto &a : popplerAnnotations) {
         bool doDelete = true;
-        Okular::Annotation *newann = createAnnotationFromPopplerAnnotation(a, *popplerPage, &doDelete);
+        Okular::Annotation *newann = createAnnotationFromPopplerAnnotation(a.get(), *popplerPage, &doDelete);
         if (newann) {
             page->addAnnotation(newann);
 
             if (a->subType() == Poppler::Annotation::AScreen) {
-                Poppler::ScreenAnnotation *annotScreen = static_cast<Poppler::ScreenAnnotation *>(a);
+                Poppler::ScreenAnnotation *annotScreen = static_cast<Poppler::ScreenAnnotation *>(a.get());
                 Okular::ScreenAnnotation *screenAnnotation = static_cast<Okular::ScreenAnnotation *>(newann);
 
                 // The activation action
-                const Poppler::Link *actionLink = annotScreen->action();
+                Poppler::Link *actionLink = annotScreen->action();
                 if (actionLink) {
-                    screenAnnotation->setAction(createLinkFromPopplerLink(actionLink));
+                    screenAnnotation->setAction(createLinkFromPopplerLink(actionLink, true /*The function doesn't delete this kind*/));
+                    /* The actionLink is still owned by the poppler annotation, but createLinkFromPopplerLink specialcases this and
+                     * insists on on being passed 'true' to tell them we know what we are doing
+                     * At some point in the future, there is probably stuff to be cleaned up here */
                 }
 
                 // The additional actions
-                const Poppler::Link *pageOpeningLink = annotScreen->additionalAction(Poppler::Annotation::PageOpeningAction);
+                std::unique_ptr<Poppler::Link> pageOpeningLink = annotScreen->additionalAction(Poppler::Annotation::PageOpeningAction);
                 if (pageOpeningLink) {
-                    screenAnnotation->setAdditionalAction(Okular::Annotation::PageOpening, createLinkFromPopplerLink(pageOpeningLink));
+                    screenAnnotation->setAdditionalAction(Okular::Annotation::PageOpening, createLinkFromPopplerLink(pageOpeningLink.get(), false));
                 }
 
-                const Poppler::Link *pageClosingLink = annotScreen->additionalAction(Poppler::Annotation::PageClosingAction);
+                std::unique_ptr<Poppler::Link> pageClosingLink = annotScreen->additionalAction(Poppler::Annotation::PageClosingAction);
                 if (pageClosingLink) {
-                    screenAnnotation->setAdditionalAction(Okular::Annotation::PageClosing, createLinkFromPopplerLink(pageClosingLink));
+                    screenAnnotation->setAdditionalAction(Okular::Annotation::PageClosing, createLinkFromPopplerLink(pageClosingLink.get(), false));
                 }
             }
 
             if (a->subType() == Poppler::Annotation::AWidget) {
-                Poppler::WidgetAnnotation *annotWidget = static_cast<Poppler::WidgetAnnotation *>(a);
+                Poppler::WidgetAnnotation *annotWidget = static_cast<Poppler::WidgetAnnotation *>(a.get());
                 Okular::WidgetAnnotation *widgetAnnotation = static_cast<Okular::WidgetAnnotation *>(newann);
 
                 // The additional actions
-                const Poppler::Link *pageOpeningLink = annotWidget->additionalAction(Poppler::Annotation::PageOpeningAction);
+                std::unique_ptr<Poppler::Link> pageOpeningLink = annotWidget->additionalAction(Poppler::Annotation::PageOpeningAction);
                 if (pageOpeningLink) {
-                    widgetAnnotation->setAdditionalAction(Okular::Annotation::PageOpening, createLinkFromPopplerLink(pageOpeningLink));
+                    widgetAnnotation->setAdditionalAction(Okular::Annotation::PageOpening, createLinkFromPopplerLink(pageOpeningLink.get(), false));
                 }
 
-                const Poppler::Link *pageClosingLink = annotWidget->additionalAction(Poppler::Annotation::PageClosingAction);
+                std::unique_ptr<Poppler::Link> pageClosingLink = annotWidget->additionalAction(Poppler::Annotation::PageClosingAction);
                 if (pageClosingLink) {
-                    widgetAnnotation->setAdditionalAction(Okular::Annotation::PageClosing, createLinkFromPopplerLink(pageClosingLink));
+                    widgetAnnotation->setAdditionalAction(Okular::Annotation::PageClosing, createLinkFromPopplerLink(pageClosingLink.get(), false));
                 }
             }
 
             if (!doDelete) {
-                annotationsOnOpenHash.insert(newann, a);
+                annotationsOnOpenHash.insert(newann, a.release()); // investigate
             }
-        }
-        if (doDelete) {
-            delete a;
         }
     }
 }
@@ -1916,22 +1929,22 @@ QList<Okular::FormField *> PDFGenerator::getFormFields(Poppler::Page *popplerPag
         return {};
     }
 
-    const QList<Poppler::FormField *> popplerFormFields = popplerPage->formFields();
+    std::vector<std::unique_ptr<Poppler::FormField>> popplerFormFields = popplerPage->formFields();
     QList<Okular::FormField *> okularFormFields;
-    for (Poppler::FormField *f : popplerFormFields) {
+    for (auto &f : popplerFormFields) {
         Okular::FormField *of = nullptr;
         switch (f->type()) {
         case Poppler::FormField::FormButton:
-            of = new PopplerFormFieldButton(std::unique_ptr<Poppler::FormFieldButton>(static_cast<Poppler::FormFieldButton *>(f)));
+            of = new PopplerFormFieldButton(std::unique_ptr<Poppler::FormFieldButton>(static_cast<Poppler::FormFieldButton *>(f.release())));
             break;
         case Poppler::FormField::FormText:
-            of = new PopplerFormFieldText(std::unique_ptr<Poppler::FormFieldText>(static_cast<Poppler::FormFieldText *>(f)));
+            of = new PopplerFormFieldText(std::unique_ptr<Poppler::FormFieldText>(static_cast<Poppler::FormFieldText *>(f.release())));
             break;
         case Poppler::FormField::FormChoice:
-            of = new PopplerFormFieldChoice(std::unique_ptr<Poppler::FormFieldChoice>(static_cast<Poppler::FormFieldChoice *>(f)));
+            of = new PopplerFormFieldChoice(std::unique_ptr<Poppler::FormFieldChoice>(static_cast<Poppler::FormFieldChoice *>(f.release())));
             break;
         case Poppler::FormField::FormSignature: {
-            of = new PopplerFormFieldSignature(std::unique_ptr<Poppler::FormFieldSignature>(static_cast<Poppler::FormFieldSignature *>(f)));
+            of = new PopplerFormFieldSignature(std::unique_ptr<Poppler::FormFieldSignature>(static_cast<Poppler::FormFieldSignature *>(f.release())));
             break;
         }
         default:;
@@ -1939,9 +1952,6 @@ QList<Okular::FormField *> PDFGenerator::getFormFields(Poppler::Page *popplerPag
         if (of) {
             // form field created, good - it will take care of the Poppler::FormField
             okularFormFields.append(of);
-        } else {
-            // no form field available - delete the Poppler::FormField
-            delete f;
         }
     }
 
@@ -1970,7 +1980,7 @@ bool PDFGenerator::supportsOption(SaveOption option) const
 bool PDFGenerator::save(const QString &fileName, SaveOptions options, QString *errorText)
 {
     Q_UNUSED(errorText);
-    Poppler::PDFConverter *pdfConv = pdfdoc->pdfConverter();
+    std::unique_ptr<Poppler::PDFConverter> pdfConv = pdfdoc->pdfConverter();
 
     pdfConv->setOutputFileName(fileName);
     if (options & SaveChanges) {
@@ -2005,7 +2015,6 @@ bool PDFGenerator::save(const QString &fileName, SaveOptions options, QString *e
             break;
         }
     }
-    delete pdfConv;
     return success;
 }
 
@@ -2016,16 +2025,22 @@ Okular::AnnotationProxy *PDFGenerator::annotationProxy() const
 
 bool PDFGenerator::canSign() const
 {
-#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(21, 1, 0)
-    return Poppler::hasNSSSupport();
+#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 06, 0)
+    return !Poppler::availableCryptoSignBackends().empty();
 #else
-    return false;
+    return Poppler::hasNSSSupport();
 #endif
 }
 
 bool PDFGenerator::sign(const Okular::NewSignatureData &oData, const QString &rFilename)
 {
-#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(21, 1, 0)
+    // We need a temporary file to pass a prepared image to poppler
+    QTemporaryFile timg(QFileInfo(rFilename).absolutePath() + QLatin1String("/okular_XXXXXX.png"));
+    timg.setAutoRemove(true);
+    if (!timg.open()) {
+        return false;
+    }
+
     // save to tmp file - poppler doesn't like overwriting in-place
     QTemporaryFile tf(QFileInfo(rFilename).absolutePath() + QLatin1String("/okular_XXXXXX.pdf"));
     tf.setAutoRemove(false);
@@ -2038,6 +2053,29 @@ bool PDFGenerator::sign(const Okular::NewSignatureData &oData, const QString &rF
 
     Poppler::PDFConverter::NewSignatureData pData;
     okularToPoppler(oData, &pData);
+    if (!oData.backgroundImagePath().isEmpty() && QFile::exists(oData.backgroundImagePath())) {
+        // width and height for target image
+        const Okular::NormalizedRect bRect = oData.boundingRectangle();
+        // 2 is an experimental decided upon fudge factor to compensate for the fact that pageSize is in points
+        // but most of this ends up working in pixels anyway
+        double width = pdfdoc->page(oData.page())->pageSizeF().width() * bRect.width() * 2;
+        double height = pdfdoc->page(oData.page())->pageSizeF().height() * bRect.height() * 2;
+
+        QImageReader reader(oData.backgroundImagePath());
+        QSize imageSize = reader.size();
+        if (!reader.size().isNull()) {
+            reader.setScaledSize(imageSize.scaled(width, height, Qt::KeepAspectRatio));
+        }
+        auto input = reader.read();
+        if (!input.isNull()) {
+            auto scaled = imagescaling::scaleAndFitCanvas(input, QSize(width, height));
+            bool success = scaled.save(timg.fileName(), "png");
+            if (success) {
+                pData.setImagePath(timg.fileName());
+                pData.setBackgroundColor(Qt::white);
+            }
+        }
+    }
     if (!converter->sign(pData)) {
         tf.remove();
         return false;
@@ -2048,26 +2086,17 @@ bool PDFGenerator::sign(const Okular::NewSignatureData &oData, const QString &rF
     if (!tf.rename(rFilename)) {
         return false;
     }
-#else
-    Q_UNUSED(oData);
-    Q_UNUSED(rFilename);
-    return false;
-#endif
 
     return true;
 }
 
 Okular::CertificateStore *PDFGenerator::certificateStore() const
 {
-#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(21, 1, 0)
     if (!certStore) {
         certStore = new PopplerCertificateStore();
     }
 
     return certStore;
-#else
-    return nullptr;
-#endif
 }
 
 void PDFGenerator::xrefReconstructionHandler()

@@ -7,6 +7,8 @@
 #include "annotationpopup.h"
 
 #include <KLocalizedString>
+#include <QApplication>
+#include <QClipboard>
 #include <QIcon>
 #include <QMenu>
 
@@ -84,16 +86,26 @@ void AnnotationPopup::addActionsToMenu(QMenu *menu)
         action->setEnabled(onlyOne);
         connect(action, &QAction::triggered, menu, [this, pair] { doOpenAnnotationWindow(pair); });
 
+        if (!pair.annotation->contents().isEmpty()) {
+            action = menu->addAction(QIcon::fromTheme(QStringLiteral("edit-copy")), i18n("Copy Text to Clipboard"));
+            const bool copyAllowed = mDocument->isAllowed(Okular::AllowCopy);
+            if (!copyAllowed) {
+                action->setEnabled(false);
+                action->setText(i18n("Copy forbidden by DRM"));
+            }
+            connect(action, &QAction::triggered, menu, [this, pair] { doCopyAnnotation(pair); });
+        }
+
         action = menu->addAction(QIcon::fromTheme(QStringLiteral("list-remove")), i18n("&Delete"));
         action->setEnabled(mDocument->isAllowed(Okular::AllowNotes));
         connect(action, &QAction::triggered, menu, [this] {
-            for (const AnnotPagePair &pair : qAsConst(mAnnotations)) {
+            for (const AnnotPagePair &pair : std::as_const(mAnnotations)) {
                 doRemovePageAnnotation(pair);
             }
         });
 
-        for (const AnnotPagePair &pair : qAsConst(mAnnotations)) {
-            if (!mDocument->canRemovePageAnnotation(pair.annotation)) {
+        for (const AnnotPagePair &annot : std::as_const(mAnnotations)) {
+            if (!mDocument->canRemovePageAnnotation(annot.annotation)) {
                 action->setEnabled(false);
             }
         }
@@ -113,11 +125,21 @@ void AnnotationPopup::addActionsToMenu(QMenu *menu)
             }
         }
     } else {
-        for (const AnnotPagePair &pair : qAsConst(mAnnotations)) {
+        for (const AnnotPagePair &pair : std::as_const(mAnnotations)) {
             menu->addAction(new OKMenuTitle(menu, GuiUtils::captionForAnnotation(pair.annotation)));
 
             action = menu->addAction(QIcon::fromTheme(QStringLiteral("comment")), i18n("&Open Pop-up Note"));
             connect(action, &QAction::triggered, menu, [this, pair] { doOpenAnnotationWindow(pair); });
+
+            if (!pair.annotation->contents().isEmpty()) {
+                action = menu->addAction(QIcon::fromTheme(QStringLiteral("edit-copy")), i18n("Copy Text to Clipboard"));
+                const bool copyAllowed = mDocument->isAllowed(Okular::AllowCopy);
+                if (!copyAllowed) {
+                    action->setEnabled(false);
+                    action->setText(i18n("Copy forbidden by DRM"));
+                }
+                connect(action, &QAction::triggered, menu, [this, pair] { doCopyAnnotation(pair); });
+            }
 
             action = menu->addAction(QIcon::fromTheme(QStringLiteral("list-remove")), i18n("&Delete"));
             action->setEnabled(mDocument->isAllowed(Okular::AllowNotes) && mDocument->canRemovePageAnnotation(pair.annotation));
@@ -137,6 +159,15 @@ void AnnotationPopup::addActionsToMenu(QMenu *menu)
                 }
             }
         }
+    }
+}
+
+void AnnotationPopup::doCopyAnnotation(AnnotPagePair pair)
+{
+    const QString text = pair.annotation->contents();
+    if (!text.isEmpty()) {
+        QClipboard *cb = QApplication::clipboard();
+        cb->setText(text, QClipboard::Clipboard);
     }
 }
 

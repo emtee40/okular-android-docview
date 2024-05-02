@@ -243,6 +243,13 @@ QRect NormalizedRect::roundedGeometry(int xScale, int yScale) const
     return QRect(l, t, r - l + 1, b - t + 1);
 }
 
+QRectF NormalizedRect::geometryF(float xScale, float yScale) const
+{
+    float l = (left * xScale), t = (top * yScale), r = (right * xScale), b = (bottom * yScale);
+
+    return QRectF(l, t, r - l, b - t);
+}
+
 void NormalizedRect::transform(const QTransform &matrix)
 {
     QRectF rect(left, top, right - left, bottom - top);
@@ -254,9 +261,9 @@ void NormalizedRect::transform(const QTransform &matrix)
     bottom = rect.bottom();
 }
 
-uint Okular::qHash(const NormalizedRect &r, uint seed)
+size_t Okular::qHash(const NormalizedRect &r, size_t seed)
 {
-    return ::qHash(r.bottom, ::qHash(r.right, ::qHash(r.top, ::qHash(r.left, seed))));
+    return ::qHashMulti(seed, r.bottom, r.right, r.top, r.left);
 }
 
 QDebug operator<<(QDebug str, const Okular::NormalizedRect &r)

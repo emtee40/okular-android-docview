@@ -19,12 +19,103 @@
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
 
+#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 06, 0)
+QString PDFSettingsWidget::popplerEnumToSettingString(Poppler::CryptoSignBackend backend)
+{
+    switch (backend) {
+    case Poppler::CryptoSignBackend::NSS:
+        return QStringLiteral("NSS");
+    case Poppler::CryptoSignBackend::GPG:
+        return QStringLiteral("GPG");
+    }
+    return {};
+}
+
+static QString popplerEnumToUserString(Poppler::CryptoSignBackend backend)
+{
+    switch (backend) {
+        // I'm not sure it makes sense to translate these
+        // Should the translators ask for it, it should be quite simple.
+    case Poppler::CryptoSignBackend::NSS:
+        return QStringLiteral("NSS");
+    case Poppler::CryptoSignBackend::GPG:
+        return QStringLiteral("GnuPG (S/MIME)");
+    }
+    return {};
+}
+
+std::optional<Poppler::CryptoSignBackend> PDFSettingsWidget::settingStringToPopplerEnum(QStringView backend)
+{
+    if (backend == QStringLiteral("NSS")) {
+        return Poppler::CryptoSignBackend::NSS;
+    }
+    if (backend == QStringLiteral("GPG")) {
+        return Poppler::CryptoSignBackend::GPG;
+    }
+    return std::nullopt;
+}
+#endif
+
 PDFSettingsWidget::PDFSettingsWidget(QWidget *parent)
     : QWidget(parent)
 {
     m_pdfsw.setupUi(this);
-#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(21, 1, 0)
+
+#if POPPLER_VERSION_MACRO < QT_VERSION_CHECK(23, 07, 0)
+    m_pdfsw.kcfg_OverprintPreviewEnabled->hide();
+#endif
+
+#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 06, 0)
+    auto backends = Poppler::availableCryptoSignBackends();
+    if (!backends.empty()) {
+        // Let's try get the currently stored backend:
+        auto currentBackend = settingStringToPopplerEnum(PDFSettings::self()->signatureBackend());
+        if (!currentBackend) {
+            currentBackend = Poppler::activeCryptoSignBackend();
+        }
+        if (currentBackend != Poppler::activeCryptoSignBackend() && currentBackend) {
+            if (!Poppler::setActiveCryptoSignBackend(currentBackend.value())) {
+                // erm. This must be a case of having either modified
+                // the config file manually to something not available
+                // in the poppler installed here or have reconfigured
+                // their poppler to not have the previously selected one
+                // available any longer.
+                // Probably the safest bet is to take whatever is active
+                currentBackend = Poppler::activeCryptoSignBackend();
+            }
+        }
+        int selected = -1;
+        for (auto backend : std::as_const(backends)) {
+            if (backend == currentBackend) {
+                selected = m_pdfsw.kcfg_SignatureBackend->count();
+            }
+            m_pdfsw.kcfg_SignatureBackend->addItem(popplerEnumToUserString(backend), QVariant(popplerEnumToSettingString(backend)));
+        }
+        m_pdfsw.kcfg_SignatureBackend->setProperty("kcfg_property", QByteArray("currentData"));
+
+        m_pdfsw.kcfg_SignatureBackend->setCurrentIndex(selected);
+        connect(m_pdfsw.kcfg_SignatureBackend, &QComboBox::currentTextChanged, this, [this](const QString &text) {
+            auto backendEnum = settingStringToPopplerEnum(text);
+            if (!backendEnum) {
+                return;
+            }
+            Poppler::setActiveCryptoSignBackend(backendEnum.value());
+            m_pdfsw.certDBGroupBox->setVisible(backendEnum == Poppler::CryptoSignBackend::NSS);
+            m_certificatesAsked = false;
+            if (m_tree) {
+                m_tree->clear();
+            }
+            update();
+        });
+
+        m_pdfsw.certDBGroupBox->setVisible(currentBackend == Poppler::CryptoSignBackend::NSS);
+#else
     if (Poppler::hasNSSSupport()) {
+        // Better hide the signature backend selection; we have not really any
+        // need for that.
+        m_pdfsw.signatureBackendContainer->hide();
+#endif
+
         m_pdfsw.loadSignaturesButton->hide();
 
         KUrlRequester *pDlg = new KUrlRequester();
@@ -62,15 +153,6 @@ PDFSettingsWidget::PDFSettingsWidget(QWidget *parent)
         l->setWordWrap(true);
         lay->addWidget(l);
     }
-#else
-    m_pdfsw.certDBGroupBox->hide();
-    m_pdfsw.certificatesGroup->hide();
-    m_pdfsw.loadSignaturesButton->hide();
-#endif
-
-#if POPPLER_VERSION_MACRO < QT_VERSION_CHECK(21, 10, 0)
-    m_pdfsw.kcfg_CheckOCSPServers->hide();
-#endif
 }
 
 bool PDFSettingsWidget::event(QEvent *e)
@@ -78,24 +160,29 @@ bool PDFSettingsWidget::event(QEvent *e)
     if (m_tree && e->type() == QEvent::Paint && !m_certificatesAsked) {
         m_certificatesAsked = true;
 
-#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(21, 1, 0)
-        PopplerCertificateStore st;
-        bool userCancelled;
-        const QList<Okular::CertificateInfo *> certs = st.signingCertificates(&userCancelled);
+        // Calling st.signingCertificates(&userCancelled) from the paint event handler results
+        // in "QWidget::repaint: Recursive repaint detected" warning and a crash when the
+        // certificate password dialog is closed. Delay the calling to avoid it.
+        auto loadCertificatesDelayed = [this]() {
+            PopplerCertificateStore st;
+            bool userCancelled;
+            const QList<Okular::CertificateInfo> certs = st.signingCertificates(&userCancelled);
 
-        m_pdfsw.loadSignaturesButton->setVisible(userCancelled);
+            m_pdfsw.loadSignaturesButton->setVisible(userCancelled);
 
-        for (auto cert : certs) {
-            new QTreeWidgetItem(m_tree,
-                                {cert->subjectInfo(Okular::CertificateInfo::EntityInfoKey::CommonName), cert->subjectInfo(Okular::CertificateInfo::EntityInfoKey::EmailAddress), cert->validityEnd().toString(QStringLiteral("yyyy-MM-dd"))});
-        }
-        qDeleteAll(certs);
+            for (const auto &cert : certs) {
+                new QTreeWidgetItem(m_tree,
+                                    {cert.subjectInfo(Okular::CertificateInfo::EntityInfoKey::CommonName, Okular::CertificateInfo::EmptyString::TranslatedNotAvailable),
+                                     cert.subjectInfo(Okular::CertificateInfo::EntityInfoKey::EmailAddress, Okular::CertificateInfo::EmptyString::TranslatedNotAvailable),
+                                     cert.validityEnd().toString(QStringLiteral("yyyy-MM-dd"))});
+            }
 
-        m_pdfsw.defaultLabel->setText(Poppler::getNSSDir());
+            m_pdfsw.defaultLabel->setText(Poppler::getNSSDir());
 
-        m_tree->resizeColumnToContents(1);
-        m_tree->resizeColumnToContents(0);
-#endif
+            m_tree->resizeColumnToContents(1);
+            m_tree->resizeColumnToContents(0);
+        };
+        QMetaObject::invokeMethod(this, loadCertificatesDelayed, Qt::QueuedConnection);
     }
     return QWidget::event(e);
 }
@@ -103,6 +190,11 @@ bool PDFSettingsWidget::event(QEvent *e)
 void PDFSettingsWidget::warnRestartNeeded()
 {
     if (!m_warnedAboutRestart) {
+#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(23, 06, 0)
+        if (PDFSettings::self()->signatureBackend() != QStringLiteral("NSS")) {
+            return;
+        }
+#endif
         m_warnedAboutRestart = true;
         QMessageBox::information(this, i18n("Restart needed"), i18n("You need to restart Okular after changing the NSS directory settings"));
     }

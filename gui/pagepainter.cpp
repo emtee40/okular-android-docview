@@ -106,7 +106,6 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
 
         if (p != nullptr) {
             pixmap = *p;
-            pixmap.setDevicePixelRatio(dpr);
         }
 
         /** 1B - IF NO PIXMAP, DRAW EMPTY PAGE **/
@@ -248,27 +247,24 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
             QList<Okular::Tile>::const_iterator tIt = tiles.constBegin(), tEnd = tiles.constEnd();
             while (tIt != tEnd) {
                 const Okular::Tile &tile = *tIt;
-                QRect tileRect = tile.rect().geometry(scaledWidth, scaledHeight).translated(-scaledCrop.topLeft());
-                QRect dTileRect = QRectF(tileRect.x() * dpr, tileRect.y() * dpr, tileRect.width() * dpr, tileRect.height() * dpr).toAlignedRect();
-                QRect limitsInTile = limits & tileRect;
-                QRectF dLimitsInTile = dLimits & dTileRect;
+                QRectF tileRect = tile.rect().geometryF(scaledWidth, scaledHeight).translated(-scaledCrop.topLeft());
+                QRect dTileRect = tile.rect().geometry(dScaledWidth, dScaledHeight).translated(-dScaledCrop.topLeft());
+                QRectF limitsInTile = QRectF(limits) & tileRect;
+                QRect dLimitsInTile = dLimits & dTileRect;
 
                 if (!limitsInTile.isEmpty()) {
                     QPixmap *tilePixmap = tile.pixmap();
-                    tilePixmap->setDevicePixelRatio(dpr);
 
                     if (tilePixmap->width() == dTileRect.width() && tilePixmap->height() == dTileRect.height()) {
-                        destPainter->drawPixmap(limitsInTile.topLeft(), *tilePixmap, dLimitsInTile.translated(-dTileRect.topLeft()));
+                        destPainter->drawPixmap(limitsInTile, *tilePixmap, dLimitsInTile.translated(-dTileRect.topLeft()));
                     } else {
-                        destPainter->drawPixmap(tileRect, *tilePixmap);
+                        destPainter->drawPixmap(tileRect, *tilePixmap, tilePixmap->rect());
                     }
                 }
                 tIt++;
             }
         } else {
-            QPixmap scaledCroppedPixmap = pixmap.scaled(dScaledWidth, dScaledHeight).copy(dLimitsInPixmap);
-            scaledCroppedPixmap.setDevicePixelRatio(dpr);
-            destPainter->drawPixmap(limits.topLeft(), scaledCroppedPixmap, QRectF(0, 0, dLimits.width(), dLimits.height()));
+            destPainter->drawPixmap(limits, pixmap.scaled(dScaledWidth, dScaledHeight), dLimitsInPixmap);
         }
 
         // 4A.2. active painter is the one passed to this method
@@ -288,17 +284,16 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
             QList<Okular::Tile>::const_iterator tIt = tiles.constBegin(), tEnd = tiles.constEnd();
             while (tIt != tEnd) {
                 const Okular::Tile &tile = *tIt;
-                QRect tileRect = tile.rect().geometry(scaledWidth, scaledHeight).translated(-scaledCrop.topLeft());
-                QRect dTileRect(QRectF(tileRect.x() * dpr, tileRect.y() * dpr, tileRect.width() * dpr, tileRect.height() * dpr).toAlignedRect());
-                QRect limitsInTile = limits & tileRect;
+                QRectF tileRect = tile.rect().geometryF(scaledWidth, scaledHeight).translated(-scaledCrop.topLeft());
+                QRect dTileRect = tile.rect().geometry(dScaledWidth, dScaledHeight).translated(-dScaledCrop.topLeft());
+                QRectF limitsInTile = QRectF(limits) & tileRect;
                 QRect dLimitsInTile = dLimits & dTileRect;
 
                 if (!limitsInTile.isEmpty()) {
                     QPixmap *tilePixmap = tile.pixmap();
-                    tilePixmap->setDevicePixelRatio(dpr);
 
                     if (tilePixmap->width() == dTileRect.width() && tilePixmap->height() == dTileRect.height()) {
-                        p.drawPixmap(limitsInTile.translated(-limits.topLeft()).topLeft(), *tilePixmap, dLimitsInTile.translated(-dTileRect.topLeft()));
+                        p.drawPixmap(limitsInTile.translated(-limits.topLeft()), *tilePixmap, dLimitsInTile.translated(-dTileRect.topLeft()));
                     } else {
                         double xScale = tilePixmap->width() / (double)dTileRect.width();
                         double yScale = tilePixmap->height() / (double)dTileRect.height();
@@ -310,9 +305,8 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
             }
         } else {
             // 4B.1. draw the page pixmap: normal or scaled
-            QPixmap scaledCroppedPixmap = pixmap.scaled(dScaledWidth, dScaledHeight).copy(dLimitsInPixmap);
-            scaledCroppedPixmap.setDevicePixelRatio(dpr);
-            p.drawPixmap(0, 0, scaledCroppedPixmap);
+
+            p.drawPixmap(QRectF(0, 0, limits.width(), limits.height()), pixmap.scaled(dScaledWidth, dScaledHeight), dLimitsInPixmap);
         }
 
         p.end();
@@ -351,7 +345,7 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
         // 4B.3. highlight rects in page
         if (bufferedHighlights) {
             // draw highlights that are inside the 'limits' paint region
-            for (const auto &highlight : qAsConst(*bufferedHighlights)) {
+            for (const auto &highlight : std::as_const(*bufferedHighlights)) {
                 const Okular::NormalizedRect &r = highlight.second;
                 // find out the rect to highlight on pixmap
                 QRect highlightRect = r.geometry(scaledWidth, scaledHeight).translated(-scaledCrop.topLeft()).intersected(limits);
@@ -599,13 +593,12 @@ void PagePainter::paintCroppedPageOnPainter(QPainter *destPainter,
                 QPixmap pixmap = Okular::AnnotationUtils::loadStamp(stamp->stampIconName(), qMax(annotBoundary.width(), annotBoundary.height()) * dpr);
                 if (!pixmap.isNull()) // should never happen but can happen on huge sizes
                 {
-                    QPixmap scaledCroppedPixmap = pixmap.scaled(annotBoundary.width() * dpr, annotBoundary.height() * dpr).copy(dInnerRect.toAlignedRect());
-                    scaledCroppedPixmap.setDevicePixelRatio(dpr);
-
                     // Draw pixmap with opacity:
                     mixedPainter->save();
                     mixedPainter->setOpacity(mixedPainter->opacity() * opacity / 255.0);
-                    mixedPainter->drawPixmap(annotRect.topLeft(), scaledCroppedPixmap);
+
+                    mixedPainter->drawPixmap(annotRect.topLeft(), pixmap.scaled(annotBoundary.width() * dpr, annotBoundary.height() * dpr), dInnerRect.toAlignedRect());
+
                     mixedPainter->restore();
                 }
             }

@@ -33,20 +33,15 @@
 class Sidebar::Private
 {
 public:
-    Private()
-        : sideWidget(nullptr)
-        , bottomWidget(nullptr)
-        , splitterSizesSet(false)
-    {
-    }
+    Private() = default;
 
-    QSplitter *splitter;
-    QTabWidget *viewChooserTabs;
-    QWidget *sideContainer;
-    QVBoxLayout *vlay;
-    QWidget *sideWidget;
-    QWidget *bottomWidget;
-    bool splitterSizesSet;
+    QSplitter *splitter = nullptr;
+    QTabWidget *viewChooserTabs = nullptr;
+    QWidget *sideContainer = nullptr;
+    QVBoxLayout *vlay = nullptr;
+    QWidget *sideWidget = nullptr;
+    QWidget *bottomWidget = nullptr;
+    bool splitterSizesSet = false;
 };
 
 Sidebar::Sidebar(QWidget *parent)
@@ -164,6 +159,11 @@ void Sidebar::moveSplitter(int sideWidgetSize)
     splitterSizeList.replace(0, total - sideWidgetSize);
     splitterSizeList.replace(1, sideWidgetSize);
     d->splitter->setSizes(splitterSizeList);
+}
+
+QWidget *Sidebar::getSideContainer() const
+{
+    return d->sideContainer;
 }
 
 void Sidebar::splitterMoved(int /*pos*/, int index)

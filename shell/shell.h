@@ -12,6 +12,7 @@
 #ifndef _OKULAR_SHELL_H_
 #define _OKULAR_SHELL_H_
 
+#include "config-okular.h"
 #include <QAction>
 #include <QList>
 #include <QMimeDatabase>
@@ -19,22 +20,20 @@
 #include <kparts/mainwindow.h>
 #include <kparts/readwritepart.h>
 
+#if HAVE_DBUS
+#include <QDBusAbstractAdaptor> // for Q_NOREPLY
+#else
+#define Q_NOREPLY
+#endif
 #include <QStackedWidget>
-#include <QtDBus> // krazy:exclude=includes
 
 #include "welcomescreen.h"
 
+class Sidebar;
 class KRecentFilesAction;
 class KToggleAction;
 class QTabWidget;
 class KPluginFactory;
-
-#ifndef Q_OS_WIN
-namespace KActivities
-{
-class ResourceInstance;
-}
-#endif
 
 /**
  * This is the application "Shell".  It has a menubar and a toolbar
@@ -73,7 +72,7 @@ public:
     bool openDocument(const QUrl &url, const QString &serializedOptions);
 
 public Q_SLOTS:
-    Q_SCRIPTABLE Q_NOREPLY void tryRaise();
+    Q_SCRIPTABLE Q_NOREPLY void tryRaise(const QString &startupId);
     Q_SCRIPTABLE bool openDocument(const QString &urlString, const QString &serializedOptions = QString());
     Q_SCRIPTABLE bool canOpenDocs(int numDocs, int desktop);
 
@@ -155,7 +154,7 @@ private:
     void setupActions();
     void openNewTab(const QUrl &url, const QString &serializedOptions);
     void applyOptionsToPart(QObject *part, const QString &serializedOptions);
-    void connectPart(QObject *part);
+    void connectPart(const KParts::ReadWritePart *part);
     int findTabIndex(QObject *sender) const;
     int findTabIndex(const QUrl &url) const;
 
@@ -177,6 +176,7 @@ private:
     KToggleAction *m_openInTab;
     WelcomeScreen *m_welcomeScreen;
     QStackedWidget *m_centralStackedWidget;
+    Sidebar *m_sidebar = nullptr;
 
     struct TabState {
         explicit TabState(KParts::ReadWritePart *p)
@@ -194,10 +194,9 @@ private:
     QAction *m_nextTabAction;
     QAction *m_prevTabAction;
     QAction *m_undoCloseTab;
+    QAction *m_showSidebarAction = nullptr;
+    QAction *m_lockSidebarAction = nullptr;
 
-#ifndef Q_OS_WIN
-    KActivities::ResourceInstance *m_activityResource;
-#endif
     bool m_isValid;
 };
 

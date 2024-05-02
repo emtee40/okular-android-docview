@@ -16,13 +16,40 @@
 #include <KLocalizedString>
 #include <KWindowSystem>
 #include <QApplication>
-#include <QDBusInterface>
+#include <QMimeData>
+#include <QTemporaryFile>
 #include <QTextStream>
+
+#include "config-okular.h"
+#if HAVE_X11
+#include <KX11Extras>
+#include <private/qtx11extras_p.h>
+#endif
+#if HAVE_DBUS
+#include <QDBusConnectionInterface>
+#include <QDBusInterface>
+#endif // HAVE_DBUS
 
 #include <iostream>
 
+static QString startupId()
+{
+    QString result;
+    if (KWindowSystem::isPlatformWayland()) {
+        result = qEnvironmentVariable("XDG_ACTIVATION_TOKEN");
+        qunsetenv("XDG_ACTIVATION_TOKEN");
+    } else if (KWindowSystem::isPlatformX11()) {
+#if HAVE_X11
+        result = QString::fromUtf8(QX11Info::nextStartupId());
+#endif
+    }
+
+    return result;
+}
+
 static bool attachUniqueInstance(const QStringList &paths, const QString &serializedOptions)
 {
+#if HAVE_DBUS
     if (!ShellUtils::unique(serializedOptions) || paths.count() != 1) {
         return false;
     }
@@ -42,15 +69,19 @@ static bool attachUniqueInstance(const QStringList &paths, const QString &serial
     const QString page = ShellUtils::page(serializedOptions);
     iface.call(QStringLiteral("openDocument"), ShellUtils::urlFromArg(paths[0], ShellUtils::qfileExistFunc(), page).url(), serializedOptions);
     if (!ShellUtils::noRaise(serializedOptions)) {
-        iface.call(QStringLiteral("tryRaise"));
+        iface.call(QStringLiteral("tryRaise"), startupId());
     }
 
     return true;
+#else  // HAVE_DBUS
+    return false;
+#endif // HAVE_DBUS
 }
 
 // Ask an existing non-unique instance to open new tabs
 static bool attachExistingInstance(const QStringList &paths, const QString &serializedOptions)
 {
+#if HAVE_DBUS
     if (paths.count() < 1) {
         return false;
     }
@@ -73,7 +104,11 @@ static bool attachExistingInstance(const QStringList &paths, const QString &seri
     const QString pattern = QStringLiteral("org.kde.okular-");
     const QString myPid = QString::number(qApp->applicationPid());
     QScopedPointer<QDBusInterface> bestService;
-    const int desktop = KWindowSystem::currentDesktop();
+#if HAVE_X11
+    const int desktop = KX11Extras::currentDesktop();
+#else
+    const int desktop = 0;
+#endif
 
     // Select the first instance that isn't us (metric may change in future)
     for (const QString &service : services) {
@@ -81,7 +116,7 @@ static bool attachExistingInstance(const QStringList &paths, const QString &seri
             bestService.reset(new QDBusInterface(service, QStringLiteral("/okularshell"), QStringLiteral("org.kde.okular")));
 
             // Find a window that can handle our documents
-            const QDBusReply<bool> reply = bestService->call(QStringLiteral("canOpenDocs"), paths.count(), desktop);
+            const QDBusReply<bool> reply = bestService->call(QStringLiteral("canOpenDocs"), (int)paths.count(), desktop);
             if (reply.isValid() && reply.value()) {
                 break;
             }
@@ -136,9 +171,12 @@ static bool attachExistingInstance(const QStringList &paths, const QString &seri
         exit(1);
     }
 
-    bestService->call(QStringLiteral("tryRaise"));
+    bestService->call(QStringLiteral("tryRaise"), startupId());
 
     return true;
+#else  // HAVE_DBUS
+    return false;
+#endif // HAVE_DBUS
 }
 
 namespace Okular

@@ -28,7 +28,7 @@
 using namespace Okular;
 
 Document::PrintError
-FilePrinter::printFile(QPrinter &printer, const QString &file, QPrinter::Orientation documentOrientation, FileDeletePolicy fileDeletePolicy, PageSelectPolicy pageSelectPolicy, const QString &pageRange, ScaleMode scaleMode)
+FilePrinter::printFile(QPrinter &printer, const QString &file, QPageLayout::Orientation documentOrientation, FileDeletePolicy fileDeletePolicy, PageSelectPolicy pageSelectPolicy, const QString &pageRange, ScaleMode scaleMode)
 {
     FilePrinter fp;
     return fp.doPrintFiles(printer, QStringList(file), fileDeletePolicy, pageSelectPolicy, pageRange, documentOrientation, scaleMode);
@@ -51,7 +51,7 @@ static Document::PrintError doKProcessExecute(const QString &exe, const QStringL
 }
 
 Document::PrintError
-FilePrinter::doPrintFiles(QPrinter &printer, const QStringList &fileList, FileDeletePolicy fileDeletePolicy, PageSelectPolicy pageSelectPolicy, const QString &pageRange, QPrinter::Orientation documentOrientation, ScaleMode scaleMode)
+FilePrinter::doPrintFiles(QPrinter &printer, const QStringList &fileList, FileDeletePolicy fileDeletePolicy, PageSelectPolicy pageSelectPolicy, const QString &pageRange, QPageLayout::Orientation documentOrientation, ScaleMode scaleMode)
 {
     if (fileList.size() < 1) {
         return Document::NoFileToPrintError;
@@ -144,11 +144,6 @@ FilePrinter::doPrintFiles(QPrinter &printer, const QStringList &fileList, FileDe
     return ret;
 }
 
-QList<int> FilePrinter::pageList(QPrinter &printer, int lastPage, const QList<int> &selectedPageList)
-{
-    return pageList(printer, lastPage, 0, selectedPageList);
-}
-
 QList<int> FilePrinter::pageList(QPrinter &printer, int lastPage, int currentPage, const QList<int> &selectedPageList)
 {
     if (printer.printRange() == QPrinter::Selection) {
@@ -176,50 +171,6 @@ QList<int> FilePrinter::pageList(QPrinter &printer, int lastPage, int currentPag
     return list;
 }
 
-QString FilePrinter::pageRange(QPrinter &printer, int lastPage, const QList<int> &selectedPageList)
-{
-    if (printer.printRange() == QPrinter::Selection) {
-        return pageListToPageRange(selectedPageList);
-    }
-
-    if (printer.printRange() == QPrinter::PageRange) {
-        return QStringLiteral("%1-%2").arg(printer.fromPage()).arg(printer.toPage());
-    }
-
-    return QStringLiteral("1-%2").arg(lastPage);
-}
-
-QString FilePrinter::pageListToPageRange(const QList<int> &pageList)
-{
-    QString pageRange;
-    int count = pageList.count();
-    int i = 0;
-    int seqStart = i;
-    int seqEnd;
-
-    while (i != count) {
-        if (i + 1 == count || pageList[i] + 1 != pageList[i + 1]) {
-            seqEnd = i;
-
-            if (!pageRange.isEmpty()) {
-                pageRange.append(QLatin1Char(','));
-            }
-
-            if (seqStart == seqEnd) {
-                pageRange.append(pageList[i]);
-            } else {
-                pageRange.append(QStringLiteral("%1-%2").arg(seqStart).arg(seqEnd));
-            }
-
-            seqStart = i + 1;
-        }
-
-        i++;
-    }
-
-    return pageRange;
-}
-
 bool FilePrinter::ps2pdfAvailable()
 {
     return (!QStandardPaths::findExecutable(QStringLiteral("ps2pdf")).isEmpty());
@@ -235,59 +186,14 @@ bool FilePrinter::cupsAvailable()
 #if defined(Q_OS_UNIX) && !defined(Q_OS_OSX)
     // Ideally we would have access to the private Qt method
     // QCUPSSupport::cupsAvailable() to do this as it is very complex routine.
-    // However, if CUPS is available then QPrinter::numCopies() will always return 1
-    // whereas if CUPS is not available it will return the real number of copies.
+    // However, if CUPS is available then QPrinter::supportsMultipleCopies() will always return true
+    // whereas if CUPS is not available it will return false.
     // This behaviour is guaranteed never to change, so we can use it as a reliable substitute.
     QPrinter testPrinter;
-    testPrinter.setNumCopies(2);
-    return (testPrinter.numCopies() == 1);
+    return testPrinter.supportsMultipleCopies();
 #else
     return false;
 #endif
-}
-
-bool FilePrinter::detectCupsService()
-{
-    QTcpSocket qsock;
-    qsock.connectToHost(QStringLiteral("localhost"), 631);
-    bool rtn = qsock.waitForConnected() && qsock.isValid();
-    qsock.abort();
-    return rtn;
-}
-
-bool FilePrinter::detectCupsConfig()
-{
-    if (QFile::exists(QStringLiteral("/etc/cups/cupsd.conf"))) {
-        return true;
-    }
-    if (QFile::exists(QStringLiteral("/usr/etc/cups/cupsd.conf"))) {
-        return true;
-    }
-    if (QFile::exists(QStringLiteral("/usr/local/etc/cups/cupsd.conf"))) {
-        return true;
-    }
-    if (QFile::exists(QStringLiteral("/opt/etc/cups/cupsd.conf"))) {
-        return true;
-    }
-    if (QFile::exists(QStringLiteral("/opt/local/etc/cups/cupsd.conf"))) {
-        return true;
-    }
-    return false;
-}
-
-QSize FilePrinter::psPaperSize(QPrinter &printer)
-{
-    QSize size = printer.pageLayout().pageSize().sizePoints();
-
-    if (printer.pageSize() == QPrinter::Custom) {
-        return QSize((int)printer.widthMM() * (25.4 / 72), (int)printer.heightMM() * (25.4 / 72));
-    }
-
-    if (printer.orientation() == QPrinter::Landscape) {
-        size.transpose();
-    }
-
-    return size;
 }
 
 QStringList FilePrinter::printArguments(QPrinter &printer,
@@ -296,7 +202,7 @@ QStringList FilePrinter::printArguments(QPrinter &printer,
                                         bool useCupsOptions,
                                         const QString &pageRange,
                                         const QString &version,
-                                        QPrinter::Orientation documentOrientation,
+                                        QPageLayout::Orientation documentOrientation,
                                         ScaleMode scaleMode)
 {
     QStringList argList;
@@ -347,7 +253,7 @@ QStringList FilePrinter::destination(QPrinter &printer, const QString &version)
 
 QStringList FilePrinter::copies(QPrinter &printer, const QString &version)
 {
-    int cp = printer.actualNumCopies();
+    int cp = printer.copyCount();
 
     if (version == QLatin1String("lp")) {
         return QStringList(QStringLiteral("-n")) << QStringLiteral("%1").arg(cp);
@@ -412,7 +318,7 @@ QStringList FilePrinter::pages(QPrinter &printer, PageSelectPolicy pageSelectPol
     return QStringList(); // AllPages
 }
 
-QStringList FilePrinter::cupsOptions(QPrinter &printer, QPrinter::Orientation documentOrientation, ScaleMode scaleMode)
+QStringList FilePrinter::cupsOptions(QPrinter &printer, QPageLayout::Orientation documentOrientation, ScaleMode scaleMode)
 {
     QStringList optionList;
 
@@ -464,68 +370,68 @@ QStringList FilePrinter::optionMedia(QPrinter &printer)
 
 QString FilePrinter::mediaPageSize(QPrinter &printer)
 {
-    switch (printer.pageSize()) {
-    case QPrinter::A0:
+    switch (printer.pageLayout().pageSize().id()) {
+    case QPageSize::A0:
         return QStringLiteral("A0");
-    case QPrinter::A1:
+    case QPageSize::A1:
         return QStringLiteral("A1");
-    case QPrinter::A2:
+    case QPageSize::A2:
         return QStringLiteral("A2");
-    case QPrinter::A3:
+    case QPageSize::A3:
         return QStringLiteral("A3");
-    case QPrinter::A4:
+    case QPageSize::A4:
         return QStringLiteral("A4");
-    case QPrinter::A5:
+    case QPageSize::A5:
         return QStringLiteral("A5");
-    case QPrinter::A6:
+    case QPageSize::A6:
         return QStringLiteral("A6");
-    case QPrinter::A7:
+    case QPageSize::A7:
         return QStringLiteral("A7");
-    case QPrinter::A8:
+    case QPageSize::A8:
         return QStringLiteral("A8");
-    case QPrinter::A9:
+    case QPageSize::A9:
         return QStringLiteral("A9");
-    case QPrinter::B0:
+    case QPageSize::B0:
         return QStringLiteral("B0");
-    case QPrinter::B1:
+    case QPageSize::B1:
         return QStringLiteral("B1");
-    case QPrinter::B10:
+    case QPageSize::B10:
         return QStringLiteral("B10");
-    case QPrinter::B2:
+    case QPageSize::B2:
         return QStringLiteral("B2");
-    case QPrinter::B3:
+    case QPageSize::B3:
         return QStringLiteral("B3");
-    case QPrinter::B4:
+    case QPageSize::B4:
         return QStringLiteral("B4");
-    case QPrinter::B5:
+    case QPageSize::B5:
         return QStringLiteral("B5");
-    case QPrinter::B6:
+    case QPageSize::B6:
         return QStringLiteral("B6");
-    case QPrinter::B7:
+    case QPageSize::B7:
         return QStringLiteral("B7");
-    case QPrinter::B8:
+    case QPageSize::B8:
         return QStringLiteral("B8");
-    case QPrinter::B9:
+    case QPageSize::B9:
         return QStringLiteral("B9");
-    case QPrinter::C5E:
+    case QPageSize::C5E:
         return QStringLiteral("C5"); // Correct Translation?
-    case QPrinter::Comm10E:
+    case QPageSize::Comm10E:
         return QStringLiteral("Comm10"); // Correct Translation?
-    case QPrinter::DLE:
+    case QPageSize::DLE:
         return QStringLiteral("DL"); // Correct Translation?
-    case QPrinter::Executive:
+    case QPageSize::Executive:
         return QStringLiteral("Executive");
-    case QPrinter::Folio:
+    case QPageSize::Folio:
         return QStringLiteral("Folio");
-    case QPrinter::Ledger:
+    case QPageSize::Ledger:
         return QStringLiteral("Ledger");
-    case QPrinter::Legal:
+    case QPageSize::Legal:
         return QStringLiteral("Legal");
-    case QPrinter::Letter:
+    case QPageSize::Letter:
         return QStringLiteral("Letter");
-    case QPrinter::Tabloid:
+    case QPageSize::Tabloid:
         return QStringLiteral("Tabloid");
-    case QPrinter::Custom:
+    case QPageSize::Custom:
         return QStringLiteral("Custom.%1x%2mm").arg(printer.widthMM()).arg(printer.heightMM());
     default:
         return QString();
@@ -569,12 +475,12 @@ QString FilePrinter::mediaPaperSource(QPrinter &printer)
     }
 }
 
-QStringList FilePrinter::optionOrientation(QPrinter &printer, QPrinter::Orientation documentOrientation)
+QStringList FilePrinter::optionOrientation(QPrinter &printer, QPageLayout::Orientation documentOrientation)
 {
     // portrait and landscape options rotate the document according to the document orientation
     // If we want to print a landscape document as one would expect it, we have to pass the
     // portrait option so that the document is not rotated additionally
-    if (printer.orientation() == documentOrientation) {
+    if (printer.pageLayout().orientation() == documentOrientation) {
         // the user wants the document printed as is
         return QStringList(QStringLiteral("-o")) << QStringLiteral("portrait");
     } else {
@@ -589,7 +495,7 @@ QStringList FilePrinter::optionDoubleSidedPrinting(QPrinter &printer)
     case QPrinter::DuplexNone:
         return QStringList(QStringLiteral("-o")) << QStringLiteral("sides=one-sided");
     case QPrinter::DuplexAuto:
-        if (printer.orientation() == QPrinter::Landscape) {
+        if (printer.pageLayout().orientation() == QPageLayout::Landscape) {
             return QStringList(QStringLiteral("-o")) << QStringLiteral("sides=two-sided-short-edge");
         } else {
             return QStringList(QStringLiteral("-o")) << QStringLiteral("sides=two-sided-long-edge");
@@ -626,7 +532,11 @@ QStringList FilePrinter::optionPageMargins(QPrinter &printer, ScaleMode scaleMod
     } else {
         qreal l(0), t(0), r(0), b(0);
         if (!printer.fullPage()) {
-            printer.getPageMargins(&l, &t, &r, &b, QPrinter::Point);
+            auto marginsf = printer.pageLayout().margins(QPageLayout::Point);
+            l = marginsf.left();
+            t = marginsf.top();
+            r = marginsf.right();
+            b = marginsf.bottom();
         }
         QStringList marginOptions;
         marginOptions << (QStringLiteral("-o")) << QStringLiteral("page-left=%1").arg(l) << QStringLiteral("-o") << QStringLiteral("page-top=%1").arg(t) << QStringLiteral("-o") << QStringLiteral("page-right=%1").arg(r)

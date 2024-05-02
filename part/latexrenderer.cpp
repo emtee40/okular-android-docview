@@ -32,7 +32,7 @@ LatexRenderer::LatexRenderer()
 
 LatexRenderer::~LatexRenderer()
 {
-    for (const QString &file : qAsConst(m_fileList)) {
+    for (const QString &file : std::as_const(m_fileList)) {
         QFile::remove(file);
     }
 }
@@ -44,12 +44,12 @@ LatexRenderer::Error LatexRenderer::renderLatexInHtml(QString &html, const QColo
     }
 
     // this searches for $$formula$$
-    QRegularExpression rg(QStringLiteral("\\$\\$.+?\\$\\$"));
-    QRegularExpressionMatchIterator it = rg.globalMatch(html);
+    static const QRegularExpression rg(QStringLiteral("\\$\\$.+?\\$\\$"));
+    QRegularExpressionMatchIterator matchIt = rg.globalMatch(html);
 
     QMap<QString, QString> replaceMap;
-    while (it.hasNext()) {
-        QRegularExpressionMatch match = it.next();
+    while (matchIt.hasNext()) {
+        QRegularExpressionMatch match = matchIt.next();
         const QString matchedString = match.captured(0);
 
         QString formul = matchedString;
@@ -105,7 +105,7 @@ bool LatexRenderer::mightContainLatex(const QString &text)
     }
 
     // this searches for $$formula$$
-    QRegularExpression rg(QStringLiteral("\\$\\$.+?\\$\\$"));
+    static const QRegularExpression rg(QStringLiteral("\\$\\$.+?\\$\\$"));
     if (!rg.match(text).hasMatch()) {
         return false;
     }
@@ -191,11 +191,12 @@ LatexRenderer::Error LatexRenderer::handleLatex(QString &fileName, const QString
 
 bool LatexRenderer::securityCheck(const QString &latexFormula)
 {
-    return !latexFormula.contains(
+    static const auto formulaRegex =
         QRegularExpression(QString::fromLatin1("\\\\(def|let|futurelet|newcommand|renewcommand|else|fi|write|input|include"
                                                "|chardef|catcode|makeatletter|noexpand|toksdef|every|errhelp|errorstopmode|scrollmode|nonstopmode|batchmode"
                                                "|read|csname|newhelp|relax|afterground|afterassignment|expandafter|noexpand|special|command|loop|repeat|toks"
-                                               "|output|line|mathcode|name|item|section|mbox|DeclareRobustCommand)[^a-zA-Z]")));
+                                               "|output|line|mathcode|name|item|section|mbox|DeclareRobustCommand)[^a-zA-Z]"));
+    return !latexFormula.contains(formulaRegex);
 }
 
 }

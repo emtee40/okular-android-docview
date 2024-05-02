@@ -16,12 +16,6 @@
 #include <QStringList>
 #include <qwidget.h>
 
-#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0) // TODO Qt6: These are needed for oldQt_screenOf().
-#include <QApplication>
-#include <QScreen>
-#include <QWindow>
-#endif
-
 class QLineEdit;
 class QToolBar;
 class QTimer;
@@ -75,7 +69,7 @@ protected:
     void mouseMoveEvent(QMouseEvent *e) override;
     void paintEvent(QPaintEvent *e) override;
     void resizeEvent(QResizeEvent *e) override;
-    void enterEvent(QEvent *e) override;
+    void enterEvent(QEnterEvent *e) override;
     void leaveEvent(QEvent *e) override;
     bool gestureEvent(QGestureEvent *e);
 
@@ -83,10 +77,10 @@ protected:
     bool eventFilter(QObject *o, QEvent *ev) override;
 
 private:
-    const void *getObjectRect(Okular::ObjectRect::ObjectType type, int x, int y, QRect *geometry = nullptr) const;
-    const Okular::Action *getLink(int x, int y, QRect *geometry = nullptr) const;
-    const Okular::Annotation *getAnnotation(int x, int y, QRect *geometry = nullptr) const;
-    void testCursorOnLink(int x, int y);
+    const void *getObjectRect(Okular::ObjectRect::ObjectType type, QPointF point, QRect *geometry = nullptr) const;
+    const Okular::Action *getLink(QPointF point, QRect *geometry = nullptr) const;
+    const Okular::Annotation *getAnnotation(QPointF point, QRect *geometry = nullptr) const;
+    void testCursorOnLink(QPointF point);
     void overlayClick(const QPoint position);
     void changePage(int newPage);
     void generatePage(bool disableTransition = false);
@@ -94,6 +88,7 @@ private:
     void generateContentsPage(int page, QPainter &p);
     void generateOverlay();
     void initTransition(const Okular::PageTransition *transition);
+    void invalidatePixmaps();
     const Okular::PageTransition defaultTransition() const;
     const Okular::PageTransition defaultTransition(int) const;
     QRect routeMouseDrawingEvent(QMouseEvent *);
@@ -159,15 +154,7 @@ private:
     /** TODO Qt6: Just use QWidget::screen() instead of this. */
     static inline QScreen *oldQt_screenOf(const QWidget *widget)
     {
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
         return widget->screen();
-#else
-        if (widget->window() && widget->window()->windowHandle() && widget->window()->windowHandle()->screen()) {
-            return widget->window()->windowHandle()->screen();
-        } else {
-            return QApplication::primaryScreen();
-        }
-#endif
     }
 
 private Q_SLOTS:

@@ -283,6 +283,11 @@ public:
     QRect roundedGeometry(int xScale, int yScale) const;
 
     /**
+     * Same functionality as geometry, but nothing is converted into int.
+     */
+    QRectF geometryF(float xScale, float yScale) const;
+
+    /**
      * Returns the normalized bounding rectangle of the normalized rectangle
      * combined with the @p other normalized rectangle.
      */
@@ -962,7 +967,7 @@ public:
     QColor color;
 };
 
-uint qHash(const Okular::NormalizedRect &r, uint seed = 0);
+size_t qHash(const Okular::NormalizedRect &r, size_t seed = 0);
 }
 
 #ifndef QT_NO_DEBUG_STREAM

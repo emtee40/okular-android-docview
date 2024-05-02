@@ -9,7 +9,8 @@
 
 // clazy:excludeall=qstring-allocations
 
-#include <QtTest>
+#include <QSignalSpy>
+#include <QTest>
 
 #include "../core/annotations.h"
 #include "../core/document_p.h"
@@ -31,13 +32,16 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QDesktopServices>
+#include <QLineEdit>
 #include <QMenu>
 #include <QMessageBox>
 #include <QPushButton>
 #include <QScrollBar>
 #include <QTabletEvent>
 #include <QTemporaryDir>
+#include <QTemporaryFile>
 #include <QTextEdit>
+#include <QTimer>
 #include <QToolBar>
 #include <QTreeView>
 #include <QUrl>
@@ -64,6 +68,7 @@ private Q_SLOTS:
     void testForwardPDF_data();
     void testGeneratorPreferences();
     void testSelectText();
+    void testSelectTextMultiline();
     void testClickInternalLink();
     void testScrollBarAndMouseWheel();
     void testOpenUrlArguments();
@@ -103,6 +108,7 @@ private Q_SLOTS:
     void testFullScreenRequest();
     void testZoomInFacingPages();
     void testLinkWithCrop();
+    void testFieldFormatting();
 
 private:
     void simulateMouseSelection(double startX, double startY, double endX, double endY, QWidget *target);
@@ -112,8 +118,8 @@ class PartThatHijacksQueryClose : public Okular::Part
 {
     Q_OBJECT
 public:
-    PartThatHijacksQueryClose(QWidget *parentWidget, QObject *parent, const QVariantList &args)
-        : Okular::Part(parentWidget, parent, args)
+    PartThatHijacksQueryClose(QObject *parent, const QVariantList &args)
+        : Okular::Part(parent, args)
         , behavior(PassThru)
     {
     }
@@ -168,7 +174,7 @@ void PartTest::init()
 void PartTest::testReload()
 {
     QVariantList dummyArgs;
-    Okular::Part part(nullptr, nullptr, dummyArgs);
+    Okular::Part part(nullptr, dummyArgs);
     QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/file1.pdf")));
     part.reload();
     qApp->processEvents();
@@ -178,7 +184,7 @@ void PartTest::testReload()
 void PartTest::testCanceledReload()
 {
     QVariantList dummyArgs;
-    PartThatHijacksQueryClose part(nullptr, nullptr, dummyArgs);
+    PartThatHijacksQueryClose part(nullptr, dummyArgs);
     QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/file1.pdf")));
 
     // When queryClose() returns false, the reload operation is canceled (as if
@@ -193,7 +199,7 @@ void PartTest::testCanceledReload()
 void PartTest::testTOCReload()
 {
     QVariantList dummyArgs;
-    Okular::Part part(nullptr, nullptr, dummyArgs);
+    Okular::Part part(nullptr, dummyArgs);
     QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/tocreload.pdf")));
     QCOMPARE(part.m_toc->expandedNodes().count(), 0);
     part.m_toc->m_treeView->expandAll();
@@ -208,42 +214,17 @@ void PartTest::testForwardPDF()
     QFETCH(QString, dir);
 
     QVariantList dummyArgs;
-    Okular::Part part(nullptr, nullptr, dummyArgs);
+    Okular::Part part(nullptr, dummyArgs);
 
     // Create temp dir named like this: ${system temp dir}/${random string}/${dir}
     const QTemporaryDir tempDir;
     const QDir workDir(QDir(tempDir.path()).filePath(dir));
     workDir.mkpath(QStringLiteral("."));
 
-    QFile f(QStringLiteral(KDESRCDIR "data/synctextest.tex"));
-    const QString texDestination = workDir.path() + QStringLiteral("/synctextest.tex");
-    QVERIFY(f.copy(texDestination));
-    QProcess process;
-    process.setWorkingDirectory(workDir.path());
-
-    const QString pdflatexPath(QStandardPaths::findExecutable(QStringLiteral("pdflatex")));
-    if (pdflatexPath.isEmpty()) {
-        QFAIL("pdflatex executable not found, but needed for the test. Try installing the respective TeXLive packages.");
-    }
-    process.start(pdflatexPath, QStringList() << QStringLiteral("-synctex=1") << QStringLiteral("-interaction=nonstopmode") << texDestination);
-    bool started = process.waitForStarted();
-    if (!started) {
-        qDebug() << "start error:" << process.error();
-        qDebug() << "start stdout:" << process.readAllStandardOutput();
-        qDebug() << "start stderr:" << process.readAllStandardError();
-    }
-    QVERIFY(started);
-
-    process.waitForFinished();
-    if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0) {
-        qDebug() << "exit error:" << process.error() << "status" << process.exitStatus() << "code" << process.exitCode();
-        qDebug() << "exit stdout:" << process.readAllStandardOutput();
-        qDebug() << "exit stderr:" << process.readAllStandardError();
-    }
-
     const QString pdfResult = workDir.path() + QStringLiteral("/synctextest.pdf");
-
-    QVERIFY(QFile::exists(pdfResult));
+    QVERIFY(QFile::copy(QStringLiteral(KDESRCDIR "data/synctextest.pdf"), pdfResult));
+    const QString gzDestination = workDir.path() + QStringLiteral("/synctextest.synctex.gz");
+    QVERIFY(QFile::copy(QStringLiteral(KDESRCDIR "data/synctextest.synctex.gz"), gzDestination));
 
     QVERIFY(openDocument(&part, pdfResult));
     part.m_document->setViewportPage(0);
@@ -251,7 +232,8 @@ void PartTest::testForwardPDF()
     part.closeUrl();
 
     QUrl u(QUrl::fromLocalFile(pdfResult));
-    u.setFragment(QStringLiteral("src:100") + texDestination);
+    // Update this if you regenerate the synctextest.pdf somewhere else
+    u.setFragment(QStringLiteral("src:100/home/tsdgeos/devel/kde/okular/autotests/data/synctextest.tex"));
     part.openUrl(u);
     QCOMPARE(part.m_document->currentPage(), 1u);
 }
@@ -269,7 +251,7 @@ void PartTest::testGeneratorPreferences()
 {
     KConfigDialog *dialog;
     QVariantList dummyArgs;
-    Okular::Part part(nullptr, nullptr, dummyArgs);
+    Okular::Part part(nullptr, dummyArgs);
 
     // Test that we don't crash while opening the dialog
     dialog = part.slotGeneratorPreferences();
@@ -286,7 +268,7 @@ void PartTest::testGeneratorPreferences()
 void PartTest::testSelectText()
 {
     QVariantList dummyArgs;
-    Okular::Part part(nullptr, nullptr, dummyArgs);
+    Okular::Part part(nullptr, dummyArgs);
     QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/file2.pdf")));
     part.widget()->show();
     QVERIFY(QTest::qWaitForWindowExposed(part.widget()));
@@ -313,10 +295,71 @@ void PartTest::testSelectText()
     QCOMPARE(QApplication::clipboard()->text(), QStringLiteral("Hola que tal"));
 }
 
+void PartTest::testSelectTextMultiline()
+{
+    // This test tests a specific variation of multiline selection
+    // Select from middle to end of line, then continue to select next line
+    // then move selection back on next line past the point of the first line
+    // https://bugs.kde.org/show_bug.cgi?id=482249 has a nice animation.
+    QVariantList dummyArgs;
+    Okular::Part part(nullptr, dummyArgs);
+    QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/file2.pdf")));
+    part.widget()->show();
+    QVERIFY(QTest::qWaitForWindowExposed(part.widget()));
+
+    part.m_document->setViewportPage(1);
+
+    // wait for pixmap
+    QTRY_VERIFY(part.m_document->page(0)->hasPixmap(part.m_pageView));
+
+    const int width = part.m_pageView->horizontalScrollBar()->maximum() + part.m_pageView->viewport()->width();
+    const int height = part.m_pageView->verticalScrollBar()->maximum() + part.m_pageView->viewport()->height();
+
+    QVERIFY(QMetaObject::invokeMethod(part.m_pageView, "slotSetMouseTextSelect"));
+
+    const int startY = height * 0.052;
+    const int startX = width * 0.22;
+    const int endY = height * 0.072;
+    const int endX = width * 0.6;
+
+    const int steps = 5;
+    const double diffX = endX - startX;
+    const double diffXStep = diffX / steps;
+
+    QTestEventList events;
+    events.addMouseMove(QPoint(startX, startY));
+    events.addMousePress(Qt::LeftButton, Qt::NoModifier, QPoint(startX, startY));
+    for (int i = 0; i < steps - 1; ++i) {
+        events.addMouseMove(QPoint(startX + i * diffXStep, startY));
+        events.addDelay(100);
+    }
+    events.addMouseMove(QPoint(endX, startY));
+    events.addDelay(100);
+    events.addMouseMove(QPoint(endX, endY));
+    events.addDelay(100);
+    for (int i = 0; i < (steps); i++) {
+        events.addMouseMove(QPoint(endX - (i * diffXStep), endY));
+        events.addDelay(100);
+    }
+    events.addMouseMove(QPoint(endX - (diffXStep * (steps)), endY));
+    events.addDelay(100);
+    events.addMouseMove(QPoint(endX - (diffXStep * (steps + 0.5)), endY));
+    events.addDelay(100);
+
+    events.addMouseRelease(Qt::LeftButton, Qt::NoModifier, QPoint(endX - (diffXStep * (steps + 0.5)), endY));
+
+    events.simulate(part.m_pageView->viewport());
+
+    QApplication::clipboard()->clear();
+    QVERIFY(QMetaObject::invokeMethod(part.m_pageView, "copyTextSelection"));
+
+    QCOMPARE(QApplication::clipboard()->text(), QStringLiteral("cks!\nOf c"));
+}
+
 void PartTest::testClickInternalLink()
 {
     QVariantList dummyArgs;
-    Okular::Part part(nullptr, nullptr, dummyArgs);
+    Okular::Part part(nullptr, dummyArgs);
     QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/file2.pdf")));
     part.widget()->show();
     QVERIFY(QTest::qWaitForWindowExposed(part.widget()));
@@ -329,7 +372,7 @@ void PartTest::testClickInternalLink()
     const int width = part.m_pageView->horizontalScrollBar()->maximum() + part.m_pageView->viewport()->width();
     const int height = part.m_pageView->verticalScrollBar()->maximum() + part.m_pageView->viewport()->height();
 
-    QMetaObject::invokeMethod(part.m_pageView, "slotMouseNormalToggled", Q_ARG(bool, true));
+    QVERIFY(QMetaObject::invokeMethod(part.m_pageView, "slotSetMouseNormal"));
 
     QCOMPARE(part.m_document->currentPage(), 0u);
     QTest::mouseMove(part.m_pageView->viewport(), QPoint(width * 0.17, height * 0.05));
@@ -346,7 +389,7 @@ void PartTest::testClickInternalLink()
 void PartTest::testScrollBarAndMouseWheel()
 {
     QVariantList dummyArgs;
-    Okular::Part part(nullptr, nullptr, dummyArgs);
+    Okular::Part part(nullptr, dummyArgs);
     QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/simple-multipage.pdf")));
     part.widget()->show();
     QVERIFY(QTest::qWaitForWindowExposed(part.widget()));
@@ -384,7 +427,7 @@ void PartTest::testScrollBarAndMouseWheel()
 void PartTest::testMouseMoveOverLinkWhileInSelectionMode()
 {
     QVariantList dummyArgs;
-    Okular::Part part(nullptr, nullptr, dummyArgs);
+    Okular::Part part(nullptr, dummyArgs);
     QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/pdf_with_links.pdf")));
     // resize window to avoid problem with selection areas
     part.widget()->resize(800, 600);
@@ -413,7 +456,7 @@ void PartTest::testMouseMoveOverLinkWhileInSelectionMode()
 void PartTest::testClickUrlLinkWhileInSelectionMode()
 {
     QVariantList dummyArgs;
-    Okular::Part part(nullptr, nullptr, dummyArgs);
+    Okular::Part part(nullptr, dummyArgs);
     QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/pdf_with_links.pdf")));
     // resize window to avoid problem with selection areas
     part.widget()->resize(800, 600);
@@ -463,7 +506,7 @@ void PartTest::testeTextSelectionOverAndAcrossLinks_data()
 void PartTest::testeTextSelectionOverAndAcrossLinks()
 {
     QVariantList dummyArgs;
-    Okular::Part part(nullptr, nullptr, dummyArgs);
+    Okular::Part part(nullptr, dummyArgs);
     QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/pdf_with_links.pdf")));
     // resize window to avoid problem with selection areas
     part.widget()->resize(800, 600);
@@ -501,7 +544,7 @@ void PartTest::testeTextSelectionOverAndAcrossLinks()
 void PartTest::testClickUrlLinkWhileLinkTextIsSelected()
 {
     QVariantList dummyArgs;
-    Okular::Part part(nullptr, nullptr, dummyArgs);
+    Okular::Part part(nullptr, dummyArgs);
     QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/pdf_with_links.pdf")));
     // resize window to avoid problem with selection areas
     part.widget()->resize(800, 600);
@@ -546,7 +589,7 @@ void PartTest::testClickUrlLinkWhileLinkTextIsSelected()
 void PartTest::testRClickWhileLinkTextIsSelected()
 {
     QVariantList dummyArgs;
-    Okular::Part part(nullptr, nullptr, dummyArgs);
+    Okular::Part part(nullptr, dummyArgs);
     QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/pdf_with_links.pdf")));
     // resize window to avoid problem with selection areas
     part.widget()->resize(800, 600);
@@ -612,7 +655,7 @@ void PartTest::testRClickWhileLinkTextIsSelected()
 void PartTest::testRClickOverLinkWhileLinkTextIsSelected()
 {
     QVariantList dummyArgs;
-    Okular::Part part(nullptr, nullptr, dummyArgs);
+    Okular::Part part(nullptr, dummyArgs);
     QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/pdf_with_links.pdf")));
     // resize window to avoid problem with selection areas
     part.widget()->resize(800, 600);
@@ -673,7 +716,7 @@ void PartTest::testRClickOverLinkWhileLinkTextIsSelected()
 void PartTest::testRClickOnSelectionModeShoulShowFollowTheLinkMenu()
 {
     QVariantList dummyArgs;
-    Okular::Part part(nullptr, nullptr, dummyArgs);
+    Okular::Part part(nullptr, dummyArgs);
     QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/pdf_with_links.pdf")));
     // resize window to avoid problem with selection areas
     part.widget()->resize(800, 600);
@@ -728,7 +771,7 @@ void PartTest::testRClickOnSelectionModeShoulShowFollowTheLinkMenu()
 void PartTest::testClickAnywhereAfterSelectionShouldUnselect()
 {
     QVariantList dummyArgs;
-    Okular::Part part(nullptr, nullptr, dummyArgs);
+    Okular::Part part(nullptr, dummyArgs);
     QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/pdf_with_links.pdf")));
     // resize window to avoid problem with selection areas
     part.widget()->resize(800, 600);
@@ -768,7 +811,7 @@ void PartTest::testClickAnywhereAfterSelectionShouldUnselect()
 void PartTest::testeRectSelectionStartingOnLinks()
 {
     QVariantList dummyArgs;
-    Okular::Part part(nullptr, nullptr, dummyArgs);
+    Okular::Part part(nullptr, dummyArgs);
     QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/pdf_with_links.pdf")));
     // hide info messages as they interfere with selection area
     Okular::Settings::self()->setShowEmbeddedContentMessages(false);
@@ -843,7 +886,7 @@ void PartTest::simulateMouseSelection(double startX, double startY, double endX,
 
 void PartTest::testSaveAsToNonExistingPath()
 {
-    Okular::Part part(nullptr, nullptr, QVariantList());
+    Okular::Part part(nullptr, {});
     part.openDocument(QStringLiteral(KDESRCDIR "data/file1.pdf"));
 
     QString saveFilePath;
@@ -864,7 +907,7 @@ void PartTest::testSaveAsToNonExistingPath()
 void PartTest::testSaveAsToSymlink()
 {
 #ifdef Q_OS_UNIX
-    Okular::Part part(nullptr, nullptr, QVariantList());
+    Okular::Part part(nullptr, {});
     part.openDocument(QStringLiteral(KDESRCDIR "data/file1.pdf"));
 
     QTemporaryFile newFile(QStringLiteral("%1/okrXXXXXX.pdf").arg(QDir::tempPath()));
@@ -893,7 +936,7 @@ void PartTest::testSaveAsToSymlink()
 void PartTest::testSaveIsSymlink()
 {
 #ifdef Q_OS_UNIX
-    Okular::Part part(nullptr, nullptr, QVariantList());
+    Okular::Part part(nullptr, {});
 
     QString newFilePath;
     {
@@ -949,7 +992,7 @@ void PartTest::testSaveAs()
 
     qDebug() << "Open file, add annotation and save both natively and to .okular";
     {
-        Okular::Part part(nullptr, nullptr, QVariantList());
+        Okular::Part part(nullptr, {});
         part.openDocument(file);
         part.m_document->documentInfo();
 
@@ -989,7 +1032,7 @@ void PartTest::testSaveAs()
 
     qDebug() << "Open the .okular, check that the annotation is present and save to native";
     {
-        Okular::Part part(nullptr, nullptr, QVariantList());
+        Okular::Part part(nullptr, {});
         part.openDocument(archiveSave.fileName());
         part.m_document->documentInfo();
 
@@ -1015,7 +1058,7 @@ void PartTest::testSaveAs()
     qDebug() << "Open the native file saved directly, and check that the annot"
              << "is there iff we expect it";
     {
-        Okular::Part part(nullptr, nullptr, QVariantList());
+        Okular::Part part(nullptr, {});
         part.openDocument(nativeDirectSave.fileName());
 
         QCOMPARE(part.m_document->page(0)->annotations().size(), nativelySupportsAnnotations ? 1 : 0);
@@ -1029,7 +1072,7 @@ void PartTest::testSaveAs()
     qDebug() << "Open the native file saved from the .okular, and check that the annot"
              << "is there iff we expect it";
     {
-        Okular::Part part(nullptr, nullptr, QVariantList());
+        Okular::Part part(nullptr, {});
         part.openDocument(nativeFromArchiveFile.fileName());
 
         QCOMPARE(part.m_document->page(0)->annotations().size(), nativelySupportsAnnotations ? 1 : 0);
@@ -1060,8 +1103,7 @@ void PartTest::testSaveAs_data()
 
 void PartTest::testSidebarItemAfterSaving()
 {
-    QVariantList dummyArgs;
-    Okular::Part part(nullptr, nullptr, dummyArgs);
+    Okular::Part part(nullptr, {});
     QWidget *currentSidebarItem = part.m_sidebar->currentItem(); // thumbnails
     openDocument(&part, QStringLiteral(KDESRCDIR "data/tocreload.pdf"));
     // since it has TOC it changes to TOC
@@ -1077,8 +1119,7 @@ void PartTest::testSidebarItemAfterSaving()
 
 void PartTest::testViewModeSavingPerFile()
 {
-    QVariantList dummyArgs;
-    Okular::Part part(nullptr, nullptr, dummyArgs);
+    Okular::Part part(nullptr, {});
 
     // Open some file
     QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/file1.pdf")));
@@ -1128,7 +1169,7 @@ void PartTest::testSaveAsUndoStackAnnotations()
     QVERIFY(saveFile2.open());
     saveFile2.close();
 
-    Okular::Part part(nullptr, nullptr, QVariantList());
+    Okular::Part part(nullptr, {});
     part.openDocument(file);
 
     QCOMPARE(part.m_document->canSwapBackingFile(), canSwapBackingFile);
@@ -1312,7 +1353,7 @@ void PartTest::testSaveAsUndoStackForms()
     QVERIFY(saveFile.open());
     saveFile.close();
 
-    Okular::Part part(nullptr, nullptr, QVariantList());
+    Okular::Part part(nullptr, {});
     part.openDocument(file);
 
     const QList<Okular::FormField *> pageFormFields = part.m_document->page(0)->formFields();
@@ -1389,8 +1430,7 @@ void PartTest::testSaveAsUndoStackForms_data()
 
 void PartTest::testOpenUrlArguments()
 {
-    QVariantList dummyArgs;
-    Okular::Part part(nullptr, nullptr, dummyArgs);
+    Okular::Part part(nullptr, {});
 
     KParts::OpenUrlArguments args;
     args.setMimeType(QStringLiteral("text/rtf"));
@@ -1404,14 +1444,14 @@ void PartTest::testOpenUrlArguments()
 
 void PartTest::test388288()
 {
-    Okular::Part part(nullptr, nullptr, QVariantList());
+    Okular::Part part(nullptr, {});
 
     part.openUrl(QUrl::fromLocalFile(QStringLiteral(KDESRCDIR "data/file1.pdf")));
 
     part.widget()->show();
     QVERIFY(QTest::qWaitForWindowExposed(part.widget()));
 
-    QMetaObject::invokeMethod(part.m_pageView, "slotMouseNormalToggled", Q_ARG(bool, true));
+    QVERIFY(QMetaObject::invokeMethod(part.m_pageView, "slotSetMouseNormal"));
 
     auto annot = new Okular::HighlightAnnotation();
     annot->setHighlightType(Okular::HighlightAnnotation::Highlight);
@@ -1456,7 +1496,7 @@ void PartTest::test388288()
 void PartTest::testCheckBoxReadOnly()
 {
     const QString testFile = QStringLiteral(KDESRCDIR "data/checkbox_ro.pdf");
-    Okular::Part part(nullptr, nullptr, QVariantList());
+    Okular::Part part(nullptr, {});
     part.openDocument(testFile);
 
     // The test document uses the activation action of checkboxes
@@ -1569,7 +1609,7 @@ void PartTest::testCheckBoxReadOnly()
 void PartTest::testCrashTextEditDestroy()
 {
     const QString testFile = QStringLiteral(KDESRCDIR "data/formSamples.pdf");
-    Okular::Part part(nullptr, nullptr, QVariantList());
+    Okular::Part part(nullptr, {});
     part.openDocument(testFile);
     part.widget()->show();
     QVERIFY(QTest::qWaitForWindowExposed(part.widget()));
@@ -1580,8 +1620,7 @@ void PartTest::testCrashTextEditDestroy()
 
 void PartTest::testAnnotWindow()
 {
-    QVariantList dummyArgs;
-    Okular::Part part(nullptr, nullptr, dummyArgs);
+    Okular::Part part(nullptr, {});
     QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/file1.pdf")));
     part.widget()->show();
     part.widget()->resize(800, 600);
@@ -1589,7 +1628,7 @@ void PartTest::testAnnotWindow()
 
     part.m_document->setViewportPage(0);
 
-    QMetaObject::invokeMethod(part.m_pageView, "slotMouseNormalToggled", Q_ARG(bool, true));
+    QVERIFY(QMetaObject::invokeMethod(part.m_pageView, "slotSetMouseNormal"));
 
     QCOMPARE(part.m_document->currentPage(), 0u);
 
@@ -1682,7 +1721,7 @@ static void verifyTargetStates(const QString &triggerName, const QMap<QString, O
 void PartTest::testAdditionalActionTriggers()
 {
     const QString testFile = QStringLiteral(KDESRCDIR "data/additionalFormActions.pdf");
-    Okular::Part part(nullptr, nullptr, QVariantList());
+    Okular::Part part(nullptr, QVariantList());
     part.openDocument(testFile);
     part.widget()->resize(800, 600);
 
@@ -1793,7 +1832,7 @@ void PartTest::testAdditionalActionTriggers()
 
 void PartTest::testTypewriterAnnotTool()
 {
-    Okular::Part part(nullptr, nullptr, QVariantList());
+    Okular::Part part(nullptr, QVariantList());
 
     part.openUrl(QUrl::fromLocalFile(QStringLiteral(KDESRCDIR "data/file1.pdf")));
 
@@ -1830,7 +1869,7 @@ void PartTest::testJumpToPage()
 {
     const QString testFile = QStringLiteral(KDESRCDIR "data/simple-multipage.pdf");
     const int targetPage = 25;
-    Okular::Part part(nullptr, nullptr, QVariantList());
+    Okular::Part part(nullptr, QVariantList());
     part.openDocument(testFile);
     part.widget()->resize(800, 600);
     part.widget()->show();
@@ -1860,7 +1899,7 @@ void PartTest::testOpenAtPage()
 {
     const QString testFile = QStringLiteral(KDESRCDIR "data/simple-multipage.pdf");
     QUrl url = QUrl::fromLocalFile(testFile);
-    Okular::Part part(nullptr, nullptr, QVariantList());
+    Okular::Part part(nullptr, QVariantList());
 
     const uint targetPageNumA = 25;
     const uint expectedPageA = targetPageNumA - 1;
@@ -1879,7 +1918,7 @@ void PartTest::testOpenAtPage()
 void PartTest::testForwardBackwardNavigation()
 {
     const QString testFile = QStringLiteral(KDESRCDIR "data/simple-multipage.pdf");
-    Okular::Part part(nullptr, nullptr, QVariantList());
+    Okular::Part part(nullptr, QVariantList());
     part.openDocument(testFile);
     part.widget()->resize(800, 600);
     part.widget()->show();
@@ -1908,7 +1947,7 @@ void PartTest::testForwardBackwardNavigation()
 void PartTest::testTabletProximityBehavior()
 {
     QVariantList dummyArgs;
-    Okular::Part part {nullptr, nullptr, dummyArgs};
+    Okular::Part part {nullptr, dummyArgs};
     QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/file1.pdf")));
     part.slotShowPresentation();
     PresentationWidget *w = part.m_presentationWidget;
@@ -1918,8 +1957,9 @@ void PartTest::testTabletProximityBehavior()
     // close the KMessageBox "There are two ways of exiting[...]"
     TestingUtils::CloseDialogHelper closeDialogHelper(w, QDialogButtonBox::Ok); // confirm the "To leave, press ESC"
 
-    QTabletEvent enterProximityEvent {QEvent::TabletEnterProximity, QPoint(10, 10), QPoint(10, 10), QTabletEvent::Stylus, QTabletEvent::Pen, 1., 0, 0, 1., 1., 0, Qt::NoModifier, 0, Qt::NoButton, Qt::NoButton};
-    QTabletEvent leaveProximityEvent {QEvent::TabletLeaveProximity, QPoint(10, 10), QPoint(10, 10), QTabletEvent::Stylus, QTabletEvent::Pen, 1., 0, 0, 1., 1., 0, Qt::NoModifier, 0, Qt::NoButton, Qt::NoButton};
+    auto pointingDevice = new QPointingDevice(QStringLiteral("test"), 42, QInputDevice::DeviceType::Stylus, QPointingDevice::PointerType::Pen, QInputDevice::Capability::All, 3, 3);
+    QTabletEvent enterProximityEvent {QEvent::TabletEnterProximity, pointingDevice, QPointF(10, 10), QPointF(10, 10), 1., 0, 0, 1., 1., 0, Qt::NoModifier, Qt::NoButton, Qt::NoButton};
+    QTabletEvent leaveProximityEvent {QEvent::TabletLeaveProximity, pointingDevice, QPointF(10, 10), QPointF(10, 10), 1., 0, 0, 1., 1., 0, Qt::NoModifier, Qt::NoButton, Qt::NoButton};
 
     // Test with the Okular::Settings::EnumSlidesCursor::Visible setting
     Okular::Settings::self()->setSlidesCursor(Okular::Settings::EnumSlidesCursor::Visible);
@@ -1968,7 +2008,7 @@ void PartTest::testTabletProximityBehavior()
 void PartTest::testOpenPrintPreview()
 {
     QVariantList dummyArgs;
-    Okular::Part part {nullptr, nullptr, dummyArgs};
+    Okular::Part part(nullptr, dummyArgs);
     QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/file1.pdf")));
     part.widget()->show();
     QVERIFY(QTest::qWaitForWindowExposed(part.widget()));
@@ -1979,7 +2019,7 @@ void PartTest::testOpenPrintPreview()
 void PartTest::testMouseModeMenu()
 {
     QVariantList dummyArgs;
-    Okular::Part part(nullptr, nullptr, dummyArgs);
+    Okular::Part part(nullptr, dummyArgs);
     QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/file1.pdf")));
 
     QMetaObject::invokeMethod(part.m_pageView, "slotSetMouseNormal");
@@ -2010,7 +2050,7 @@ void PartTest::testMouseModeMenu()
 void PartTest::testFullScreenRequest()
 {
     QVariantList dummyArgs;
-    Okular::Part part(nullptr, nullptr, dummyArgs);
+    Okular::Part part(nullptr, dummyArgs);
 
     // Open file.  For this particular file, a dialog has to appear asking whether
     // one wants to comply with the wish to go to presentation mode directly.
@@ -2037,7 +2077,7 @@ void PartTest::testFullScreenRequest()
 void PartTest::testZoomInFacingPages()
 {
     QVariantList dummyArgs;
-    Okular::Part part(nullptr, nullptr, dummyArgs);
+    Okular::Part part(nullptr, dummyArgs);
     QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/file2.pdf")));
     QAction *facingAction = part.m_pageView->findChild<QAction *>(QStringLiteral("view_render_mode_facing"));
     KSelectAction *zoomSelectAction = part.m_pageView->findChild<KSelectAction *>(QStringLiteral("zoom_to"));
@@ -2065,7 +2105,7 @@ void PartTest::testZoomWithCrop()
     // We test that all zoom levels can be achieved with cropped pages, bug 342003
 
     QVariantList dummyArgs;
-    Okular::Part part(nullptr, nullptr, dummyArgs);
+    Okular::Part part(nullptr, dummyArgs);
     QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/file2.pdf")));
 
     KActionMenu *cropMenu = part.m_pageView->findChild<KActionMenu *>(QStringLiteral("view_trim_mode"));
@@ -2130,7 +2170,7 @@ void PartTest::testLinkWithCrop()
     // We test that link targets are correct with cropping, related to bug 198427
 
     QVariantList dummyArgs;
-    Okular::Part part(nullptr, nullptr, dummyArgs);
+    Okular::Part part(nullptr, dummyArgs);
     QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/pdf_with_internal_links.pdf")));
 
     KActionMenu *cropMenu = part.m_pageView->findChild<KActionMenu *>(QStringLiteral("view_trim_mode"));
@@ -2166,6 +2206,10 @@ void PartTest::testLinkWithCrop()
     // Trim the page
     simulateMouseSelection(mouseStartX, mouseStartY, mouseEndX, mouseEndY, part.m_pageView->viewport());
 
+    // We seem to have a trimmed view where we just by sheer luck ends up with mouse over a link at least sometimes
+    // So move the mouse
+    QTest::mouseMove(part.m_pageView->viewport(), QPoint(width * 0.1, width * 0.1));
+
     // The cursor should be normal again
     QTRY_COMPARE(part.m_pageView->cursor().shape(), Qt::CursorShape(Qt::OpenHandCursor));
 
@@ -2178,6 +2222,122 @@ void PartTest::testLinkWithCrop()
 
     // Deactivate "Trim Margins"
     cropAction->trigger();
+}
+
+void PartTest::testFieldFormatting()
+{
+    // Test field formatting. This has to be a parttest so that we
+    // can properly test focus in / out which triggers formatting.
+    const QString testFile = QStringLiteral(KDESRCDIR "data/fieldFormat.pdf");
+    Okular::Part part(nullptr, QVariantList());
+    part.openDocument(testFile);
+    part.widget()->resize(800, 600);
+
+    part.widget()->show();
+    QVERIFY(QTest::qWaitForWindowExposed(part.widget()));
+
+    // Field names in test document are:
+    //
+    // us_currency_fmt for formatting like "$ 1,234.56"
+    // de_currency_fmt for formatting like "1.234,56 €"
+    // de_simple_sum for calculation test and formatting like "1.234,56€"
+    // date_mm_dd_yyyy for dates like "18/06/2018"
+    // date_dd_mm_yyyy for dates like "06/18/2018"
+    // percent_fmt for percent format like "100,00%" if you enter 1
+    // time_HH_MM_fmt for times like "23:12"
+    // time_HH_MM_ss_fmt for times like "23:12:34"
+    // special_phone_number for an example of a special format selectable in Acrobat.
+    QMap<QString, Okular::FormField *> fields;
+    const Okular::Page *page = part.m_document->page(0);
+    const auto formFields = page->formFields();
+    for (Okular::FormField *ff : formFields) {
+        fields.insert(ff->name(), static_cast<Okular::FormField *>(ff));
+    }
+
+    const int width = part.m_pageView->horizontalScrollBar()->maximum() + part.m_pageView->viewport()->width();
+    const int height = part.m_pageView->verticalScrollBar()->maximum() + part.m_pageView->viewport()->height();
+
+    part.m_document->setViewportPage(0);
+
+    // wait for pixmap
+    QTRY_VERIFY(part.m_document->page(0)->hasPixmap(part.m_pageView));
+
+    part.actionCollection()->action(QStringLiteral("view_toggle_forms"))->trigger();
+
+    // Note as of version 1.5:
+    // The test document is prepared for future extensions to formatting for dates etc.
+    // Currently we only have the number format to test.
+    const auto ff_us = dynamic_cast<Okular::FormFieldText *>(fields.value(QStringLiteral("us_currency_fmt")));
+    const auto ff_de = dynamic_cast<Okular::FormFieldText *>(fields.value(QStringLiteral("de_currency_fmt")));
+    const auto ff_sum = dynamic_cast<Okular::FormFieldText *>(fields.value(QStringLiteral("de_simple_sum")));
+
+    const QPoint usPos(width * 0.25, height * 0.025);
+    const QPoint dePos(width * 0.25, height * 0.05);
+    const QPoint deSumPos(width * 0.25, height * 0.075);
+
+    const auto viewport = part.m_pageView->viewport();
+
+    QVERIFY(viewport);
+
+    auto usCurrencyWidget = dynamic_cast<QLineEdit *>(viewport->childAt(usPos));
+    auto deCurrencyWidget = dynamic_cast<QLineEdit *>(viewport->childAt(dePos));
+    auto sumCurrencyWidget = dynamic_cast<QLineEdit *>(viewport->childAt(deSumPos));
+
+    // Check that the widgets were found at the right position
+    QVERIFY(usCurrencyWidget);
+    QVERIFY(deCurrencyWidget);
+    QVERIFY(sumCurrencyWidget);
+
+    QTest::mousePress(usCurrencyWidget, Qt::LeftButton, Qt::NoModifier, QPoint(5, 5));
+    QTRY_VERIFY(usCurrencyWidget->hasFocus());
+    // locale is en_US for this test. Enter a value and check it.
+    usCurrencyWidget->setText(QStringLiteral("1234.56"));
+    // Check that the internal text matches
+    QCOMPARE(ff_us->text(), QStringLiteral("1234.56"));
+
+    // Now move the focus to trigger formatting.
+    QTest::mousePress(deCurrencyWidget, Qt::LeftButton, Qt::NoModifier, QPoint(5, 5));
+    QTRY_VERIFY(deCurrencyWidget->hasFocus());
+
+    QCOMPARE(usCurrencyWidget->text(), QStringLiteral("$ 1,234.56"));
+    QCOMPARE(ff_us->text(), QStringLiteral("1234.56"));
+
+    // And again with an invalid number
+    QTest::mousePress(usCurrencyWidget, Qt::LeftButton, Qt::NoModifier, QPoint(5, 5));
+    QTRY_VERIFY(usCurrencyWidget->hasFocus());
+
+    usCurrencyWidget->setText(QStringLiteral("131.234,567"));
+    QTest::mousePress(deCurrencyWidget, Qt::LeftButton, Qt::NoModifier, QPoint(5, 5));
+    QTRY_VERIFY(deCurrencyWidget->hasFocus());
+    // Check that the internal text still contains it.
+    QCOMPARE(ff_us->text(), QStringLiteral("131.234,567"));
+
+    // Just check that the text does not match the internal text.
+    // We don't check for a concrete value to keep NaN handling flexible
+    QVERIFY(ff_us->text() != usCurrencyWidget->text());
+
+    // Move the focus back and modify it a bit more
+    QTest::mousePress(usCurrencyWidget, Qt::LeftButton, Qt::NoModifier, QPoint(5, 5));
+    QTRY_VERIFY(usCurrencyWidget->hasFocus());
+
+    usCurrencyWidget->setText(QStringLiteral("1,234.567"));
+    QTest::mousePress(deCurrencyWidget, Qt::LeftButton, Qt::NoModifier, QPoint(5, 5));
+    QTRY_VERIFY(deCurrencyWidget->hasFocus());
+
+    QCOMPARE(usCurrencyWidget->text(), QStringLiteral("$ 1,234.57"));
+
+    // Sum should already match
+    QCOMPARE(sumCurrencyWidget->text(), QStringLiteral("1.234,57€"));
+
+    // Set a text in the de field
+    deCurrencyWidget->setText(QStringLiteral("1,123,234.567"));
+    QTest::mousePress(usCurrencyWidget, Qt::LeftButton, Qt::NoModifier, QPoint(5, 5));
+    QTRY_VERIFY(usCurrencyWidget->hasFocus());
+
+    QCOMPARE(deCurrencyWidget->text(), QStringLiteral("1.123.234,57 €"));
+    QCOMPARE(ff_de->text(), QStringLiteral("1,123,234.567"));
+    QCOMPARE(sumCurrencyWidget->text(), QStringLiteral("1.124.469,13€"));
+    QCOMPARE(ff_sum->text(), QStringLiteral("1,124,469.1340000000782310962677002"));
 }
 
 } // namespace Okular
@@ -2200,8 +2360,8 @@ int main(int argc, char *argv[])
     qDebug() << homePath;
     qputenv("USERPROFILE", homePath);
     qputenv("HOME", homePath);
-    qputenv("XDG_DATA_HOME", homePath + "/.local");
-    qputenv("XDG_CONFIG_HOME", homePath + "/.kde-unit-test/xdg/config");
+    qputenv("XDG_DATA_HOME", QByteArray(homePath + "/.local"));
+    qputenv("XDG_CONFIG_HOME", QByteArray(homePath + "/.kde-unit-test/xdg/config"));
 
     // Disable fancy debug output
     qunsetenv("QT_MESSAGE_PATTERN");

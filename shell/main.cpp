@@ -21,24 +21,25 @@
 #include <QApplication>
 #include <QCommandLineOption>
 #include <QCommandLineParser>
-#include <QDBusInterface>
+#include <QStringList>
 #include <QTextStream>
 #include <QtGlobal>
 
 int main(int argc, char **argv)
 {
     /**
-     * enable high dpi support
+     * enable dark mode for title bar on Windows
      */
-    QCoreApplication::setAttribute(Qt::AA_UseHighDpiPixmaps, true);
-    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);
+#if defined(Q_OS_WIN)
+    if (!qEnvironmentVariableIsSet("QT_QPA_PLATFORM")) {
+        qputenv("QT_QPA_PLATFORM", "windows:darkmode=1");
+    }
+#endif
 
     /**
      * allow fractional scaling
      */
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
-#endif
 
     QCoreApplication::setAttribute(Qt::AA_CompressTabletEvents);
 
@@ -72,7 +73,7 @@ int main(int argc, char **argv)
     parser.addOption(QCommandLineOption(QStringList() << QStringLiteral("unique"), i18n("\"Unique instance\" control")));
     parser.addOption(QCommandLineOption(QStringList() << QStringLiteral("noraise"), i18n("Not raise window")));
     parser.addOption(QCommandLineOption(QStringList() << QStringLiteral("find"), i18n("Find a string on the text"), QStringLiteral("string")));
-    parser.addOption(QCommandLineOption(QStringList() << QStringLiteral("editor-cmd"), i18n("sets the external editor command"), QStringLiteral("string")));
+    parser.addOption(QCommandLineOption(QStringList() << QStringLiteral("editor-cmd"), i18n("Sets the external editor command"), QStringLiteral("string")));
     parser.addPositionalArgument(QStringLiteral("urls"), i18n("Documents to open. Specify '-' to read from stdin."));
 
     parser.process(app);
