@@ -120,6 +120,7 @@ class OKULARPART_EXPORT Part : public KParts::ReadWritePart, public Okular::Docu
     friend class PartTest;
 
 public:
+    QPointer<Reviews> m_reviewsWidget;
     // Default constructor
     /**
      * If one element of 'args' contains one of the strings "Print/Preview" or "ViewerWidget",
@@ -359,7 +360,6 @@ private:
     QPointer<PresentationWidget> m_presentationWidget;
     QPointer<ProgressWidget> m_progressWidget;
     QPointer<PageSizeLabel> m_pageSizeLabel;
-    QPointer<Reviews> m_reviewsWidget;
     QPointer<BookmarkList> m_bookmarkList;
     QPointer<Layers> m_layers;
     QPointer<SignaturePanel> m_signaturePanel;

@@ -42,6 +42,7 @@ public:
     void notifyCurrentPageChanged(int previous, int current) override;
 
     void reparseConfig();
+    AnnotationModel *m_model;
 
 public Q_SLOTS:
     void slotPageEnabled(bool);
@@ -66,7 +67,6 @@ private:
     TreeView *m_view;
     // internal storage
     Okular::Document *m_document;
-    AnnotationModel *m_model;
     AuthorGroupProxyModel *m_authorProxy;
     PageFilterProxyModel *m_filterProxy;
     PageGroupProxyModel *m_groupProxy;
