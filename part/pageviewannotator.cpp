@@ -235,13 +235,10 @@ public:
         }
         // create StampAnnotation from path
         else if (typeString == QLatin1String("Stamp")) {
-            Okular::SignatureAnnotation *sa = new Okular::SignatureAnnotation();
-
-            sa->setLeftText(QStringLiteral("Hola"));
-            sa->setText(QStringLiteral("Hey there, I'm a signature"));
+            Okular::StampAnnotation *sa = new Okular::StampAnnotation();
 
             ann = sa;
-            // sa->setStampIconName(iconName);
+            sa->setStampIconName(iconName);
             // set boundary
             rect.left = qMin(startpoint.x, point.x);
             rect.top = qMin(startpoint.y, point.y);
@@ -359,47 +356,114 @@ public:
         rect.right = qMax(startpoint.x, point.x);
         rect.bottom = qMax(startpoint.y, point.y);
 
+        // m_creationCompleted = false;
+        clicked = false;
+
+        // find out annotation's description node
+        // if (m_annotElement.isNull()) {
+        //     m_creationCompleted = false;
+        //     clicked = false;
+        //     return QList<Okular::Annotation *>();
+        // }
+
+        // find out annotation's type
+        Okular::SignatureAnnotation *ann = new Okular::SignatureAnnotation();
+
+        const QString certSubjectCommonName = m_signingInformation.certificate->subjectInfo(Okular::CertificateInfo::CommonName, Okular::CertificateInfo::EmptyString::TranslatedNotAvailable);
+        const QString datetime = QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd hh:mm:ss t"));
+        const QString signatureText = i18n("Signed by: %1\n\nDate: %2", certSubjectCommonName, datetime);
+
+        ann->setLeftText(certSubjectCommonName);
+        ann->setText(signatureText);
+
+        // // sa->setStampIconName(iconName);
+        // // set boundary
+        // rect.left = qMin(startpoint.x, point.x);
+        // rect.top = qMin(startpoint.y, point.y);
+        // rect.right = qMax(startpoint.x, point.x);
+        // rect.bottom = qMax(startpoint.y, point.y);
+        // const QRectF rcf = rect.geometry((int)xscale, (int)yscale);
+        // const int ml = (rcf.bottomRight() - rcf.topLeft()).toPoint().manhattanLength();
+        // if (ml <= QApplication::startDragDistance()) {
+        //     const double stampxscale = pixmap.width() / xscale;
+        //     const double stampyscale = pixmap.height() / yscale;
+        //     if (center) {
+        //         rect.left = point.x - stampxscale / 2;
+        //         rect.top = point.y - stampyscale / 2;
+        //     } else {
+        //         rect.left = point.x;
+        //         rect.top = point.y;
+        //     }
+        //     rect.right = rect.left + stampxscale;
+        //     rect.bottom = rect.top + stampyscale;
+        // }
+
         m_creationCompleted = false;
         clicked = false;
 
-        return {};
-    }
-
-    void paint(QPainter *painter, double xScale, double yScale, const QRect &clipRect) override
-    {
-        if (clicked) {
-            if (m_block) {
-                const QPen origpen = painter->pen();
-                const Okular::NormalizedRect boundingRect(qMin(startpoint.x, point.x), qMin(startpoint.y, point.y), qMax(startpoint.x, point.x), qMax(startpoint.y, point.y));
-
-                const Okular::NormalizedRect leftTextNormalized(boundingRect.left, boundingRect.top, boundingRect.left + (boundingRect.width() / 2.0), boundingRect.bottom);
-                const QRect leftTextRect = leftTextNormalized.geometry((int)xScale, (int)yScale);
-
-                double scaleFactor = m_pageView->capability(PageView::Zoom).toDouble();
-
-                QFont leftFont(QStringLiteral("Helvetica"), 20 * scaleFactor);
-                painter->setFont(leftFont);
-
-                const QString certSubjectCommonName = m_signingInformation.certificate->subjectInfo(Okular::CertificateInfo::CommonName, Okular::CertificateInfo::EmptyString::TranslatedNotAvailable);
-
-                painter->drawText(leftTextRect, Qt::AlignHCenter | Qt::AlignVCenter | Qt::TextWordWrap, certSubjectCommonName);
-
-                const Okular::NormalizedRect textNormalized(boundingRect.left + (boundingRect.width() / 2.0), boundingRect.top, boundingRect.right, boundingRect.bottom);
-                const QRect textRect = textNormalized.geometry((int)xScale, (int)yScale);
-
-                QFont f(QStringLiteral("Helvetica"), 10 * scaleFactor);
-                painter->setFont(f);
-
-                const QString datetime = QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd hh:mm:ss t"));
-                const QString signatureText = i18n("Signed by: %1\n\nDate: %2", certSubjectCommonName, datetime);
-
-                painter->drawText(textRect, Qt::AlignHCenter | Qt::AlignVCenter | Qt::TextWordWrap, signatureText);
-
-                painter->setPen(origpen);
-            }
-            PickPointEngine::paint(painter, xscale, yScale, clipRect);
+        // safety check
+        if (!ann) {
+            return QList<Okular::Annotation *>();
         }
+
+        // set common attributes
+        // ann->style().setColor(m_annotElement.hasAttribute(QStringLiteral("color")) ? m_annotElement.attribute(QStringLiteral("color")) : m_engineColor);
+        // if (m_annotElement.hasAttribute(QStringLiteral("opacity"))) {
+        //     ann->style().setOpacity(m_annotElement.attribute(QStringLiteral("opacity"), QStringLiteral("1.0")).toDouble());
+        // }
+
+        // set the bounding rectangle, and make sure that the newly created
+        // annotation lies within the page by translating it if necessary
+        if (rect.right > 1) {
+            rect.left -= rect.right - 1;
+            rect.right = 1;
+        }
+        if (rect.bottom > 1) {
+            rect.top -= rect.bottom - 1;
+            rect.bottom = 1;
+        }
+        ann->setBoundingRectangle(rect);
+
+        qWarning() << "done";
+        // return annotation
+        return QList<Okular::Annotation *>() << ann;
     }
+
+    // void paint(QPainter *painter, double xScale, double yScale, const QRect &clipRect) override
+    // {
+    //     if (clicked) {
+    //         if (m_block) {
+    //             const QPen origpen = painter->pen();
+    //             const Okular::NormalizedRect boundingRect(qMin(startpoint.x, point.x), qMin(startpoint.y, point.y), qMax(startpoint.x, point.x), qMax(startpoint.y, point.y));
+    //
+    //             const Okular::NormalizedRect leftTextNormalized(boundingRect.left, boundingRect.top, boundingRect.left + (boundingRect.width() / 2.0), boundingRect.bottom);
+    //             const QRect leftTextRect = leftTextNormalized.geometry((int)xScale, (int)yScale);
+    //
+    //             double scaleFactor = m_pageView->capability(PageView::Zoom).toDouble();
+    //
+    //             QFont leftFont(QStringLiteral("Helvetica"), 20 * scaleFactor);
+    //             painter->setFont(leftFont);
+    //
+    //             const QString certSubjectCommonName = m_signingInformation.certificate->subjectInfo(Okular::CertificateInfo::CommonName, Okular::CertificateInfo::EmptyString::TranslatedNotAvailable);
+    //
+    //             painter->drawText(leftTextRect, Qt::AlignHCenter | Qt::AlignVCenter | Qt::TextWordWrap, certSubjectCommonName);
+    //
+    //             const Okular::NormalizedRect textNormalized(boundingRect.left + (boundingRect.width() / 2.0), boundingRect.top, boundingRect.right, boundingRect.bottom);
+    //             const QRect textRect = textNormalized.geometry((int)xScale, (int)yScale);
+    //
+    //             QFont f(QStringLiteral("Helvetica"), 10 * scaleFactor);
+    //             painter->setFont(f);
+    //
+    //             const QString datetime = QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd hh:mm:ss t"));
+    //             const QString signatureText = i18n("Signed by: %1\n\nDate: %2", certSubjectCommonName, datetime);
+    //
+    //             painter->drawText(textRect, Qt::AlignHCenter | Qt::AlignVCenter | Qt::TextWordWrap, signatureText);
+    //
+    //             painter->setPen(origpen);
+    //         }
+    //         PickPointEngine::paint(painter, xscale, yScale, clipRect);
+    //     }
+    // }
 
     bool isAccepted() const
     {
@@ -1025,16 +1089,16 @@ QRect PageViewAnnotator::performRouteMouseOrTabletEvent(const AnnotatorEngine::E
         if (m_signatureMode) {
             auto signEngine = static_cast<PickPointEngineSignature *>(m_engine);
             if (signEngine->isAccepted()) {
-                const QString newFilePath = SignaturePartUtils::getFileNameForNewSignedFile(m_pageView, m_document);
+                // const QString newFilePath = SignaturePartUtils::getFileNameForNewSignedFile(m_pageView, m_document);
 
-                if (!newFilePath.isEmpty()) {
-                    const bool success = static_cast<PickPointEngineSignature *>(m_engine)->sign(newFilePath);
-                    if (success) {
-                        Q_EMIT requestOpenFile(newFilePath, m_lockedItem->pageNumber() + 1);
-                    } else {
-                        KMessageBox::error(m_pageView, i18nc("%1 is a file path", "Could not sign. Invalid certificate password or could not write to '%1'", newFilePath));
-                    }
-                }
+                // if (!newFilePath.isEmpty()) {
+                //     const bool success = static_cast<PickPointEngineSignature *>(m_engine)->sign(newFilePath);
+                //     if (success) {
+                //         Q_EMIT requestOpenFile(newFilePath, m_lockedItem->pageNumber() + 1);
+                //     } else {
+                //         KMessageBox::error(m_pageView, i18nc("%1 is a file path", "Could not sign. Invalid certificate password or could not write to '%1'", newFilePath));
+                //     }
+                // }
                 // Exit the signature mode.
                 m_signatureMode = false;
                 selectBuiltinTool(-1, ShowTip::No);
