@@ -421,6 +421,16 @@ static Poppler::Annotation *createPopplerAnnotationFromOkularAnnotation(const Ok
     return pStampAnnotation;
 }
 
+static Poppler::Annotation *createPopplerAnnotationFromOkularAnnotation(const Okular::SignatureAnnotation *oStampAnnotation)
+{
+    Poppler::SignatureAnnotation *pSignatureAnnotation = new Poppler::SignatureAnnotation();
+
+    setSharedAnnotationPropertiesToPopplerAnnotation(oStampAnnotation, pSignatureAnnotation);
+    // updatePopplerAnnotationFromOkularAnnotation(oStampAnnotation, pStampAnnotation, page);
+
+    return pSignatureAnnotation;
+}
+
 static Poppler::Annotation *createPopplerAnnotationFromOkularAnnotation(const Okular::InkAnnotation *oInkAnnotation)
 {
     Poppler::InkAnnotation *pInkAnnotation = new Poppler::InkAnnotation();
@@ -484,6 +494,15 @@ void PopplerAnnotationProxy::notifyAddition(Okular::Annotation *okl_ann, int pag
     case Okular::Annotation::ACaret:
         ppl_ann = createPopplerAnnotationFromOkularAnnotation(static_cast<Okular::CaretAnnotation *>(okl_ann));
         break;
+    case Okular::Annotation::AWidget: {
+
+        // TODO check it's a signature
+
+
+        ppl_ann = createPopplerAnnotationFromOkularAnnotation(static_cast<Okular::SignatureAnnotation *>(okl_ann));
+        break;
+    }
+
     default:
         qWarning() << "Unsupported annotation type" << okl_ann->subType();
         return;

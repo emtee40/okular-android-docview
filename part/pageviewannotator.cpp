@@ -234,9 +234,9 @@ public:
         }
         // create StampAnnotation from path
         else if (typeString == QLatin1String("Stamp")) {
-            Okular::StampAnnotation *sa = new Okular::StampAnnotation();
+            Okular::SignatureAnnotation *sa = new Okular::SignatureAnnotation();
             ann = sa;
-            sa->setStampIconName(iconName);
+            // sa->setStampIconName(iconName);
             // set boundary
             rect.left = qMin(startpoint.x, point.x);
             rect.top = qMin(startpoint.y, point.y);

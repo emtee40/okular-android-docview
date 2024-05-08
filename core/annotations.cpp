@@ -2340,6 +2340,91 @@ AnnotationPrivate *StampAnnotationPrivate::getNewAnnotationPrivate()
     return new StampAnnotationPrivate();
 }
 
+/** SignatureAnnotation [Annotation] */
+
+class Okular::SignatureAnnotationPrivate : public Okular::AnnotationPrivate
+{
+public:
+    SignatureAnnotationPrivate()
+        : AnnotationPrivate()
+        // , m_stampIconName(QStringLiteral("Draft"))
+    {
+    }
+    void setAnnotationProperties(const QDomNode &node) override;
+    bool canBeResized() const override;
+    AnnotationPrivate *getNewAnnotationPrivate() override;
+
+    // QString m_stampIconName;
+};
+
+SignatureAnnotation::SignatureAnnotation()
+    : Annotation(*new SignatureAnnotationPrivate())
+{
+}
+
+// SignatureAnnotation::SignatureAnnotation(const QDomNode &description)
+//     : Annotation(*new SignatureAnnotationPrivate(), description)
+// {
+// }
+
+SignatureAnnotation::~SignatureAnnotation()
+{
+}
+
+Annotation::SubType SignatureAnnotation::subType() const
+{
+    return AWidget;
+}
+
+void SignatureAnnotation::store(QDomNode &node, QDomDocument &document) const
+{
+    // Q_D(const SignatureAnnotation);
+    // // recurse to parent objects storing properties
+    // Annotation::store(node, document);
+    //
+    // // create [stamp] element
+    // QDomElement stampElement = document.createElement(QStringLiteral("stamp"));
+    // node.appendChild(stampElement);
+    //
+    // // append the optional attributes
+    // if (d->m_stampIconName != QLatin1String("Draft")) {
+    //     stampElement.setAttribute(QStringLiteral("icon"), d->m_stampIconName);
+    // }
+}
+
+void SignatureAnnotationPrivate::setAnnotationProperties(const QDomNode &node)
+{
+    Okular::AnnotationPrivate::setAnnotationProperties(node);
+
+    // loop through the whole children looking for a 'stamp' element
+//     QDomNode subNode = node.firstChild();
+//     while (subNode.isElement()) {
+//         QDomElement e = subNode.toElement();
+//         subNode = subNode.nextSibling();
+//         if (e.tagName() != QLatin1String("stamp")) {
+//             continue;
+//         }
+//
+//         // parse the attributes
+//         if (e.hasAttribute(QStringLiteral("icon"))) {
+//             // m_stampIconName = e.attribute(QStringLiteral("icon"));
+//         }
+//
+//         // loading complete
+//         break;
+//     }
+}
+
+bool SignatureAnnotationPrivate::canBeResized() const
+{
+    return true;
+}
+
+AnnotationPrivate *SignatureAnnotationPrivate::getNewAnnotationPrivate()
+{
+    return new SignatureAnnotationPrivate();
+}
+
 /** InkAnnotation [Annotation] */
 
 class Okular::InkAnnotationPrivate : public Okular::AnnotationPrivate
