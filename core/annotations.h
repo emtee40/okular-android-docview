@@ -34,6 +34,7 @@ class LineAnnotationPrivate;
 class GeomAnnotationPrivate;
 class HighlightAnnotationPrivate;
 class StampAnnotationPrivate;
+class SignatureAnnotationPrivate;
 class InkAnnotationPrivate;
 class CaretAnnotationPrivate;
 class FileAttachmentAnnotationPrivate;
@@ -1320,6 +1321,51 @@ private:
     Q_DECLARE_PRIVATE(StampAnnotation)
     Q_DISABLE_COPY(StampAnnotation)
 };
+
+class OKULARCORE_EXPORT SignatureAnnotation : public Annotation
+{
+public:
+    /**
+     * Creates a new signature annotation.
+     */
+    SignatureAnnotation();
+
+    /**
+     * Creates a new stamp annotation from the xml @p description
+     */
+    // explicit SignatureAnnotation(const QDomNode &description);
+
+    /**
+     * Destroys the signature annotation.
+     */
+    ~SignatureAnnotation() override;
+
+    // /**
+    //  * Sets the @p name of the icon for the stamp annotation.
+    //  */
+    // void setStampIconName(const QString &name);
+    //
+    // /**
+    //  * Returns the name of the icon.
+    //  */
+    // QString stampIconName() const;
+
+    /**
+     * Returns the sub type of the stamp annotation.
+     */
+    SubType subType() const override;
+
+    /**
+     * Stores the stamp annotation as xml in @p document
+     * under the given parent @p node.
+     */
+    void store(QDomNode &node, QDomDocument &document) const override;
+
+private:
+    Q_DECLARE_PRIVATE(SignatureAnnotation)
+    Q_DISABLE_COPY(SignatureAnnotation)
+};
+
 
 class OKULARCORE_EXPORT InkAnnotation : public Annotation
 {
