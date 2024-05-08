@@ -236,6 +236,10 @@ public:
         // create StampAnnotation from path
         else if (typeString == QLatin1String("Stamp")) {
             Okular::SignatureAnnotation *sa = new Okular::SignatureAnnotation();
+
+            sa->setLeftText(QStringLiteral("Hola"));
+            sa->setText(QStringLiteral("Hey there, I'm a signature"));
+
             ann = sa;
             // sa->setStampIconName(iconName);
             // set boundary

@@ -2355,6 +2355,8 @@ public:
     AnnotationPrivate *getNewAnnotationPrivate() override;
 
     // QString m_stampIconName;
+    QString m_text;
+    QString m_leftText;
 };
 
 SignatureAnnotation::SignatureAnnotation()
@@ -2374,6 +2376,30 @@ SignatureAnnotation::~SignatureAnnotation()
 Annotation::SubType SignatureAnnotation::subType() const
 {
     return AWidget;
+}
+
+QString SignatureAnnotation::text() const
+{
+    Q_D(const SignatureAnnotation);
+    return d->m_text;
+}
+
+void SignatureAnnotation::setText(const QString &text)
+{
+    Q_D(SignatureAnnotation);
+    d->m_text = text;
+}
+
+QString SignatureAnnotation::leftText() const
+{
+    Q_D(const SignatureAnnotation);
+    return d->m_leftText;
+}
+
+void SignatureAnnotation::setLeftText(const QString &text)
+{
+    Q_D(SignatureAnnotation);
+    d->m_leftText = text;
 }
 
 void SignatureAnnotation::store(QDomNode &node, QDomDocument &document) const

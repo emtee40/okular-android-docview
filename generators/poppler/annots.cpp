@@ -426,7 +426,9 @@ static Poppler::Annotation *createPopplerAnnotationFromOkularAnnotation(const Ok
     Poppler::SignatureAnnotation *pSignatureAnnotation = new Poppler::SignatureAnnotation();
 
     setSharedAnnotationPropertiesToPopplerAnnotation(oStampAnnotation, pSignatureAnnotation);
-    // updatePopplerAnnotationFromOkularAnnotation(oStampAnnotation, pStampAnnotation, page);
+    // updatePopplerAnnotationFromOkularAnnotation(oStampAnnotation, pSignatureAnnotation);
+    pSignatureAnnotation->setLeftText(oStampAnnotation->leftText());
+    pSignatureAnnotation->setText(oStampAnnotation->text());
 
     return pSignatureAnnotation;
 }

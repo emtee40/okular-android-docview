@@ -1340,15 +1340,11 @@ public:
      */
     ~SignatureAnnotation() override;
 
-    // /**
-    //  * Sets the @p name of the icon for the stamp annotation.
-    //  */
-    // void setStampIconName(const QString &name);
-    //
-    // /**
-    //  * Returns the name of the icon.
-    //  */
-    // QString stampIconName() const;
+    QString text() const;
+    void setText(const QString &text);
+
+    QString leftText() const;
+    void setLeftText(const QString &text);
 
     /**
      * Returns the sub type of the stamp annotation.
