@@ -171,6 +171,18 @@ public:
      */
     Page *page() const;
 
+    /**
+     * Returns the value that was last committed in this form field
+     * @since 24.08
+     */
+    QString lastCommittedValue() const;
+
+    /**
+     * Updates the value that was last committed in this form field
+     * @since 24.08
+     */
+    void setLastCommittedValue(const QString &value);
+
 protected:
     /// @cond PRIVATE
     explicit FormField(FormFieldPrivate &dd);
