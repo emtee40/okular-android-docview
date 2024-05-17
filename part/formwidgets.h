@@ -150,6 +150,8 @@ protected:
     FormWidgetsController *m_controller;
     Okular::FormField *m_ff;
 
+    int m_keyPressed;
+
 private:
     QWidget *m_widget;
     PageViewItem *m_pageItem;

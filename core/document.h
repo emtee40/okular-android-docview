@@ -711,6 +711,13 @@ public:
     void processFormMouseUpScripAction(const Action *action, Okular::FormField *ff);
 
     /**
+     * Recalculate all the form fields
+     *
+     * @since 24.08
+     */
+    void recalculateForms();
+
+    /**
      * Returns a list of the bookmarked.pages
      */
     QList<int> bookmarkedPageList() const;
