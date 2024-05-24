@@ -148,8 +148,10 @@ endif()
 
 if (BUILD_DESKTOP)
     if(UNIX AND NOT APPLE AND NOT ANDROID)
-        find_package(Qt6DBus ${QT_REQUIRED_VERSION} CONFIG REQUIRED)
-        set(HAVE_DBUS 1)
+        find_package(Qt6DBus)
+        set_okular_optional_package_properties(Qt6DBus PROPERTIES
+            PURPOSE "Required for interprocess communication, external open in same instance and various presentation related bits.")
+        set(HAVE_DBUS ${Qt6DBus_FOUND})
     else()
         set(HAVE_DBUS 0)
     endif()
