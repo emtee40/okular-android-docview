@@ -466,6 +466,14 @@ Part::Part(QObject *parent, const QVariantList &args)
     m_signatureMessage->setVisible(false);
     m_signatureMessage->setWordWrap(true);
     rightLayout->addWidget(m_signatureMessage);
+    m_signatureInProgressMessage = new KMessageWidget(rightContainer);
+    m_signatureInProgressMessage->setVisible(false);
+    m_signatureInProgressMessage->setWordWrap(true);
+    m_signatureInProgressMessage->setText(i18n("Signing in progress. You can adjust the position and size of the signature"));
+    QAction *finishSigningAction = new QAction(QIcon::fromTheme(QStringLiteral("dialog-ok-apply")), i18n("Finish Signing"), this);
+    connect(finishSigningAction, &QAction::triggered, this, &Part::finishSigning);
+    m_signatureInProgressMessage->addAction(finishSigningAction);
+    rightLayout->addWidget(m_signatureInProgressMessage);
     m_pageView = new PageView(rightContainer, m_document);
     rightContainer->setFocusProxy(m_pageView);
     QMetaObject::invokeMethod(m_pageView, "setFocus", Qt::QueuedConnection); // usability setting
@@ -510,6 +518,9 @@ Part::Part(QObject *parent, const QVariantList &args)
         QUrl u = QUrl::fromLocalFile(filePath);
         u.setFragment(QStringLiteral("page=%1").arg(pageNumber));
         Q_EMIT urlsDropped({u});
+    });
+    connect(m_pageView.data(), &PageView::signingStarted, this, [this]{
+        m_signatureInProgressMessage->setVisible(true);
     });
 
     connect(m_reviewsWidget.data(), &Reviews::openAnnotationWindow, m_pageView.data(), &PageView::openAnnotationWindow);
@@ -3631,6 +3642,18 @@ void Part::noticeMessage(const QString &message, int duration)
 void Part::moveSplitter(int sideWidgetSize)
 {
     m_sidebar->moveSplitter(sideWidgetSize);
+}
+
+void Part::finishSigning()
+{
+    qWarning() << "finish";
+
+    const Page* page = m_pageView->document()->page(m_pageView->document()->currentPage());
+
+    qWarning() << "page" <<page;
+
+    qWarning() << page->formFields();
+
 }
 
 void Part::unsetDummyMode()

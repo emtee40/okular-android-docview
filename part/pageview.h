@@ -144,6 +144,7 @@ Q_SIGNALS:
     void fitWindowToPage(const QSize pageViewPortSize, const QSize pageSize);
     void triggerSearch(const QString &text);
     void requestOpenFile(const QString &filePath, int pageNumber);
+    void signingStarted();
 
 protected:
     bool event(QEvent *event) override;

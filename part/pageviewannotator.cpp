@@ -424,6 +424,10 @@ public:
         }
         ann->setBoundingRectangle(rect);
 
+        // ann->form
+
+        m_pageView->signingStarted();
+
         qWarning() << "done";
         // return annotation
         return QList<Okular::Annotation *>() << ann;
