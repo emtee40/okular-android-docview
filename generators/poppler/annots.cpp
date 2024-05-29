@@ -19,8 +19,11 @@
 #include <core/area.h>
 
 #include "debug_pdf.h"
+#include "formfields.h"
 #include "generator_pdf.h"
 #include "popplerembeddedfile.h"
+
+#include "poppler-form.h"
 
 Q_DECLARE_METATYPE(Poppler::Annotation *)
 
@@ -502,6 +505,9 @@ void PopplerAnnotationProxy::notifyAddition(Okular::Annotation *okl_ann, int pag
 
 
         ppl_ann = createPopplerAnnotationFromOkularAnnotation(static_cast<Okular::SignatureAnnotation *>(okl_ann));
+
+        // qWarning() << "aaaaa" << static_cast<Poppler::SignatureAnnotation *>(ppl_ann)->form();
+
         break;
     }
 
@@ -514,6 +520,17 @@ void PopplerAnnotationProxy::notifyAddition(Okular::Annotation *okl_ann, int pag
 
     // Bind poppler object to page
     ppl_page->addAnnotation(ppl_ann);
+
+    // qWarning() << "bbbb" << .get();
+
+    auto b = std::make_unique<PopplerFormFieldSignature>(static_cast<Poppler::SignatureAnnotation *>(ppl_ann)->form());
+
+    static_cast<Okular::SignatureAnnotation *>(okl_ann)->setFormField(std::move(b));
+
+
+    // b->d_ptr->m_page = this;
+
+    // b.sign(, )
 
     // Set pointer to poppler annotation as native Id
     okl_ann->setNativeId(QVariant::fromValue(ppl_ann));

@@ -3646,14 +3646,7 @@ void Part::moveSplitter(int sideWidgetSize)
 
 void Part::finishSigning()
 {
-    qWarning() << "finish";
-
-    const Page* page = m_pageView->document()->page(m_pageView->document()->currentPage());
-
-    qWarning() << "page" <<page;
-
-    qWarning() << page->formFields();
-
+    m_pageView->finishSigning();
 }
 
 void Part::unsetDummyMode()

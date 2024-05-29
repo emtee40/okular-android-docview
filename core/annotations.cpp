@@ -23,6 +23,7 @@
 #include "action.h"
 #include "document.h"
 #include "document_p.h"
+#include "form.h"
 #include "movie.h"
 #include "page_p.h"
 #include "sound.h"
@@ -2350,6 +2351,7 @@ public:
         // , m_stampIconName(QStringLiteral("Draft"))
     {
     }
+
     void setAnnotationProperties(const QDomNode &node) override;
     bool canBeResized() const override;
     AnnotationPrivate *getNewAnnotationPrivate() override;
@@ -2357,6 +2359,7 @@ public:
     // QString m_stampIconName;
     QString m_text;
     QString m_leftText;
+    std::unique_ptr<FormFieldSignature> formField;
 };
 
 SignatureAnnotation::SignatureAnnotation()
@@ -2400,6 +2403,18 @@ void SignatureAnnotation::setLeftText(const QString &text)
 {
     Q_D(SignatureAnnotation);
     d->m_leftText = text;
+}
+
+FormFieldSignature *SignatureAnnotation::formField() const
+{
+    Q_D(const SignatureAnnotation);
+    return d->formField.get();
+}
+
+void SignatureAnnotation::setFormField(std::unique_ptr<FormFieldSignature> &&formField)
+{
+    Q_D(SignatureAnnotation);
+    d->formField = std::move(formField);
 }
 
 void SignatureAnnotation::store(QDomNode &node, QDomDocument &document) const

@@ -43,6 +43,7 @@ class MovieAnnotationPrivate;
 class ScreenAnnotationPrivate;
 class WidgetAnnotationPrivate;
 class RichMediaAnnotationPrivate;
+class FormFieldSignature;
 
 /**
  * @short Helper class for (recursive) annotation retrieval/storage.
@@ -1345,6 +1346,9 @@ public:
 
     QString leftText() const;
     void setLeftText(const QString &text);
+
+    FormFieldSignature *formField() const;
+    void setFormField(std::unique_ptr<FormFieldSignature> &&formField);
 
     /**
      * Returns the sub type of the stamp annotation.

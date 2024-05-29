@@ -37,6 +37,7 @@
 #include "core/annotations.h"
 #include "core/area.h"
 #include "core/document.h"
+#include "core/form.h"
 #include "core/page.h"
 #include "core/signatureutils.h"
 #include "editannottooldialog.h"
@@ -332,13 +333,13 @@ private:
 class PickPointEngineSignature : public PickPointEngine
 {
 public:
-    PickPointEngineSignature(Okular::Document *document, PageView *pageView, SignaturePartUtils::SigningInformation &&info)
+    PickPointEngineSignature(Okular::Document *document, PageView *pageView, SignaturePartUtils::SigningInformation *info)
         : PickPointEngine({})
         , m_document(document)
         , m_page(nullptr)
         , m_pageView(pageView)
         , m_aborted(false)
-        , m_signingInformation(std::move(info))
+        , m_signingInformation(info)
     {
         m_block = true;
     }
@@ -369,12 +370,14 @@ public:
         // find out annotation's type
         Okular::SignatureAnnotation *ann = new Okular::SignatureAnnotation();
 
-        const QString certSubjectCommonName = m_signingInformation.certificate->subjectInfo(Okular::CertificateInfo::CommonName, Okular::CertificateInfo::EmptyString::TranslatedNotAvailable);
+        const QString certSubjectCommonName = m_signingInformation->certificate->subjectInfo(Okular::CertificateInfo::CommonName, Okular::CertificateInfo::EmptyString::TranslatedNotAvailable);
         const QString datetime = QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd hh:mm:ss t"));
         const QString signatureText = i18n("Signed by: %1\n\nDate: %2", certSubjectCommonName, datetime);
 
         ann->setLeftText(certSubjectCommonName);
         ann->setText(signatureText);
+
+        // qWarning() << "aaaa" << ann->
 
         // // sa->setStampIconName(iconName);
         // // set boundary
@@ -424,11 +427,15 @@ public:
         }
         ann->setBoundingRectangle(rect);
 
-        // ann->form
+        // m_signatureAnnotation = ann;
+        // m_pageView->startSigning(ann->formField());
 
-        m_pageView->signingStarted();
+        // QObject::connect(m_pageView, &PageView::signingFinished, [this]{
+        // qWarning() << "doneeeee";
+        // SignaturePartUtils::signUnsignedSignature(m_signatureAnnotation->formField(), m_pageView, m_document);
+        // });
 
-        qWarning() << "done";
+        // qWarning() << "done";
         // return annotation
         return QList<Okular::Annotation *>() << ann;
     }
@@ -471,7 +478,7 @@ public:
 
     bool isAccepted() const
     {
-        return !m_aborted && !m_signingInformation.certificate->nickName().isEmpty();
+        return !m_aborted && !m_signingInformation->certificate->nickName().isEmpty();
     }
 
     bool isAborted() const
@@ -482,15 +489,15 @@ public:
     bool sign(const QString &newFilePath)
     {
         Okular::NewSignatureData data;
-        data.setCertNickname(m_signingInformation.certificate->nickName());
-        data.setCertSubjectCommonName(m_signingInformation.certificate->subjectInfo(Okular::CertificateInfo::CommonName, Okular::CertificateInfo::EmptyString::TranslatedNotAvailable));
-        data.setPassword(m_signingInformation.certificatePassword);
-        data.setDocumentPassword(m_signingInformation.documentPassword);
+        data.setCertNickname(m_signingInformation->certificate->nickName());
+        data.setCertSubjectCommonName(m_signingInformation->certificate->subjectInfo(Okular::CertificateInfo::CommonName, Okular::CertificateInfo::EmptyString::TranslatedNotAvailable));
+        data.setPassword(m_signingInformation->certificatePassword);
+        data.setDocumentPassword(m_signingInformation->documentPassword);
         data.setPage(m_page->number());
         data.setBoundingRectangle(rect);
-        data.setReason(m_signingInformation.reason);
-        data.setLocation(m_signingInformation.location);
-        data.setBackgroundImagePath(m_signingInformation.backgroundImagePath);
+        data.setReason(m_signingInformation->reason);
+        data.setLocation(m_signingInformation->location);
+        data.setBackgroundImagePath(m_signingInformation->backgroundImagePath);
         return m_document->sign(data, newFilePath);
     }
 
@@ -500,7 +507,7 @@ private:
     PageView *m_pageView;
 
     bool m_aborted;
-    SignaturePartUtils::SigningInformation m_signingInformation;
+    SignaturePartUtils::SigningInformation *m_signingInformation;
 };
 
 /** @short PolyLineEngine */
@@ -995,10 +1002,10 @@ PageViewAnnotator::~PageViewAnnotator()
     delete m_quickToolsDefinition;
 }
 
-void PageViewAnnotator::startSigning(SignaturePartUtils::SigningInformation &&info)
+void PageViewAnnotator::startSigning(SignaturePartUtils::SigningInformation *info)
 {
     m_signatureMode = true;
-    m_engine = new PickPointEngineSignature(m_document, m_pageView, std::move(info));
+    m_engine = new PickPointEngineSignature(m_document, m_pageView, info);
 }
 
 bool PageViewAnnotator::active() const
@@ -1084,6 +1091,10 @@ QRect PageViewAnnotator::performRouteMouseOrTabletEvent(const AnnotatorEngine::E
             annotation->setModificationDate(QDateTime::currentDateTime());
             annotation->setAuthor(Okular::Settings::identityAuthor());
             m_document->addPageAnnotation(m_lockedItem->pageNumber(), annotation);
+
+            if (auto signatureAnnotation = dynamic_cast<Okular::SignatureAnnotation *>(annotation)) {
+                m_pageView->startSigning(signatureAnnotation->formField());
+            }
 
             if (annotation->openDialogAfterCreation()) {
                 m_pageView->openAnnotationWindow(annotation, m_lockedItem->pageNumber());

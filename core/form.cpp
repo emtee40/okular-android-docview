@@ -354,4 +354,5 @@ FormFieldSignature::FormFieldSignature()
 
 FormFieldSignature::~FormFieldSignature()
 {
+    qWarning() << "delete formf";
 }

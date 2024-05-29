@@ -13,6 +13,7 @@
 #include <KActionCollection>
 
 #include "annotationtools.h"
+#include "core/annotations.h"
 #include "pageviewutils.h"
 #include "signaturepartutils.h"
 
@@ -67,7 +68,7 @@ public:
     // @return Are we currently annotating (using the selected tool)?
     bool annotating() const;
 
-    void startSigning(SignaturePartUtils::SigningInformation &&info);
+    void startSigning(SignaturePartUtils::SigningInformation *info);
 
     // returns the preferred cursor for the current tool. call this only
     // if active() == true

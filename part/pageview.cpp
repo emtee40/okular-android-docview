@@ -271,6 +271,8 @@ public:
     bool pinchZoomActive = false;
     // The remaining scroll from the previous zoom event
     QPointF remainingScroll;
+    SignaturePartUtils::SigningInformation signingInfo;
+    Okular::FormFieldSignature *signatureForm = nullptr;
 };
 
 PageViewPrivate::PageViewPrivate(PageView *qq)
@@ -5119,6 +5121,13 @@ Okular::Document *PageView::document() const
     return d->document;
 }
 
+void PageView::startSigning(Okular::FormFieldSignature *form)
+{
+    qWarning() << "set form" <<form;
+    d->signatureForm = form;
+    Q_EMIT signingStarted();
+}
+
 void PageView::slotSignature()
 {
     if (!d->document->isHistoryClean()) {
@@ -5142,9 +5151,12 @@ void PageView::slotSignature()
     if (!signInfo) {
         return;
     }
+
+    d->signingInfo = std::move(*signInfo);
+
     d->messageWindow->display(i18n("Draw a rectangle to insert the signature field"), QString(), PageViewMessage::Info, -1);
 
-    d->annotator->startSigning(std::move(*signInfo));
+    d->annotator->startSigning(&d->signingInfo);
 
     // force an update of the cursor
     updateCursor();
@@ -5403,6 +5415,32 @@ void PageView::externalKeyPressEvent(QKeyEvent *e)
     keyPressEvent(e);
 }
 
+void PageView::finishSigning()
+{
+    Okular::NewSignatureData data;
+    data.setCertNickname(d->signingInfo.certificate->nickName());
+    data.setCertSubjectCommonName(d->signingInfo.certificate->subjectInfo(Okular::CertificateInfo::CommonName, Okular::CertificateInfo::EmptyString::TranslatedNotAvailable));
+    data.setPassword(d->signingInfo.certificatePassword);
+    data.setDocumentPassword(d->signingInfo.documentPassword);
+    data.setReason(d->signingInfo.reason);
+    data.setLocation(d->signingInfo.location);
+
+    const QString newFilePath = SignaturePartUtils::getFileNameForNewSignedFile(this, d->document);
+
+    if (!newFilePath.isEmpty()) {
+
+        qWarning() << "form" << d->signatureForm;
+
+        const bool success = d->signatureForm->sign(data, newFilePath);
+        if (success) {
+            Q_EMIT requestOpenFile(newFilePath, d->signatureForm->page()->number() + 1);
+        } else {
+            KMessageBox::error(this, i18nc("%1 is a file path", "Could not sign. Invalid certificate password or could not write to '%1'", newFilePath));
+        }
+    }
+
+    qWarning() << "done for real";
+}
 void PageView::slotProcessMovieAction(const Okular::MovieAction *action)
 {
     const Okular::MovieAnnotation *movieAnnotation = action->annotation();
