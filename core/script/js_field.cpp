@@ -175,10 +175,26 @@ void JSField::setValue(const QJSValue &value)
     }
     case FormField::FormText: {
         FormFieldText *textField = static_cast<FormFieldText *>(m_field);
-        const QString text = value.toString();
-        if (text != textField->text()) {
-            textField->setText(text);
-            updateField(m_field);
+        Page *page = g_fieldCache->value(m_field);
+        if (page) {
+            Document *doc = PagePrivate::get(page)->m_doc->m_parent;
+            const QString text = value.toString();
+            if (text != textField->text()) {
+                textField->setText(text);
+            }
+            if (textField->additionalAction(Okular::FormField::FieldModified) && !textField->isReadOnly()) {
+                doc->processKeystrokeCommitAction(textField->additionalAction(Okular::FormField::FieldModified), textField);
+            }
+            if (const Okular::Action *action = textField->additionalAction(Okular::FormField::ValidateField)) {
+                bool ok = false;
+                doc->processValidateAction(action, textField, ok);
+            }
+            doc->recalculateForms();
+            if (const Okular::Action *action = textField->additionalAction(Okular::FormField::FormatField)) {
+                doc->processFormatAction(action, textField);
+            }
+        } else {
+            qWarning() << "Could not get page of field" << m_field;
         }
         break;
     }
