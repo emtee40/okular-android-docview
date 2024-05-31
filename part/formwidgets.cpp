@@ -674,15 +674,39 @@ bool TextAreaEdit::event(QEvent *e)
             setText(fft->text());
         }
         m_editing = true;
+
+        QFocusEvent *focusEvent = static_cast<QFocusEvent *>(e);
+        if (focusEvent->reason() != Qt::ActiveWindowFocusReason) {
+            if (const Okular::Action *action = m_ff->additionalAction(Okular::Annotation::FocusIn)) {
+                m_controller->document()->processFocusAction(action, fft);
+            }
+        }
+        setFocus();
     } else if (e->type() == QEvent::FocusOut) {
         m_editing = false;
+
+        QFocusEvent *focusEvent = static_cast<QFocusEvent *>(e);
+        if (focusEvent->reason() == Qt::OtherFocusReason || focusEvent->reason() == Qt::ActiveWindowFocusReason) {
+            return true;
+        }
 
         if (m_ff->additionalAction(Okular::FormField::FieldModified) && !m_ff->isReadOnly()) {
             m_controller->document()->processKeystrokeCommitAction(m_ff->additionalAction(Okular::FormField::FieldModified), static_cast<Okular::FormFieldText *>(m_ff));
         }
 
+        if (const Okular::Action *action = m_ff->additionalAction(Okular::FormField::ValidateField)) {
+            bool ok = false;
+            m_controller->document()->processValidateAction(action, static_cast<Okular::FormFieldText *>(m_ff), ok);
+        }
+
+        m_controller->document()->recalculateForms();
+
         if (const Okular::Action *action = m_ff->additionalAction(Okular::FormField::FormatField)) {
             m_controller->document()->processFormatAction(action, static_cast<Okular::FormFieldText *>(m_ff));
+        }
+
+        if (const Okular::Action *action = m_ff->additionalAction(Okular::Annotation::FocusOut)) {
+            m_controller->document()->processFocusAction(action, static_cast<Okular::FormFieldText *>(m_ff));
         }
     }
     return KTextEdit::event(e);

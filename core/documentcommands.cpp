@@ -499,7 +499,7 @@ void EditFormListCommand::undo()
     moveViewportIfBoundingRectNotFullyVisible(m_form->rect(), m_docPriv, m_pageNumber);
     m_form->setCurrentChoices(m_prevChoices);
     Q_EMIT m_docPriv->m_parent->formListChangedByUndoRedo(m_pageNumber, m_form, m_prevChoices);
-    // m_docPriv->notifyFormChanges(m_pageNumber);
+    m_docPriv->notifyFormChanges(m_pageNumber);
 }
 
 void EditFormListCommand::redo()
@@ -507,7 +507,7 @@ void EditFormListCommand::redo()
     moveViewportIfBoundingRectNotFullyVisible(m_form->rect(), m_docPriv, m_pageNumber);
     m_form->setCurrentChoices(m_newChoices);
     Q_EMIT m_docPriv->m_parent->formListChangedByUndoRedo(m_pageNumber, m_form, m_newChoices);
-    // m_docPriv->notifyFormChanges(m_pageNumber);
+    m_docPriv->notifyFormChanges(m_pageNumber);
 }
 
 bool EditFormListCommand::refreshInternalPageReferences(const QVector<Page *> &newPagesVector)
