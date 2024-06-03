@@ -428,6 +428,10 @@ static Poppler::Annotation *createPopplerAnnotationFromOkularAnnotation(const Ok
 {
     Poppler::SignatureAnnotation *pSignatureAnnotation = new Poppler::SignatureAnnotation();
 
+    // pSignatureAnnotation->setTBackgroundColor(QColor(0, 0, 0));
+    pSignatureAnnotation->setBorderColor(QColor(0, 0, 0));
+    pSignatureAnnotation->setFontColor(QColor(0, 0, 0));
+
     setSharedAnnotationPropertiesToPopplerAnnotation(oStampAnnotation, pSignatureAnnotation);
     // updatePopplerAnnotationFromOkularAnnotation(oStampAnnotation, pSignatureAnnotation);
     pSignatureAnnotation->setLeftText(oStampAnnotation->leftText());
