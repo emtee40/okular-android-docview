@@ -5417,6 +5417,10 @@ void PageView::externalKeyPressEvent(QKeyEvent *e)
 
 void PageView::finishSigning()
 {
+    const QString newFilePath = SignaturePartUtils::getFileNameForNewSignedFile(this, d->document);
+
+    d->document->saveChanges(newFilePath);
+
     Okular::NewSignatureData data;
     data.setCertNickname(d->signingInfo.certificate->nickName());
     data.setCertSubjectCommonName(d->signingInfo.certificate->subjectInfo(Okular::CertificateInfo::CommonName, Okular::CertificateInfo::EmptyString::TranslatedNotAvailable));
@@ -5425,21 +5429,14 @@ void PageView::finishSigning()
     data.setReason(d->signingInfo.reason);
     data.setLocation(d->signingInfo.location);
 
-    const QString newFilePath = SignaturePartUtils::getFileNameForNewSignedFile(this, d->document);
-
     if (!newFilePath.isEmpty()) {
-
-        qWarning() << "form" << d->signatureForm;
-
         const bool success = d->signatureForm->sign(data, newFilePath);
         if (success) {
-            Q_EMIT requestOpenFile(newFilePath, d->signatureForm->page()->number() + 1);
+            // Q_EMIT requestOpenFile(newFilePath, d->signatureForm->page()->number() + 1);
         } else {
             KMessageBox::error(this, i18nc("%1 is a file path", "Could not sign. Invalid certificate password or could not write to '%1'", newFilePath));
         }
     }
-
-    qWarning() << "done for real";
 }
 void PageView::slotProcessMovieAction(const Okular::MovieAction *action)
 {
