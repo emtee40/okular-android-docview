@@ -329,7 +329,7 @@ void dviRenderer::epsf_special(const QString &cp)
     qCDebug(OkularDviDebug) << "epsf-special: psfile=" << cp;
 #endif
 
-    QString include_command = cp.simplified();
+    QString include_command = cp.trimmed();
 
     // The line is supposed to start with "..ile=", and then comes the
     // filename. Figure out what the filename is and stow it away. Of
@@ -337,7 +337,7 @@ void dviRenderer::epsf_special(const QString &cp)
     // (already the simplified() above is wrong). If you have
     // files like this, go away.
     QString EPSfilename_orig = include_command;
-    EPSfilename_orig.truncate(EPSfilename_orig.indexOf(QLatin1Char(' ')));
+    //EPSfilename_orig.truncate(EPSfilename_orig.indexOf(QLatin1Char(' ')));
 
     // Strip enclosing quotation marks which are included by some LaTeX
     // macro packages (but not by others). This probably means that
