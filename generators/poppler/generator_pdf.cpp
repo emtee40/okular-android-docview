@@ -424,6 +424,11 @@ const Poppler::Link *rawPtr(std::variant<const Poppler::Link *, std::unique_ptr<
         link);
 }
 
+template <typename T> auto toSharedPointer(std::unique_ptr<Poppler::Link> link) {
+    std::shared_ptr<Poppler::Link> sharedLink = std::move(link);
+    return std::static_pointer_cast<T>(sharedLink);
+}
+
 /**
  * Note: the function will take ownership of the popplerLink if the popplerlink object is in a unique ptr
  */
@@ -485,16 +490,17 @@ Okular::Action *createLinkFromPopplerLink(std::variant<const Poppler::Link *, st
 
     case Poppler::Link::Rendition: {
         if (!std::holds_alternative<std::unique_ptr<Poppler::Link>>(popplerLink)) {
-            // If links should not be deleted it probably means that they
+            // If links are not transferred with ownership that they
             // are part of a nextActions chain. There is no support
             // to resolveMediaLinkReferences on nextActions. It would also
             // be necessary to ensure that resolveMediaLinkReferences does
             // not delete the Links which are part of a nextActions list
             // to avoid a double deletion.
-            qCDebug(OkularPdfDebug) << "parsing rendition link without deletion is not supported. Action chain might be broken.";
+            qCDebug(OkularPdfDebug) << "parsing rendition link without taking ownership is not supported. Action chain might be broken.";
             break;
         }
-        auto popplerLinkRendition = std::shared_ptr<const Poppler::LinkRendition>(static_cast<const Poppler::LinkRendition *>(std::get<std::unique_ptr<Poppler::Link>>(std::move(popplerLink)).release()));
+        auto uniquePopplerLink = std::get<std::unique_ptr<Poppler::Link>>(std::move(popplerLink));
+        auto popplerLinkRendition = toSharedPointer<const Poppler::LinkRendition>(std::move(uniquePopplerLink));
 
         Okular::RenditionAction::OperationType operation = Okular::RenditionAction::None;
         switch (popplerLinkRendition->action()) {
@@ -528,11 +534,12 @@ Okular::Action *createLinkFromPopplerLink(std::variant<const Poppler::Link *, st
     case Poppler::Link::Movie: {
         if (!std::holds_alternative<std::unique_ptr<Poppler::Link>>(popplerLink)) {
             // See comment above in Link::Rendition
-            qCDebug(OkularPdfDebug) << "parsing movie link without deletion is not supported. Action chain might be broken.";
+            qCDebug(OkularPdfDebug) << "parsing movie link without taking ownership is not supported. Action chain might be broken.";
             break;
         }
 
-        auto popplerLinkMovie = std::shared_ptr<const Poppler::LinkMovie>(static_cast<const Poppler::LinkMovie *>(std::get<std::unique_ptr<Poppler::Link>>(std::move(popplerLink)).release()));
+        auto uniquePopplerLink = std::get<std::unique_ptr<Poppler::Link>>(std::move(popplerLink));
+        auto popplerLinkMovie = toSharedPointer<const Poppler::LinkMovie>(std::move(uniquePopplerLink));
 
         Okular::MovieAction::OperationType operation = Okular::MovieAction::Play;
         switch (popplerLinkMovie->operation()) {
@@ -566,8 +573,14 @@ Okular::Action *createLinkFromPopplerLink(std::variant<const Poppler::Link *, st
     } break;
 
     case Poppler::Link::OCGState: {
+        if (!std::holds_alternative<std::unique_ptr<Poppler::Link>>(popplerLink)) {
+            // See comment above in Link::Rendition
+            qCDebug(OkularPdfDebug) << "ocg link without taking ownership is not supported. Action chain might be broken.";
+            break;
+        }
         link = new Okular::BackendOpaqueAction();
-        auto popplerLinkOCG = std::shared_ptr<const Poppler::LinkOCGState>(static_cast<const Poppler::LinkOCGState *>(std::get<std::unique_ptr<Poppler::Link>>(std::move(popplerLink)).release()));
+        auto uniquePopplerLink = std::get<std::unique_ptr<Poppler::Link>>(std::move(popplerLink));
+        auto popplerLinkOCG = toSharedPointer<const Poppler::LinkOCGState>(std::move(uniquePopplerLink));
         link->setNativeHandle(popplerLinkOCG);
         break;
     }
