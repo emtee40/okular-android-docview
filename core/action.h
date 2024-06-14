@@ -99,10 +99,13 @@ public:
      * Sets "native" handle for the action
      *
      * This is a opaque datapointer used for the action by the
-     * Generator. The handle is deleted according to rules of the
+     * Generator. The generator is responsible for setting it
+     * to something sensible and also for interpreting it.
+     *
+     * The handle is deleted according to rules of the
      * shared pointer.
      *
-     * @note Okular itself makes no use of this
+     * @note Okular (core/part/shell/...) itself makes no use of this
      * @since 24.05.2
      */
     void setNativeHandle(std::shared_ptr<const void> handle);
