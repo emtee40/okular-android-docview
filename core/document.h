@@ -719,6 +719,8 @@ public:
      */
     void processFormMouseUpScripAction(const Action *action, Okular::FormField *ff);
 
+    void recalculateForms();
+
     /**
      * Returns a list of the bookmarked.pages
      */
