@@ -76,7 +76,7 @@ void FormatTest::testTimeFormat()
     QFETCH(QString, result);
 
     Okular::FormFieldText *fft = reinterpret_cast<Okular::FormFieldText *>(m_fields[fieldName]);
-    fft->setText(text);
+    fft->setPendingText(text);
     m_document->processFormatAction(fft->additionalAction(Okular::FormField::FormatField), fft);
 
     QCOMPARE(m_formattedText, result);
@@ -111,7 +111,7 @@ void FormatTest::testSpecialFormat()
     QFETCH(QString, result);
 
     Okular::FormFieldText *fft = reinterpret_cast<Okular::FormFieldText *>(m_fields[fieldName]);
-    fft->setText(text);
+    fft->setPendingText(text);
     m_document->processFormatAction(fft->additionalAction(Okular::FormField::FormatField), fft);
 
     QCOMPARE(m_formattedText, result);
@@ -156,7 +156,7 @@ void FormatTest::testValidateAction()
     QFETCH(QString, result);
     Okular::FormFieldText *fft = reinterpret_cast<Okular::FormFieldText *>(m_fields[QStringLiteral("Validate/Focus")]);
 
-    fft->setText(text);
+    fft->setPendingText(text);
     bool ok = false;
     m_document->processValidateAction(fft->additionalAction(Okular::Annotation::FocusOut), fft, ok);
     QCOMPARE(fft->text(), result);

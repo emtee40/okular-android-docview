@@ -329,6 +329,8 @@ public:
      */
     virtual void setAppearanceText(const QString &text) = 0;
 
+    virtual void setPendingText(const QString &text) = 0;
+
 protected:
     FormFieldText();
 
