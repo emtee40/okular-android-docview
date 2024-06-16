@@ -65,7 +65,6 @@ void KeystrokeTest::testCommit()
     // text that will be rejected
     fft->setText(QStringLiteral("foo"));
     m_document->processKeystrokeCommitAction(fft->additionalAction(Okular::FormField::FieldModified), fft);
-    QEXPECT_FAIL("", "reset to commited value not implemented", Continue);
     QCOMPARE(fft->text(), QStringLiteral("Lorem ipsum"));
 }
 

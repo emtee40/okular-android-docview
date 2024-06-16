@@ -129,6 +129,18 @@ Page *FormField::page() const
     return d->m_page;
 }
 
+QString FormField::lastCommittedValue() const
+{
+    Q_D(const FormField);
+    return d->m_lastCommittedValue;
+}
+
+void FormField::setLastCommittedValue(const QString &value)
+{
+    Q_D(FormField);
+    d->m_lastCommittedValue = value;
+}
+
 class Okular::FormFieldButtonPrivate : public Okular::FormFieldPrivate
 {
 public:

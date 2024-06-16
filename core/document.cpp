@@ -3470,6 +3470,11 @@ void DocumentPrivate::notifyFormChanges(int /*page*/)
     recalculateForms();
 }
 
+void Document::recalculateForms()
+{
+    d->recalculateForms();
+}
+
 void Document::addPageAnnotation(int page, Annotation *annotation)
 {
     // Transform annotation's base boundary rectangle into unrotated coordinates
@@ -4487,11 +4492,13 @@ void Document::processKeystrokeCommitAction(const Action *action, Okular::FormFi
     d->executeScriptEvent(event, linkscript);
 
     if (event->returnCode()) {
-        fft->setText(event->value().toString());
-        // TODO commit value
-    } else {
-        // TODO reset to committed value
+        // Commit the new value if return code is true
+        const QString fieldInput = event->value().toString();
+        fft->setLastCommittedValue(fieldInput);
     }
+    // Update the form field with the last committed value.
+    fft->setText(fft->lastCommittedValue());
+    Q_EMIT refreshFormWidget(fft);
 }
 
 void Document::processFocusAction(const Action *action, Okular::FormField *field)
