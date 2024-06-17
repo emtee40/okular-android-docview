@@ -43,6 +43,7 @@ class FormFieldSignature;
 class Annotation;
 class MovieAction;
 class RenditionAction;
+class SignatureAnnotation;
 }
 
 class PageViewPrivate;
@@ -123,7 +124,7 @@ public:
 
     Okular::Document *document() const;
 
-    void startSigning(Okular::FormFieldSignature *formField);
+    void startSigning(Okular::SignatureAnnotation *signatureAnnotation);
 
 public Q_SLOTS:
     void copyTextSelection() const;

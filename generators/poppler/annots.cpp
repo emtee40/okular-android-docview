@@ -19,11 +19,8 @@
 #include <core/area.h>
 
 #include "debug_pdf.h"
-#include "formfields.h"
 #include "generator_pdf.h"
 #include "popplerembeddedfile.h"
-
-#include "poppler-form.h"
 
 Q_DECLARE_METATYPE(Poppler::Annotation *)
 
@@ -424,7 +421,7 @@ static Poppler::Annotation *createPopplerAnnotationFromOkularAnnotation(const Ok
     return pStampAnnotation;
 }
 
-static Poppler::Annotation *createPopplerAnnotationFromOkularAnnotation(const Okular::SignatureAnnotation *oSignatureAnnotation)
+static Poppler::Annotation *createPopplerAnnotationFromOkularAnnotation(Okular::SignatureAnnotation *oSignatureAnnotation)
 {
     Poppler::SignatureAnnotation *pSignatureAnnotation = new Poppler::SignatureAnnotation();
 
@@ -435,6 +432,13 @@ static Poppler::Annotation *createPopplerAnnotationFromOkularAnnotation(const Ok
     pSignatureAnnotation->setLeftText(oSignatureAnnotation->leftText());
     pSignatureAnnotation->setText(oSignatureAnnotation->text());
     pSignatureAnnotation->setImagePath(oSignatureAnnotation->imagePath());
+
+    oSignatureAnnotation->setSignFunction([pSignatureAnnotation](const Okular::NewSignatureData &oData, const QString &fileName) {
+        Poppler::PDFConverter::NewSignatureData pData;
+        PDFGenerator::okularToPoppler(oData, &pData);
+        pSignatureAnnotation->sign(fileName, pData);
+        return true;
+    });
 
     return pSignatureAnnotation;
 }
@@ -521,12 +525,6 @@ void PopplerAnnotationProxy::notifyAddition(Okular::Annotation *okl_ann, int pag
 
     // Bind poppler object to page
     ppl_page->addAnnotation(ppl_ann);
-
-    if (auto signatureAnnt = dynamic_cast<Okular::SignatureAnnotation *>(okl_ann)) {
-        auto b = std::make_unique<PopplerFormFieldSignature>(static_cast<Poppler::SignatureAnnotation *>(ppl_ann)->form());
-        // TODO set page on annotation
-        signatureAnnt->setFormField(std::move(b));
-    }
 
     // Set pointer to poppler annotation as native Id
     okl_ann->setNativeId(QVariant::fromValue(ppl_ann));
