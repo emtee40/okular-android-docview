@@ -2359,6 +2359,7 @@ public:
     QString m_text;
     QString m_leftText;
     QString m_imagePath;
+    QString m_fieldPartialName;
     std::function<bool(const Okular::NewSignatureData &, const QString &)> m_signFunction;
 };
 
@@ -2410,6 +2411,17 @@ void SignatureAnnotation::setImagePath(const QString &imagePath)
 {
     Q_D(SignatureAnnotation);
     d->m_imagePath = imagePath;
+}
+
+QString SignatureAnnotation::fieldPartialName() const
+{
+    Q_D(const SignatureAnnotation);
+    return d->m_fieldPartialName;
+}
+void SignatureAnnotation::setFieldPartialName(const QString &fieldPartialName)
+{
+    Q_D(SignatureAnnotation);
+    d->m_fieldPartialName = fieldPartialName;
 }
 
 void SignatureAnnotation::setSignFunction(std::function<bool(const Okular::NewSignatureData &, const QString &)> func)
