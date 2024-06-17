@@ -1345,6 +1345,9 @@ public:
     QString imagePath() const;
     void setImagePath(const QString &imagePath);
 
+    QString fieldPartialName() const;
+    void setFieldPartialName(const QString &fieldPartialName);
+
     void setSignFunction(std::function<bool(const Okular::NewSignatureData &, const QString &)> func);
 
     bool sign(const Okular::NewSignatureData &data, const QString &fileName);

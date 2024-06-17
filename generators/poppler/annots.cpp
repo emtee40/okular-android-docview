@@ -432,6 +432,7 @@ static Poppler::Annotation *createPopplerAnnotationFromOkularAnnotation(Okular::
     pSignatureAnnotation->setLeftText(oSignatureAnnotation->leftText());
     pSignatureAnnotation->setText(oSignatureAnnotation->text());
     pSignatureAnnotation->setImagePath(oSignatureAnnotation->imagePath());
+    pSignatureAnnotation->setFieldPartialName(oSignatureAnnotation->fieldPartialName());
 
     oSignatureAnnotation->setSignFunction([pSignatureAnnotation](const Okular::NewSignatureData &oData, const QString &fileName) {
         Poppler::PDFConverter::NewSignatureData pData;
