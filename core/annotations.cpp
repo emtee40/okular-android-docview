@@ -23,10 +23,11 @@
 #include "action.h"
 #include "document.h"
 #include "document_p.h"
-#include "form.h"
 #include "movie.h"
 #include "page_p.h"
 #include "sound.h"
+
+#include <functional>
 
 using namespace Okular;
 
@@ -2358,7 +2359,7 @@ public:
     QString m_text;
     QString m_leftText;
     QString m_imagePath;
-    std::unique_ptr<FormFieldSignature> formField;
+    std::function<bool(const Okular::NewSignatureData &, const QString &)> m_signFunction;
 };
 
 SignatureAnnotation::SignatureAnnotation()
@@ -2411,16 +2412,16 @@ void SignatureAnnotation::setImagePath(const QString &imagePath)
     d->m_imagePath = imagePath;
 }
 
-FormFieldSignature *SignatureAnnotation::formField() const
-{
-    Q_D(const SignatureAnnotation);
-    return d->formField.get();
-}
-
-void SignatureAnnotation::setFormField(std::unique_ptr<FormFieldSignature> &&formField)
+void SignatureAnnotation::setSignFunction(std::function<bool(const Okular::NewSignatureData &, const QString &)> func)
 {
     Q_D(SignatureAnnotation);
-    d->formField = std::move(formField);
+    d->m_signFunction = func;
+}
+
+bool SignatureAnnotation::sign(const Okular::NewSignatureData &data, const QString &fileName)
+{
+    Q_D(SignatureAnnotation);
+    return d->m_signFunction(data, fileName);
 }
 
 void SignatureAnnotation::store(QDomNode &node, QDomDocument &document) const

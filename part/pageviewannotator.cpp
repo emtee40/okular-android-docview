@@ -37,7 +37,6 @@
 #include "core/annotations.h"
 #include "core/area.h"
 #include "core/document.h"
-#include "core/form.h"
 #include "core/page.h"
 #include "core/signatureutils.h"
 #include "editannottooldialog.h"
@@ -1008,7 +1007,7 @@ QRect PageViewAnnotator::performRouteMouseOrTabletEvent(const AnnotatorEngine::E
             m_document->addPageAnnotation(m_lockedItem->pageNumber(), annotation);
 
             if (auto signatureAnnotation = dynamic_cast<Okular::SignatureAnnotation *>(annotation)) {
-                m_pageView->startSigning(signatureAnnotation->formField());
+                m_pageView->startSigning(signatureAnnotation);
             }
 
             if (annotation->openDialogAfterCreation()) {

@@ -272,7 +272,7 @@ public:
     // The remaining scroll from the previous zoom event
     QPointF remainingScroll;
     SignaturePartUtils::SigningInformation signingInfo;
-    Okular::FormFieldSignature *signatureForm = nullptr;
+    Okular::SignatureAnnotation *signatureAnnotation = nullptr;
 };
 
 PageViewPrivate::PageViewPrivate(PageView *qq)
@@ -5121,9 +5121,9 @@ Okular::Document *PageView::document() const
     return d->document;
 }
 
-void PageView::startSigning(Okular::FormFieldSignature *form)
+void PageView::startSigning(Okular::SignatureAnnotation *form)
 {
-    d->signatureForm = form;
+    d->signatureAnnotation = form;
     Q_EMIT signingStarted();
 }
 
@@ -5430,7 +5430,7 @@ void PageView::finishSigning()
     data.setReason(d->signingInfo.reason);
     data.setLocation(d->signingInfo.location);
 
-    const bool success = d->signatureForm->sign(data, newFilePath);
+    const bool success = d->signatureAnnotation->sign(data, newFilePath);
     if (success) {
         // TODO fix page number and enable
         // Q_EMIT requestOpenFile(newFilePath, d->signatureForm->page()->number() + 1);

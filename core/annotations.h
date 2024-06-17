@@ -43,7 +43,7 @@ class MovieAnnotationPrivate;
 class ScreenAnnotationPrivate;
 class WidgetAnnotationPrivate;
 class RichMediaAnnotationPrivate;
-class FormFieldSignature;
+class NewSignatureData;
 
 /**
  * @short Helper class for (recursive) annotation retrieval/storage.
@@ -1345,8 +1345,9 @@ public:
     QString imagePath() const;
     void setImagePath(const QString &imagePath);
 
-    FormFieldSignature *formField() const;
-    void setFormField(std::unique_ptr<FormFieldSignature> &&formField);
+    void setSignFunction(std::function<bool(const Okular::NewSignatureData &, const QString &)> func);
+
+    bool sign(const Okular::NewSignatureData &data, const QString &fileName);
 
     /**
      * Returns the sub type of the stamp annotation.
