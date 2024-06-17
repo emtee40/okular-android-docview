@@ -437,8 +437,7 @@ static Poppler::Annotation *createPopplerAnnotationFromOkularAnnotation(Okular::
     oSignatureAnnotation->setSignFunction([pSignatureAnnotation](const Okular::NewSignatureData &oData, const QString &fileName) {
         Poppler::PDFConverter::NewSignatureData pData;
         PDFGenerator::okularToPoppler(oData, &pData);
-        pSignatureAnnotation->sign(fileName, pData);
-        return true;
+        return pSignatureAnnotation->sign(fileName, pData) == Poppler::SignatureAnnotation::SigningSuccess;
     });
 
     return pSignatureAnnotation;
