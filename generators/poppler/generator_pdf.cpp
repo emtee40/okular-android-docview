@@ -424,7 +424,8 @@ const Poppler::Link *rawPtr(std::variant<const Poppler::Link *, std::unique_ptr<
         link);
 }
 
-template <typename T> auto toSharedPointer(std::unique_ptr<Poppler::Link> link) {
+template<typename T> auto toSharedPointer(std::unique_ptr<Poppler::Link> link)
+{
     std::shared_ptr<Poppler::Link> sharedLink = std::move(link);
     return std::static_pointer_cast<T>(sharedLink);
 }
@@ -505,7 +506,7 @@ Okular::Action *createLinkFromPopplerLink(std::variant<const Poppler::Link *, st
             auto uniquePopplerLink = std::get<std::unique_ptr<Poppler::Link>>(std::move(popplerLink));
             popplerLinkRendition = toSharedPointer<const Poppler::LinkRendition>(std::move(uniquePopplerLink));
         } else {
-            popplerLinkRendition = std::shared_ptr<const Poppler::LinkRendition>(static_cast<const Poppler::LinkRendition*>(rawPopplerLink), [](auto*) {/*don't delete this*/});
+            popplerLinkRendition = std::shared_ptr<const Poppler::LinkRendition>(static_cast<const Poppler::LinkRendition *>(rawPopplerLink), [](auto *) { /*don't delete this*/ });
         }
 
         Okular::RenditionAction::OperationType operation = Okular::RenditionAction::None;
