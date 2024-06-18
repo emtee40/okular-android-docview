@@ -489,18 +489,24 @@ Okular::Action *createLinkFromPopplerLink(std::variant<const Poppler::Link *, st
     } break;
 
     case Poppler::Link::Rendition: {
-        if (!std::holds_alternative<std::unique_ptr<Poppler::Link>>(popplerLink)) {
-            // If links are not transferred with ownership that they
-            // are part of a nextActions chain. There is no support
-            // to resolveMediaLinkReferences on nextActions. It would also
-            // be necessary to ensure that resolveMediaLinkReferences does
-            // not delete the Links which are part of a nextActions list
-            // to avoid a double deletion.
-            qCDebug(OkularPdfDebug) << "parsing rendition link without taking ownership is not supported. Action chain might be broken.";
-            break;
+        /* This gets weird. Dependieng on which parts of Poppler gives us a
+         * rendition link, it might be owned by us; it might be owned by poppler
+         * Luckily we can count on the return types being correct from poppler.
+         * If it is owned by poppler, we get a raw pointer
+         * if ownership is transferred, we get a unique ptr.
+         *
+         * So for that reason, put the owned one in a normal shared_ptr for later usage
+         * and cleanup
+         *
+         * and put the non-owned in a special shared_ptr with a nondeleter as deleter
+         */
+        std::shared_ptr<const Poppler::LinkRendition> popplerLinkRendition;
+        if (std::holds_alternative<std::unique_ptr<Poppler::Link>>(popplerLink)) {
+            auto uniquePopplerLink = std::get<std::unique_ptr<Poppler::Link>>(std::move(popplerLink));
+            popplerLinkRendition = toSharedPointer<const Poppler::LinkRendition>(std::move(uniquePopplerLink));
+        } else {
+            popplerLinkRendition = std::shared_ptr<const Poppler::LinkRendition>(static_cast<const Poppler::LinkRendition*>(rawPopplerLink), [](auto*) {/*don't delete this*/});
         }
-        auto uniquePopplerLink = std::get<std::unique_ptr<Poppler::Link>>(std::move(popplerLink));
-        auto popplerLinkRendition = toSharedPointer<const Poppler::LinkRendition>(std::move(uniquePopplerLink));
 
         Okular::RenditionAction::OperationType operation = Okular::RenditionAction::None;
         switch (popplerLinkRendition->action()) {
