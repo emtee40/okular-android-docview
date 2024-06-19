@@ -490,7 +490,7 @@ Okular::Action *createLinkFromPopplerLink(std::variant<const Poppler::Link *, st
     } break;
 
     case Poppler::Link::Rendition: {
-        /* This gets weird. Dependieng on which parts of Poppler gives us a
+        /* This gets weird. Depending on which parts of Poppler gives us a
          * rendition link, it might be owned by us; it might be owned by poppler
          * Luckily we can count on the return types being correct from poppler.
          * If it is owned by poppler, we get a raw pointer
