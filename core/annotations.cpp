@@ -2360,6 +2360,7 @@ public:
     QString m_leftText;
     QString m_imagePath;
     QString m_fieldPartialName;
+    int m_page;
     std::function<bool(const Okular::NewSignatureData &, const QString &)> m_signFunction;
 };
 
@@ -2434,6 +2435,17 @@ bool SignatureAnnotation::sign(const Okular::NewSignatureData &data, const QStri
 {
     Q_D(SignatureAnnotation);
     return d->m_signFunction(data, fileName);
+}
+
+int SignatureAnnotation::page() const {
+    Q_D(const SignatureAnnotation);
+    return d->m_page;
+}
+
+void SignatureAnnotation::setPage(int page)
+{
+    Q_D(SignatureAnnotation);
+    d->m_page = page;
 }
 
 void SignatureAnnotation::store(QDomNode &node, QDomDocument &document) const

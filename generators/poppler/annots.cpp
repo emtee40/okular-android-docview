@@ -508,6 +508,7 @@ void PopplerAnnotationProxy::notifyAddition(Okular::Annotation *okl_ann, int pag
         break;
     case Okular::Annotation::AWidget: {
         if (auto signatureAnnt = dynamic_cast<Okular::SignatureAnnotation *>(okl_ann)) {
+            signatureAnnt->setPage(page);
             ppl_ann = createPopplerAnnotationFromOkularAnnotation(signatureAnnt);
         } else {
             qWarning() << "Unsupported annotation type" << okl_ann->subType();

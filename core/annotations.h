@@ -1348,6 +1348,9 @@ public:
     QString fieldPartialName() const;
     void setFieldPartialName(const QString &fieldPartialName);
 
+    int page() const;
+    void setPage(int page);
+
     void setSignFunction(std::function<bool(const Okular::NewSignatureData &, const QString &)> func);
 
     bool sign(const Okular::NewSignatureData &data, const QString &fileName);

@@ -5432,9 +5432,7 @@ void PageView::finishSigning()
 
     const bool success = d->signatureAnnotation->sign(data, newFilePath);
     if (success) {
-        // Q_EMIT requestOpenNewlySignedFile(newFilePath, ->pageNumber() + 1);
-        // TODO fix page number and enable
-        // Q_EMIT requestOpenFile(newFilePath, d->signatureForm->page()->number() + 1);
+        Q_EMIT requestOpenNewlySignedFile(newFilePath, d->signatureAnnotation->page() + 1);
     } else {
         KMessageBox::error(this, i18nc("%1 is a file path", "Could not sign. Invalid certificate password or could not write to '%1'", d->document->currentDocument().toLocalFile()));
     }
