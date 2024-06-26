@@ -309,6 +309,7 @@ if(BUILD_DESKTOP)
     add_subdirectory( shell )
 endif()
 add_subdirectory( generators )
+add_subdirectory(appiumtests)
 
 if(BUILD_MOBILE)
     add_subdirectory( mobile )
