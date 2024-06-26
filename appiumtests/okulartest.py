@@ -50,6 +50,34 @@ class OkularTests(unittest.TestCase):
     def open_file_menu(self):
         self.find_element_by_class_name("menu item", "File").click()
 
+    def assert_top_left_text(self, text):
+        ActionChains(self.driver).key_down(Keys.CONTROL).send_keys("4").key_up(Keys.CONTROL).perform()
+        ActionChains(self.driver).move_to_element(
+            self.find_element_by_accessibility_id("qt_tabwidget_stackedwidget")).move_by_offset(275,
+                                                                                                255).click_and_hold().move_by_offset(
+            50, 30).release().perform()
+        ActionChains(self.driver).key_down(Keys.CONTROL).send_keys("c").key_up(Keys.CONTROL).perform()
+        ActionChains(self.driver).key_down(Keys.CONTROL).send_keys("f").key_up(Keys.CONTROL).perform()
+        ActionChains(self.driver).key_down(Keys.CONTROL).send_keys("v").key_up(Keys.CONTROL).perform()
+        search = self.find_element_by_accessibility_id("SearchLineEdit")
+        self.assertEqual(text, search.text.replace("\n", "").replace(" ", ""))
+        self.find_element_by_accessibility_id("FindBar.QToolButton").click()
+        ActionChains(self.driver).key_down(Keys.CONTROL).send_keys("1").key_up(Keys.CONTROL).perform()
+
+    def assert_text_in_annotation(self, text):
+        ActionChains(self.driver).key_down(Keys.CONTROL).send_keys("4").key_up(Keys.CONTROL).perform()
+        ActionChains(self.driver).move_to_element(
+            self.find_element_by_accessibility_id("qt_tabwidget_stackedwidget")).move_by_offset(275,
+                                                                                                255).click_and_hold().move_by_offset(
+            50, 30).release().perform()
+        ActionChains(self.driver).key_down(Keys.CONTROL).send_keys("c").key_up(Keys.CONTROL).perform()
+        ActionChains(self.driver).key_down(Keys.CONTROL).send_keys("f").key_up(Keys.CONTROL).perform()
+        ActionChains(self.driver).key_down(Keys.CONTROL).send_keys("v").key_up(Keys.CONTROL).perform()
+        search = self.find_element_by_accessibility_id("KHistoryComboBox.KLineEdit")
+        self.assertEqual(text, search.text)
+        self.find_element_by_accessibility_id("QDialogButtonBox.QPushButton").click()
+        ActionChains(self.driver).key_down(Keys.CONTROL).send_keys("1").key_up(Keys.CONTROL).perform()
+
     @classmethod
     def setUpClass(self):
         options = AppiumOptions()
@@ -105,6 +133,7 @@ class OkularTests(unittest.TestCase):
             go_to_page = self.find_element_by_class_name("spin button", "Page:")
             ActionChains(self.driver).move_to_element(go_to_page).send_keys("38").perform()
             self.find_element_by_class_name("push button", "OK").click()
+            self.assert_top_left_text("22")
 
             #03a
             ActionChains(self.driver).send_keys(Keys.F6).perform()
@@ -116,6 +145,7 @@ class OkularTests(unittest.TestCase):
 
             #03c
             ActionChains(self.driver).send_keys("Very interesting text! I should read more about this topic.").perform()
+            self.assert_text_in_annotation("Very interesting text! I should read more about this topic.")
 
             #03d
             ActionChains(self.driver).key_down(Keys.ALT).send_keys("1").key_up(Keys.ALT).perform()
@@ -177,6 +207,7 @@ class OkularTests(unittest.TestCase):
             #09b
             ActionChains(self.driver).move_to_element(go_to_page).send_keys("42").perform()
             self.find_element_by_class_name("push button", "OK").click()
+            self.assert_top_left_text("26")
 
             #10a
             ActionChains(self.driver).send_keys(Keys.F6).perform()
@@ -194,6 +225,7 @@ class OkularTests(unittest.TestCase):
              .move_to_element(self.find_element_by_accessibility_id("QMenuBar.file"))
              .move_by_offset(400, 500).double_click()
              .send_keys("Again this is very interesting, should read more.").perform())
+            self.assert_text_in_annotation("Again this is very interesting, should read more.")
 
             #10d
             ActionChains(self.driver).key_down(Keys.ALT).send_keys("1").key_up(Keys.ALT).perform()
