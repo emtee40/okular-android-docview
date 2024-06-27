@@ -50,33 +50,20 @@ class OkularTests(unittest.TestCase):
     def open_file_menu(self):
         self.find_element_by_class_name("menu item", "File").click()
 
-    def assert_top_left_text(self, text):
-        ActionChains(self.driver).key_down(Keys.CONTROL).send_keys("4").key_up(Keys.CONTROL).perform()
-        ActionChains(self.driver).move_to_element(
-            self.find_element_by_accessibility_id("qt_tabwidget_stackedwidget")).move_by_offset(275,
-                                                                                                255).click_and_hold().move_by_offset(
-            50, 30).release().perform()
-        ActionChains(self.driver).key_down(Keys.CONTROL).send_keys("c").key_up(Keys.CONTROL).perform()
+    def assert_current_page_has_text(self, text):
+        page_number = self.find_element_by_accessibility_id("PageLabelEdit").text
         ActionChains(self.driver).key_down(Keys.CONTROL).send_keys("f").key_up(Keys.CONTROL).perform()
-        ActionChains(self.driver).key_down(Keys.CONTROL).send_keys("v").key_up(Keys.CONTROL).perform()
-        search = self.find_element_by_accessibility_id("SearchLineEdit")
-        self.assertEqual(text, search.text.replace("\n", "").replace(" ", ""))
+        ActionChains(self.driver).send_keys(text).send_keys(Keys.ENTER).perform()
+        new_page_number = self.find_element_by_accessibility_id("PageLabelEdit").text
         self.find_element_by_accessibility_id("FindBar.QToolButton").click()
-        ActionChains(self.driver).key_down(Keys.CONTROL).send_keys("1").key_up(Keys.CONTROL).perform()
+        self.assertEqual(page_number, new_page_number)
 
-    def assert_text_in_annotation(self, text):
-        ActionChains(self.driver).key_down(Keys.CONTROL).send_keys("4").key_up(Keys.CONTROL).perform()
-        ActionChains(self.driver).move_to_element(
-            self.find_element_by_accessibility_id("qt_tabwidget_stackedwidget")).move_by_offset(275,
-                                                                                                255).click_and_hold().move_by_offset(
-            50, 30).release().perform()
-        ActionChains(self.driver).key_down(Keys.CONTROL).send_keys("c").key_up(Keys.CONTROL).perform()
+    def assert_annotation_has_text(self, text):
         ActionChains(self.driver).key_down(Keys.CONTROL).send_keys("f").key_up(Keys.CONTROL).perform()
-        ActionChains(self.driver).key_down(Keys.CONTROL).send_keys("v").key_up(Keys.CONTROL).perform()
-        search = self.find_element_by_accessibility_id("KHistoryComboBox.KLineEdit")
-        self.assertEqual(text, search.text)
-        self.find_element_by_accessibility_id("QDialogButtonBox.QPushButton").click()
-        ActionChains(self.driver).key_down(Keys.CONTROL).send_keys("1").key_up(Keys.CONTROL).perform()
+        ActionChains(self.driver).send_keys(text).send_keys(Keys.ENTER).perform()
+        self.driver.implicitly_wait(0)
+        self.assertTrue(len(self.driver.find_elements(by=AppiumBy.ACCESSIBILITY_ID, value="information")) == 0)
+        self.driver.implicitly_wait(10)
 
     @classmethod
     def setUpClass(self):
@@ -92,7 +79,7 @@ class OkularTests(unittest.TestCase):
             except Exception as e:
                 attempts += 1
                 time.sleep(1)
-        self.driver.implicitly_wait = 10
+        self.driver.implicitly_wait(10)
         self.wait = WebDriverWait(self.driver, 10)
 
     @classmethod
@@ -133,7 +120,7 @@ class OkularTests(unittest.TestCase):
             go_to_page = self.find_element_by_class_name("spin button", "Page:")
             ActionChains(self.driver).move_to_element(go_to_page).send_keys("38").perform()
             self.find_element_by_class_name("push button", "OK").click()
-            self.assert_top_left_text("22")
+            self.assert_current_page_has_text("Torben broke the cloning machine")
 
             #03a
             ActionChains(self.driver).send_keys(Keys.F6).perform()
@@ -145,7 +132,6 @@ class OkularTests(unittest.TestCase):
 
             #03c
             ActionChains(self.driver).send_keys("Very interesting text! I should read more about this topic.").perform()
-            self.assert_text_in_annotation("Very interesting text! I should read more about this topic.")
 
             #03d
             ActionChains(self.driver).key_down(Keys.ALT).send_keys("1").key_up(Keys.ALT).perform()
@@ -163,6 +149,7 @@ class OkularTests(unittest.TestCase):
 
             #04d
             ActionChains(self.driver).send_keys(Keys.ESCAPE).perform()
+            self.assert_annotation_has_text("Very interesting text! I should read more about this topic.")
 
             #05a
             for _ in range(2):
@@ -173,10 +160,19 @@ class OkularTests(unittest.TestCase):
                 self.rotate_right()
 
             #06a
-            ActionChains(self.driver).send_keys(Keys.RIGHT, Keys.RIGHT, Keys.RIGHT, Keys.RIGHT, Keys.RIGHT).perform()
+            main_bar_buttons = self.driver.find_elements(by=AppiumBy.ACCESSIBILITY_ID, value="QApplication.okular::Shell#1.mainToolBar.miniBar.HoverButton")
+            next_page_button = main_bar_buttons[2]
+            for _ in range(5):
+                next_page_button.click()
+                time.sleep(0.1)
+            self.assert_current_page_has_text("Re-writing the bylaws proved to be a challenge")
 
             #06b
-            ActionChains(self.driver).send_keys(Keys.LEFT, Keys.LEFT, Keys.LEFT, Keys.LEFT, Keys.LEFT).perform()
+            previous_page_button = main_bar_buttons[0]
+            for _ in range(5):
+                previous_page_button.click()
+                time.sleep(0.1)
+            self.assert_current_page_has_text("Torben broke the cloning machine")
 
             #07a
             self.open_view_menu()
@@ -207,7 +203,7 @@ class OkularTests(unittest.TestCase):
             #09b
             ActionChains(self.driver).move_to_element(go_to_page).send_keys("42").perform()
             self.find_element_by_class_name("push button", "OK").click()
-            self.assert_top_left_text("26")
+            self.assert_current_page_has_text("In 1999 I was elected to the KDE")
 
             #10a
             ActionChains(self.driver).send_keys(Keys.F6).perform()
@@ -247,10 +243,16 @@ class OkularTests(unittest.TestCase):
                 self.rotate_left()
 
             #13a
-            ActionChains(self.driver).send_keys(Keys.RIGHT, Keys.RIGHT, Keys.RIGHT, Keys.RIGHT, Keys.RIGHT).perform()
+            for _ in range(5):
+                next_page_button.click()
+                time.sleep(0.1)
+            self.assert_current_page_has_text("Since 2010 he lives in Oslo")
 
             #13b
-            ActionChains(self.driver).send_keys(Keys.LEFT, Keys.LEFT, Keys.LEFT, Keys.LEFT, Keys.LEFT).perform()
+            for _ in range(5):
+                previous_page_button.click()
+                time.sleep(0.1)
+            self.assert_current_page_has_text("Aaron couldn't be present at the meeting in Hamburg")
 
             #14a
             self.open_view_menu()
