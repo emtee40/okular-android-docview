@@ -242,6 +242,9 @@ private:
      */
     bool getContinuousMode() const;
 
+    // Hangle page scrolling in non-continuous mode
+    bool isPageScroll(int delta);
+
     // Zoom around the point given as zoomCenter
     // zoomCenter is given in viewport coordinates
     // newZoom is the intended new zoom level.  A value of 0.0 means: Don't change the current zoom level.
@@ -264,6 +267,8 @@ private Q_SLOTS:
     void slotAutoScroll();
     // activated by the dragScroll timer
     void slotDragScroll();
+    // activated by the pageScroll timer
+    void slotPageScroll();
     // show the welcome message
     void slotShowWelcome();
     // activated by left click timer

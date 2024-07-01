@@ -217,6 +217,10 @@ public:
     QPoint dragScrollVector;
     QTimer dragScrollTimer;
 
+    // page scroll
+    int pageScrollDelta = 0;
+    QTimer pageScrollTimer;
+
     // left click depress
     QTimer leftClickTimer;
 
@@ -421,6 +425,8 @@ PageView::PageView(QWidget *parent, Okular::Document *document)
     connect(horizontalScrollBar(), &QAbstractSlider::actionTriggered, this, update_scroller, Qt::QueuedConnection);
 
     connect(&d->dragScrollTimer, &QTimer::timeout, this, &PageView::slotDragScroll);
+
+    connect(&d->pageScrollTimer, &QTimer::timeout, this, &PageView::slotPageScroll);
 
     d->leftClickTimer.setSingleShot(true);
     connect(&d->leftClickTimer, &QTimer::timeout, this, &PageView::slotShowSizeAllCursor);
@@ -2183,6 +2189,56 @@ void PageView::continuousZoomEnd()
     updateCursor();
 }
 
+bool PageView::isPageScroll(int delta)
+{
+    bool pageScroll = false;
+    int vScroll = verticalScrollBar()->value();
+
+    d->pageScrollDelta += delta;
+    if (d->pageScrollTimer.isActive()) {
+        d->pageScrollTimer.stop();
+    }
+    d->pageScrollTimer.setSingleShot(true);
+    d->pageScrollTimer.start(500);
+
+    if (d->pageScrollDelta <= -QWheelEvent::DefaultDeltasPerStep && vScroll == verticalScrollBar()->maximum()) {
+        // go to next page
+        if ((int)d->document->currentPage() < d->items.count() - 1) {
+            // more optimized than document->setNextPage and then move view to top
+            Okular::DocumentViewport newViewport = d->document->viewport();
+            newViewport.pageNumber += viewColumns();
+            if (newViewport.pageNumber >= (int)d->items.count()) {
+                newViewport.pageNumber = d->items.count() - 1;
+            }
+            newViewport.rePos.enabled = true;
+            newViewport.rePos.normalizedY = 0.0;
+            d->document->setViewport(newViewport);
+            d->scroller->scrollTo(QPoint(horizontalScrollBar()->value(), verticalScrollBar()->value()), 0); // sync scroller with scrollbar
+            d->pageScrollDelta = 0;
+            pageScroll = true;
+        }
+    } else if (d->pageScrollDelta >= QWheelEvent::DefaultDeltasPerStep && vScroll == verticalScrollBar()->minimum()) {
+        // go to prev page
+        if (d->document->currentPage() > 0) {
+            // more optimized than document->setPrevPage and then move view to bottom
+            Okular::DocumentViewport newViewport = d->document->viewport();
+            newViewport.pageNumber -= viewColumns();
+            if (newViewport.pageNumber < 0) {
+                newViewport.pageNumber = 0;
+            }
+            newViewport.rePos.enabled = true;
+            newViewport.rePos.normalizedY = 1.0;
+            d->document->setViewport(newViewport);
+            d->scroller->scrollTo(QPoint(horizontalScrollBar()->value(), verticalScrollBar()->value()), 0); // sync scroller with scrollbar
+            d->pageScrollDelta = 0;
+            pageScroll = true;
+        }
+    } else if ((d->pageScrollDelta < 0 && vScroll == verticalScrollBar()->maximum()) || (d->pageScrollDelta > 0 && vScroll == verticalScrollBar()->minimum())) {
+        pageScroll = true;
+    }
+    return pageScroll;
+}
+
 void PageView::mouseMoveEvent(QMouseEvent *e)
 {
     d->previousMouseMovePos = e->globalPosition();
@@ -2313,6 +2369,8 @@ void PageView::mouseMoveEvent(QMouseEvent *e)
 
 void PageView::mousePressEvent(QMouseEvent *e)
 {
+    d->pageScrollDelta = 0;
+
     // don't perform any mouse action when no document is shown
     if (d->items.isEmpty()) {
         return;
@@ -2512,6 +2570,8 @@ void PageView::mousePressEvent(QMouseEvent *e)
 
 void PageView::mouseReleaseEvent(QMouseEvent *e)
 {
+    d->pageScrollDelta = 0;
+
     // stop the drag scrolling
     d->dragScrollTimer.stop();
 
@@ -3159,6 +3219,8 @@ void PageView::guessTableDividers()
 
 void PageView::mouseDoubleClickEvent(QMouseEvent *e)
 {
+    d->pageScrollDelta = 0;
+
     if (e->button() == Qt::LeftButton) {
         const QPoint eventPos = contentAreaPoint(e->pos());
         const PageViewItem *pageItem = pickItemOnPoint(eventPos.x(), eventPos.y());
@@ -3209,40 +3271,16 @@ void PageView::wheelEvent(QWheelEvent *e)
         return;
     }
 
-    int delta = e->angleDelta().y(), vScroll = verticalScrollBar()->value();
+    int delta = e->angleDelta().y();
     e->accept();
     if ((e->modifiers() & Qt::ControlModifier) == Qt::ControlModifier) {
         continuousZoom(delta);
     } else {
-        if (delta <= -QWheelEvent::DefaultDeltasPerStep && !getContinuousMode() && vScroll == verticalScrollBar()->maximum()) {
-            // go to next page
-            if ((int)d->document->currentPage() < d->items.count() - 1) {
-                // more optimized than document->setNextPage and then move view to top
-                Okular::DocumentViewport newViewport = d->document->viewport();
-                newViewport.pageNumber += viewColumns();
-                if (newViewport.pageNumber >= (int)d->items.count()) {
-                    newViewport.pageNumber = d->items.count() - 1;
-                }
-                newViewport.rePos.enabled = true;
-                newViewport.rePos.normalizedY = 0.0;
-                d->document->setViewport(newViewport);
-                d->scroller->scrollTo(QPoint(horizontalScrollBar()->value(), verticalScrollBar()->value()), 0); // sync scroller with scrollbar
-            }
-        } else if (delta >= QWheelEvent::DefaultDeltasPerStep && !getContinuousMode() && vScroll == verticalScrollBar()->minimum()) {
-            // go to prev page
-            if (d->document->currentPage() > 0) {
-                // more optimized than document->setPrevPage and then move view to bottom
-                Okular::DocumentViewport newViewport = d->document->viewport();
-                newViewport.pageNumber -= viewColumns();
-                if (newViewport.pageNumber < 0) {
-                    newViewport.pageNumber = 0;
-                }
-                newViewport.rePos.enabled = true;
-                newViewport.rePos.normalizedY = 1.0;
-                d->document->setViewport(newViewport);
-                d->scroller->scrollTo(QPoint(horizontalScrollBar()->value(), verticalScrollBar()->value()), 0); // sync scroller with scrollbar
-            }
-        } else {
+        bool skipScroll = false;
+        if (!getContinuousMode()) {
+            skipScroll = isPageScroll(delta);
+        }
+        if (!skipScroll) {
             // When the shift key is held down, scroll ten times faster
             int multiplier = (e->modifiers() & Qt::ShiftModifier) ? 10 : 1;
 
@@ -3257,6 +3295,7 @@ void PageView::wheelEvent(QWheelEvent *e)
             } else {
                 d->scroller->scrollTo(d->scroller->finalPosition() - e->angleDelta() * multiplier, 0);
             }
+            d->pageScrollDelta = 0;
         }
     }
 }
@@ -4907,6 +4946,11 @@ void PageView::slotDragScroll()
     scrollTo(horizontalScrollBar()->value() + d->dragScrollVector.x(), verticalScrollBar()->value() + d->dragScrollVector.y());
     QPoint p = contentAreaPosition() + viewport()->mapFromGlobal(QCursor::pos());
     updateSelection(p);
+}
+
+void PageView::slotPageScroll()
+{
+    d->pageScrollDelta = 0;
 }
 
 void PageView::slotShowWelcome()
