@@ -221,7 +221,7 @@ class OkularTests(unittest.TestCase):
              .move_to_element(self.find_element_by_accessibility_id("QMenuBar.file"))
              .move_by_offset(400, 500).double_click()
              .send_keys("Again this is very interesting, should read more.").perform())
-            self.assert_text_in_annotation("Again this is very interesting, should read more.")
+            self.assert_annotation_has_text("Again this is very interesting, should read more.")
 
             #10d
             ActionChains(self.driver).key_down(Keys.ALT).send_keys("1").key_up(Keys.ALT).perform()
