@@ -28,16 +28,16 @@ struct pageSizeItem {
 #define defaultImperialPaperSize 8 // Default paper size is "US Letter"
 
 static const pageSizeItem staticList[] = {
-    {i18n("DIN A0"), 841.0f, 1189.0f, "mm"},
-    {i18n("DIN A1"), 594.0f, 841.0f, "mm"},
-    {i18n("DIN A2"), 420.0f, 594.0f, "mm"},
-    {i18n("DIN A3"), 297.0f, 420.0f, "mm"},
-    {i18n("DIN A4"), 210.0f, 297.0f, "mm"},
-    {i18n("DIN A5"), 148.5f, 210.0f, "mm"},
-    {i18n("DIN B4"), 250.0f, 353.0f, "mm"},
-    {i18n("DIN B5"), 176.0f, 250.0f, "mm"},
-    {i18n("US Letter"), 215.9f, 279.4f, "in"},
-    {i18n("US Legal"), 215.9f, 355.6f, "in"},
+    {"DIN A0", 841.0f, 1189.0f, "mm"},
+    {"DIN A1", 594.0f, 841.0f, "mm"},
+    {"DIN A2", 420.0f, 594.0f, "mm"},
+    {"DIN A3", 297.0f, 420.0f, "mm"},
+    {"DIN A4", 210.0f, 297.0f, "mm"},
+    {"DIN A5", 148.5f, 210.0f, "mm"},
+    {"DIN B4", 250.0f, 353.0f, "mm"},
+    {"DIN B5", 176.0f, 250.0f, "mm"},
+    {"US Letter", 215.9f, 279.4f, "in"},
+    {"US Legal", 215.9f, 355.6f, "in"},
     {nullptr, 0.0f, 0.0f, nullptr} // marks the end of the list.
 };
 
