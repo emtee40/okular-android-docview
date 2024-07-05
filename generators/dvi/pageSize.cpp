@@ -28,16 +28,16 @@ struct pageSizeItem {
 #define defaultImperialPaperSize 8 // Default paper size is "US Letter"
 
 static const pageSizeItem staticList[] = {
-    {"DIN A0", 841.0f, 1189.0f, "mm"},
-    {"DIN A1", 594.0f, 841.0f, "mm"},
-    {"DIN A2", 420.0f, 594.0f, "mm"},
-    {"DIN A3", 297.0f, 420.0f, "mm"},
-    {"DIN A4", 210.0f, 297.0f, "mm"},
-    {"DIN A5", 148.5f, 210.0f, "mm"},
-    {"DIN B4", 250.0f, 353.0f, "mm"},
-    {"DIN B5", 176.0f, 250.0f, "mm"},
-    {"US Letter", 215.9f, 279.4f, "in"},
-    {"US Legal", 215.9f, 355.6f, "in"},
+    {i18n("DIN A0"), 841.0f, 1189.0f, "mm"},
+    {i18n("DIN A1"), 594.0f, 841.0f, "mm"},
+    {i18n("DIN A2"), 420.0f, 594.0f, "mm"},
+    {i18n("DIN A3"), 297.0f, 420.0f, "mm"},
+    {i18n("DIN A4"), 210.0f, 297.0f, "mm"},
+    {i18n("DIN A5"), 148.5f, 210.0f, "mm"},
+    {i18n("DIN B4"), 250.0f, 353.0f, "mm"},
+    {i18n("DIN B5"), 176.0f, 250.0f, "mm"},
+    {i18n("US Letter"), 215.9f, 279.4f, "in"},
+    {i18n("US Legal"), 215.9f, 355.6f, "in"},
     {nullptr, 0.0f, 0.0f, nullptr} // marks the end of the list.
 };
 
@@ -295,7 +295,7 @@ QString pageSize::serialize() const
     if ((currentSize >= 0) && (fabs(staticList[currentSize].height - pageHeight.getLength_in_mm()) <= 0.5)) {
         return QString::fromLocal8Bit(staticList[currentSize].name);
     } else {
-        return QStringLiteral("%1x%2").arg(pageWidth.getLength_in_mm()).arg(pageHeight.getLength_in_mm());
+        return i18n("%1 × %2", pageWidth.getLength_in_mm(), pageHeight.getLength_in_mm());
     }
 }
 
@@ -308,9 +308,9 @@ QString pageSize::description() const
     QString size = QStringLiteral(" ");
     if (formatNumber() == -1) {
         if (QLocale::system().measurementSystem() == QLocale::MetricSystem) {
-            size += QStringLiteral("%1x%2 mm").arg(width().getLength_in_mm(), 0, 'f', 0).arg(height().getLength_in_mm(), 0, 'f', 0);
+            size += i18n("%1 × %2 mm", width().getLength_in_mm(), 0, 'f', 0, height().getLength_in_mm(), 0, 'f', 0);
         } else {
-            size += QStringLiteral("%1x%2 in").arg(width().getLength_in_inch(), 0, 'g', 2).arg(height().getLength_in_inch(), 0, 'g', 2);
+            size += i18n("%1 × %2 in", width().getLength_in_inch(), 0, 'g', 2, height().getLength_in_inch(), 0, 'g', 2);
         }
     } else {
         size += formatName() + QLatin1Char('/');
