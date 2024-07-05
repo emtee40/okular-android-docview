@@ -308,9 +308,9 @@ QString pageSize::description() const
     QString size = QStringLiteral(" ");
     if (formatNumber() == -1) {
         if (QLocale::system().measurementSystem() == QLocale::MetricSystem) {
-            size += i18n("%1 × %2 mm", width().getLength_in_mm(), 0, 'f', 0, height().getLength_in_mm(), 0, 'f', 0);
+            size += ki18n("%1 × %2 mm").subs(width().getLength_in_mm(), 0, 'f', 0).subs(height().getLength_in_mm(), 0, 'f', 0).toString();
         } else {
-            size += i18n("%1 × %2 in", width().getLength_in_inch(), 0, 'g', 2, height().getLength_in_inch(), 0, 'g', 2);
+            size += ki18n("%1 × %2 in").subs(width().getLength_in_inch(), 0, 'g', 2).subs(height().getLength_in_inch(), 0, 'g', 2).toString();
         }
     } else {
         size += formatName() + QLatin1Char('/');
