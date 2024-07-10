@@ -591,7 +591,11 @@ Okular::Action *createLinkFromPopplerLink(std::variant<const Poppler::Link *, st
         link->setNativeHandle(popplerLinkOCG);
         break;
     }
+#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(24, 07, 0)
+    case Poppler::Link::ResetForm:
+        break;
     }
+#endif
 
     if (link) {
         QVector<Okular::Action *> nextActions;
