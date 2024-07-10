@@ -591,6 +591,8 @@ Okular::Action *createLinkFromPopplerLink(std::variant<const Poppler::Link *, st
         link->setNativeHandle(popplerLinkOCG);
         break;
     }
+    case Poppler::Link::ResetForm:
+        break;
     }
 
     if (link) {
