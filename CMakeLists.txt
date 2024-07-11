@@ -539,6 +539,7 @@ if(BUILD_DESKTOP)
     part/colormodemenu.cpp
     part/cursorwraphelper.cpp
     part/drawingtoolactions.cpp
+    part/exportimagedialog.cpp
     part/fileprinterpreview.cpp
     part/findbar.cpp
     part/formwidgets.cpp
