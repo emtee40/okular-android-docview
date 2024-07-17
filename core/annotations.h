@@ -1323,6 +1323,7 @@ private:
     Q_DISABLE_COPY(StampAnnotation)
 };
 
+#if HAVE_NEW_SIGNATURE_API
 class OKULARCORE_EXPORT SignatureAnnotation : public Annotation
 {
 public:
@@ -1370,7 +1371,7 @@ private:
     Q_DECLARE_PRIVATE(SignatureAnnotation)
     Q_DISABLE_COPY(SignatureAnnotation)
 };
-
+#endif
 
 class OKULARCORE_EXPORT InkAnnotation : public Annotation
 {

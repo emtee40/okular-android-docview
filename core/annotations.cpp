@@ -2342,6 +2342,7 @@ AnnotationPrivate *StampAnnotationPrivate::getNewAnnotationPrivate()
     return new StampAnnotationPrivate();
 }
 
+#if HAVE_NEW_SIGNATURE_API
 /** SignatureAnnotation [Annotation] */
 
 class Okular::SignatureAnnotationPrivate : public Okular::AnnotationPrivate
@@ -2437,7 +2438,8 @@ bool SignatureAnnotation::sign(const Okular::NewSignatureData &data, const QStri
     return d->m_signFunction(data, fileName);
 }
 
-int SignatureAnnotation::page() const {
+int SignatureAnnotation::page() const
+{
     Q_D(const SignatureAnnotation);
     return d->m_page;
 }
@@ -2469,6 +2471,7 @@ AnnotationPrivate *SignatureAnnotationPrivate::getNewAnnotationPrivate()
 {
     return new SignatureAnnotationPrivate();
 }
+#endif
 
 /** InkAnnotation [Annotation] */
 
