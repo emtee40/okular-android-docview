@@ -330,11 +330,9 @@ private:
 class PickPointEngineSignature : public PickPointEngine
 {
 public:
-    PickPointEngineSignature(Okular::Document *document, PageView *pageView, SignaturePartUtils::SigningInformation *info)
+    PickPointEngineSignature(SignaturePartUtils::SigningInformation *info)
         : PickPointEngine({})
-        , m_document(document)
         , m_page(nullptr)
-        , m_pageView(pageView)
         , m_aborted(false)
         , m_signingInformation(info)
     {
@@ -399,26 +397,8 @@ public:
     {
         return m_aborted;
     }
-
-    bool sign(const QString &newFilePath)
-    {
-        Okular::NewSignatureData data;
-        data.setCertNickname(m_signingInformation->certificate->nickName());
-        data.setCertSubjectCommonName(m_signingInformation->certificate->subjectInfo(Okular::CertificateInfo::CommonName, Okular::CertificateInfo::EmptyString::TranslatedNotAvailable));
-        data.setPassword(m_signingInformation->certificatePassword);
-        data.setDocumentPassword(m_signingInformation->documentPassword);
-        data.setPage(m_page->number());
-        data.setBoundingRectangle(rect);
-        data.setReason(m_signingInformation->reason);
-        data.setLocation(m_signingInformation->location);
-        data.setBackgroundImagePath(m_signingInformation->backgroundImagePath);
-        return m_document->sign(data, newFilePath);
-    }
-
 private:
-    Okular::Document *m_document;
     const Okular::Page *m_page;
-    PageView *m_pageView;
 
     bool m_aborted;
     SignaturePartUtils::SigningInformation *m_signingInformation;
@@ -919,7 +899,7 @@ PageViewAnnotator::~PageViewAnnotator()
 void PageViewAnnotator::startSigning(SignaturePartUtils::SigningInformation *info)
 {
     m_signatureMode = true;
-    m_engine = new PickPointEngineSignature(m_document, m_pageView, info);
+    m_engine = new PickPointEngineSignature(info);
 }
 
 bool PageViewAnnotator::active() const
