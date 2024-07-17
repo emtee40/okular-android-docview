@@ -421,6 +421,20 @@ static Poppler::Annotation *createPopplerAnnotationFromOkularAnnotation(const Ok
     return pStampAnnotation;
 }
 
+#if HAVE_NEW_SIGNATURE_API
+static Okular::SigningResult popperToOkular(Poppler::SignatureAnnotation::SigningResult pResult)
+{
+    switch (pResult) {
+    case Poppler::SignatureAnnotation::SigningSuccess:
+        return Okular::SigningSuccess;
+    case Poppler::SignatureAnnotation::FieldAlreadySigned:
+        return Okular::FieldAlreadySigned;
+    case Poppler::SignatureAnnotation::GenericSigningError:
+        return Okular::GenericSigningError;
+    }
+    Q_UNREACHABLE_RETURN(Okular::GenericSigningError);
+}
+
 static Poppler::Annotation *createPopplerAnnotationFromOkularAnnotation(Okular::SignatureAnnotation *oSignatureAnnotation)
 {
     Poppler::SignatureAnnotation *pSignatureAnnotation = new Poppler::SignatureAnnotation();
@@ -437,11 +451,12 @@ static Poppler::Annotation *createPopplerAnnotationFromOkularAnnotation(Okular::
     oSignatureAnnotation->setSignFunction([pSignatureAnnotation](const Okular::NewSignatureData &oData, const QString &fileName) {
         Poppler::PDFConverter::NewSignatureData pData;
         PDFGenerator::okularToPoppler(oData, &pData);
-        return pSignatureAnnotation->sign(fileName, pData) == Poppler::SignatureAnnotation::SigningSuccess;
+        return popperToOkular(pSignatureAnnotation->sign(fileName, pData));
     });
 
     return pSignatureAnnotation;
 }
+#endif
 
 static Poppler::Annotation *createPopplerAnnotationFromOkularAnnotation(const Okular::InkAnnotation *oInkAnnotation)
 {
@@ -506,6 +521,7 @@ void PopplerAnnotationProxy::notifyAddition(Okular::Annotation *okl_ann, int pag
     case Okular::Annotation::ACaret:
         ppl_ann = createPopplerAnnotationFromOkularAnnotation(static_cast<Okular::CaretAnnotation *>(okl_ann));
         break;
+#if HAVE_NEW_SIGNATURE_API
     case Okular::Annotation::AWidget: {
         if (auto signatureAnnt = dynamic_cast<Okular::SignatureAnnotation *>(okl_ann)) {
             signatureAnnt->setPage(page);
@@ -516,6 +532,7 @@ void PopplerAnnotationProxy::notifyAddition(Okular::Annotation *okl_ann, int pag
 
         break;
     }
+#endif
 
     default:
         qWarning() << "Unsupported annotation type" << okl_ann->subType();

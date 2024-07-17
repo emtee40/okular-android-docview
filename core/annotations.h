@@ -16,6 +16,7 @@
 
 #include "area.h"
 #include "okularcore_export.h"
+#include "signatureutils.h"
 
 namespace Okular
 {
@@ -1323,6 +1324,7 @@ private:
     Q_DISABLE_COPY(StampAnnotation)
 };
 
+#if HAVE_NEW_SIGNATURE_API
 class OKULARCORE_EXPORT SignatureAnnotation : public Annotation
 {
 public:
@@ -1351,9 +1353,9 @@ public:
     int page() const;
     void setPage(int page);
 
-    void setSignFunction(std::function<bool(const Okular::NewSignatureData &, const QString &)> func);
+    void setSignFunction(std::function<SigningResult(const Okular::NewSignatureData &, const QString &)> func);
 
-    bool sign(const Okular::NewSignatureData &data, const QString &fileName);
+    SigningResult sign(const Okular::NewSignatureData &data, const QString &fileName);
 
     /**
      * Returns the sub type of the stamp annotation.
@@ -1370,7 +1372,7 @@ private:
     Q_DECLARE_PRIVATE(SignatureAnnotation)
     Q_DISABLE_COPY(SignatureAnnotation)
 };
-
+#endif
 
 class OKULARCORE_EXPORT InkAnnotation : public Annotation
 {

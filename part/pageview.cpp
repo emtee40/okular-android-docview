@@ -272,7 +272,9 @@ public:
     // The remaining scroll from the previous zoom event
     QPointF remainingScroll;
     SignaturePartUtils::SigningInformation signingInfo;
+#if HAVE_NEW_SIGNATURE_API
     Okular::SignatureAnnotation *signatureAnnotation = nullptr;
+#endif
 };
 
 PageViewPrivate::PageViewPrivate(PageView *qq)
@@ -5145,11 +5147,13 @@ Okular::Document *PageView::document() const
     return d->document;
 }
 
+#if HAVE_NEW_SIGNATURE_API
 void PageView::startSigning(Okular::SignatureAnnotation *form)
 {
     d->signatureAnnotation = form;
     Q_EMIT signingStarted();
 }
+#endif
 
 void PageView::slotSignature()
 {
@@ -5438,6 +5442,7 @@ void PageView::externalKeyPressEvent(QKeyEvent *e)
     keyPressEvent(e);
 }
 
+#if HAVE_NEW_SIGNATURE_API
 void PageView::finishSigning()
 {
     const QString newFilePath = SignaturePartUtils::getFileNameForNewSignedFile(this, d->document);
@@ -5454,13 +5459,15 @@ void PageView::finishSigning()
     data.setReason(d->signingInfo.reason);
     data.setLocation(d->signingInfo.location);
 
-    const bool success = d->signatureAnnotation->sign(data, newFilePath);
-    if (success) {
+    Okular::SigningResult result = d->signatureAnnotation->sign(data, newFilePath);
+    if (result == Okular::SigningSuccess) {
         Q_EMIT requestOpenNewlySignedFile(newFilePath, d->signatureAnnotation->page() + 1);
     } else {
         KMessageBox::error(this, i18nc("%1 is a file path", "Could not sign. Invalid certificate password or could not write to '%1'", d->document->currentDocument().toLocalFile()));
     }
 }
+#endif
+
 void PageView::slotProcessMovieAction(const Okular::MovieAction *action)
 {
     const Okular::MovieAnnotation *movieAnnotation = action->annotation();

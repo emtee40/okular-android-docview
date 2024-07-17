@@ -2342,6 +2342,7 @@ AnnotationPrivate *StampAnnotationPrivate::getNewAnnotationPrivate()
     return new StampAnnotationPrivate();
 }
 
+#if HAVE_NEW_SIGNATURE_API
 /** SignatureAnnotation [Annotation] */
 
 class Okular::SignatureAnnotationPrivate : public Okular::AnnotationPrivate
@@ -2361,7 +2362,7 @@ public:
     QString m_imagePath;
     QString m_fieldPartialName;
     int m_page;
-    std::function<bool(const Okular::NewSignatureData &, const QString &)> m_signFunction;
+    std::function<SigningResult(const Okular::NewSignatureData &, const QString &)> m_signFunction;
 };
 
 SignatureAnnotation::SignatureAnnotation()
@@ -2425,19 +2426,20 @@ void SignatureAnnotation::setFieldPartialName(const QString &fieldPartialName)
     d->m_fieldPartialName = fieldPartialName;
 }
 
-void SignatureAnnotation::setSignFunction(std::function<bool(const Okular::NewSignatureData &, const QString &)> func)
+void SignatureAnnotation::setSignFunction(std::function<SigningResult(const Okular::NewSignatureData &, const QString &)> func)
 {
     Q_D(SignatureAnnotation);
     d->m_signFunction = func;
 }
 
-bool SignatureAnnotation::sign(const Okular::NewSignatureData &data, const QString &fileName)
+SigningResult SignatureAnnotation::sign(const Okular::NewSignatureData &data, const QString &fileName)
 {
     Q_D(SignatureAnnotation);
     return d->m_signFunction(data, fileName);
 }
 
-int SignatureAnnotation::page() const {
+int SignatureAnnotation::page() const
+{
     Q_D(const SignatureAnnotation);
     return d->m_page;
 }
@@ -2469,6 +2471,7 @@ AnnotationPrivate *SignatureAnnotationPrivate::getNewAnnotationPrivate()
 {
     return new SignatureAnnotationPrivate();
 }
+#endif
 
 /** InkAnnotation [Annotation] */
 
