@@ -14,6 +14,7 @@ include:
 #      - /gitlab-templates/craft-android-qt6-apks.yml
       - /gitlab-templates/craft-macos-arm64-qt6.yml
       - /gitlab-templates/craft-macos-x86-64-qt6.yml
+  - remote: 'https://raw.githubusercontent.com/green-coding-solutions/eco-ci-energy-estimation/main/eco-ci-gitlab.yml'
 
 
 #build_ubuntu_22_04:
@@ -41,8 +42,15 @@ build_clazy_clang_tidy:
     - Linux
   interruptible: true
   before_script:
+    - export ECO_CI_SEND_DATA="true"
+    - export ECO_CI_DISPLAY_BADGE="true"
+    - export ECO_CI_DISPLAY_TABLE="true"
+    - export ECO_CI_CALCULATE_CO2="true"
+    - !reference [.start_measurement, script]
     - git clone https://invent.kde.org/sysadmin/ci-utilities.git --depth=1
     - git clone https://invent.kde.org/sysadmin/repo-metadata.git ci-utilities/repo-metadata/ --depth=1
+    - export ECO_CI_LABEL="before_script"
+    - !reference [.get_measurement, script]
   only:
     - merge_requests
   variables:
@@ -59,12 +67,20 @@ build_clazy_clang_tidy:
     - python3 -u ci-utilities/run-ci-build.py --project $CI_PROJECT_NAME --branch $CI_COMMIT_REF_NAME --platform Linux/Qt6/Shared --only-setup-environment
     - mkdir -p /tmp/okular_build
     - cd /tmp/okular_build
+    - export ECO_CI_LABEL="setup"
+    - !reference [.get_measurement, script]
     - cmake -DOKULAR_UI=both -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -G Ninja -DCMAKE_INSTALL_PREFIX=$CI_PROJECT_DIR/_install -DFORCE_NOT_REQUIRED_DEPENDENCIES=KF6DocTools -DKF6DocTools_FOUND=false $CI_PROJECT_DIR
+    - export ECO_CI_LABEL="cmake"
+    - !reference [.get_measurement, script]
     - cat compile_commands.json | jq  '[.[] | select(.file | contains("'"$CI_PROJECT_DIR"'"))]' > compile_commands.aux.json
     - cat compile_commands.aux.json | jq  '[.[] | select(.file | contains("/synctex/")| not)]' > compile_commands.json
     - cp "$CI_PROJECT_DIR/.clang-tidy" .
     - CLAZY_IGNORE_DIRS="settings_core.[cpp|h]|settings.[cpp.h]|pdfsettings.h|gssettings.h|ui_selectcertificatedialog.h" ninja -k 0
     - run-clang-tidy
+    - export ECO_CI_LABEL="run-clang-tidy"
+    - !reference [.get_measurement, script]
+    - export ECO_CI_SEND_DATA="true"
+    - !reference [.display_results, script]
 
 clang_format:
   stage: build
