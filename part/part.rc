@@ -83,6 +83,7 @@
     <Action name="add_digital_signature"/>
     <Separator/>
     <Action name="speak_document"/>
+    <Action name="speak_from_current_page"/>
     <Action name="speak_current_page"/>
     <Action name="speak_stop_all"/>
     <Action name="speak_pause_resume"/>
