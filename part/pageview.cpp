@@ -64,7 +64,6 @@
 // system includes
 #include <array>
 #include <math.h>
-#include <qaction.h>
 #include <stdlib.h>
 
 // local includes
@@ -5385,11 +5384,11 @@ void PageView::slotSpeakFromCurrentPage()
     const int currentPage = d->document->viewport().pageNumber;
 
     QString text;
-    for (int i = currentPage; i < d->items.size(); i++) {
-        PageViewItem *item = d->items.at(i);
+    QVector<PageViewItem *>::const_iterator dIt = d->items.constBegin(), dEnd = d->items.constEnd();
 
-        std::unique_ptr<Okular::RegularAreaRect> area = textSelectionForItem(item);
-        text.append(item->page()->text(area.get()));
+    for (dIt += currentPage; dIt != dEnd; dIt++) {
+        std::unique_ptr<Okular::RegularAreaRect> area = textSelectionForItem(*dIt);
+        text.append((*dIt)->page()->text(area.get()));
         text.append(QLatin1Char('\n'));
     }
 
