@@ -683,6 +683,7 @@ PDFGenerator::PDFGenerator(QObject *parent, const QVariantList &args)
     setFeature(TiledRendering);
     setFeature(SwapBackingFile);
     setFeature(SupportsCancelling);
+    setFeature(SupportsDefaultPageLayout);
 
     // You only need to do it once not for each of the documents but it is cheap enough
     // so doing it all the time won't hurt either
@@ -1149,6 +1150,29 @@ const QList<Okular::EmbeddedFile *> *PDFGenerator::embeddedFiles() const
     }
 
     return &docEmbeddedFiles;
+}
+
+PDFGenerator::DefaultPageLayout PDFGenerator::defaultLayout() const {
+    Poppler::Document::PageLayout defaultValue = pdfdoc->pageLayout();
+    PDFGenerator::DefaultPageLayout retValue;
+    switch(defaultValue) {
+        case Poppler::Document::SinglePage:
+            retValue = PDFGenerator::SinglePage;
+            break;
+        case Poppler::Document::TwoColumnLeft:
+            retValue = PDFGenerator::TwoColumnLeft;
+            break;
+        case Poppler::Document::TwoColumnRight:
+            retValue =  PDFGenerator::TwoColumnRight;
+            break;
+        case Poppler::Document::OneColumn: // Fall through to No Layout
+        case Poppler::Document::TwoPageLeft: // Fall through to No Layout
+        case Poppler::Document::TwoPageRight: // Fall through to No Layout
+        case Poppler::Document::NoLayout:
+            retValue =  PDFGenerator::NoLayout;
+            break;
+    }
+    return retValue;
 }
 
 QAbstractItemModel *PDFGenerator::layersModel() const

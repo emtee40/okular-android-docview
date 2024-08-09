@@ -363,6 +363,11 @@ const QList<EmbeddedFile *> *Generator::embeddedFiles() const
     return nullptr;
 }
 
+Generator::DefaultPageLayout Generator::defaultLayout() const
+{
+    return NoLayout;
+}
+
 Generator::PageSizeMetric Generator::pagesSizeMetric() const
 {
     return None;

@@ -210,7 +210,8 @@ public:
         PrintToFile,       ///< Whether the Generator supports export to PDF & PS through the Print Dialog
         TiledRendering,    ///< Whether the Generator can render tiles @since 0.16 (KDE 4.10)
         SwapBackingFile,   ///< Whether the Generator can hot-swap the file it's reading from @since 1.3
-        SupportsCancelling ///< Whether the Generator can cancel requests @since 1.4
+        SupportsCancelling, ///< Whether the Generator can cancel requests @since 1.4
+        SupportsDefaultPageLayout ///< Whether the Generator can supply a default page layout
     };
 
     /**
@@ -361,6 +362,21 @@ public:
      * no list of embedded files is available.
      */
     virtual const QList<EmbeddedFile *> *embeddedFiles() const;
+
+    /**
+     * This enum identifies default page layouts.
+     */
+    enum DefaultPageLayout {
+        NoLayout = -1,
+        SinglePage,
+        TwoColumnLeft,
+        TwoColumnRight
+    };
+
+    /**
+     * This method returns the default page layout.
+     */
+    virtual DefaultPageLayout defaultLayout() const;
 
     /**
      * This enum identifies the metric of the page size.
