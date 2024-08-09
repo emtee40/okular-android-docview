@@ -593,9 +593,9 @@ bool DocumentPrivate::loadDocumentInfo(LoadDocumentInfoFlags loadWhat)
 bool DocumentPrivate::loadDocumentInfo(QFile &infoFile, LoadDocumentInfoFlags loadWhat)
 {
     if (!infoFile.exists() || !infoFile.open(QIODevice::ReadOnly)) {
-        if((loadWhat & LoadGeneralInfo) && m_generator->hasFeature(Generator::SupportsDefaultPageLayout)) {
+        if ((loadWhat & LoadGeneralInfo) && m_generator->hasFeature(Generator::SupportsDefaultPageLayout)) {
             Generator::DefaultPageLayout defaultValue = m_generator->defaultLayout();
-            if(defaultValue == Generator::NoLayout) {
+            if (defaultValue == Generator::NoLayout) {
                 return false;
             }
             const QString viewName = QStringLiteral("PageView");
