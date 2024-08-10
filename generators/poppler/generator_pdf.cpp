@@ -1152,10 +1152,10 @@ const QList<Okular::EmbeddedFile *> *PDFGenerator::embeddedFiles() const
     return &docEmbeddedFiles;
 }
 
-PDFGenerator::DefaultPageLayout PDFGenerator::defaultLayout() const
+PDFGenerator::PageLayout PDFGenerator::defaultPageLayout() const
 {
     Poppler::Document::PageLayout defaultValue = pdfdoc->pageLayout();
-    PDFGenerator::DefaultPageLayout retValue;
+    PDFGenerator::PageLayout retValue;
     switch (defaultValue) {
     case Poppler::Document::SinglePage:
         retValue = PDFGenerator::SinglePage;

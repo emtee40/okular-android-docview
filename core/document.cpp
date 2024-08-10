@@ -593,8 +593,9 @@ bool DocumentPrivate::loadDocumentInfo(LoadDocumentInfoFlags loadWhat)
 bool DocumentPrivate::loadDocumentInfo(QFile &infoFile, LoadDocumentInfoFlags loadWhat)
 {
     if (!infoFile.exists() || !infoFile.open(QIODevice::ReadOnly)) {
+        // if Generator can provide a default page layout use it to set the view mode
         if ((loadWhat & LoadGeneralInfo) && m_generator->hasFeature(Generator::SupportsDefaultPageLayout)) {
-            Generator::DefaultPageLayout defaultValue = m_generator->defaultLayout();
+            Generator::PageLayout defaultValue = m_generator->defaultPageLayout();
             if (defaultValue == Generator::NoLayout) {
                 return false;
             }
@@ -758,7 +759,7 @@ void DocumentPrivate::loadViewsInfo(View *view, const QDomElement &e)
     }
 }
 
-void DocumentPrivate::setDefaultViewMode(View *view, Generator::DefaultPageLayout defaultValue)
+void DocumentPrivate::setDefaultViewMode(View *view, Generator::PageLayout defaultValue)
 {
     if (view->supportsCapability(View::ViewModeModality) && (view->capabilityFlags(View::ViewModeModality) & (View::CapabilityRead | View::CapabilitySerializable))) {
         view->setCapability(View::ViewModeModality, (int)defaultValue);

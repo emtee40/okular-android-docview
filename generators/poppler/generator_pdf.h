@@ -67,7 +67,7 @@ public:
     const Okular::DocumentSynopsis *generateDocumentSynopsis() override;
     Okular::FontInfo::List fontsForPage(int page) override;
     const QList<Okular::EmbeddedFile *> *embeddedFiles() const override;
-    DefaultPageLayout defaultLayout() const override;
+    PageLayout defaultPageLayout() const override;
     PageSizeMetric pagesSizeMetric() const override
     {
         return Pixels;

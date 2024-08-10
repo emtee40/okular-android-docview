@@ -366,12 +366,17 @@ public:
     /**
      * This enum identifies default page layouts.
      */
-    enum DefaultPageLayout { NoLayout = -1, SinglePage, TwoColumnLeft, TwoColumnRight };
+    enum PageLayout {
+        NoLayout = -1, ///< Layout not specified
+        SinglePage,    ///< Display a single page
+        TwoColumnLeft, ///< Display the pages in two columns, with odd-numbered pages on the left
+        TwoColumnRight ///< Display the pages in two columns, with odd-numbered pages on the right
+    };
 
     /**
      * This method returns the default page layout.
      */
-    virtual DefaultPageLayout defaultLayout() const;
+    virtual PageLayout defaultPageLayout() const;
 
     /**
      * This enum identifies the metric of the page size.
