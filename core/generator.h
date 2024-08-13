@@ -365,6 +365,8 @@ public:
 
     /**
      * This enum identifies default page layouts.
+     *
+     * @since 24.12
      */
     enum PageLayout {
         NoLayout = -1, ///< Layout not specified
@@ -375,11 +377,15 @@ public:
 
     /**
      * This method returns the default page layout.
+     *
+     * @since 24.12
      */
     virtual PageLayout defaultPageLayout() const;
 
     /**
      * This method returns if the default page layout is continuous.
+     *
+     * @since 24.12
      */
     virtual bool defaultPageContinuous() const;
 
