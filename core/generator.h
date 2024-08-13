@@ -211,7 +211,7 @@ public:
         TiledRendering,           ///< Whether the Generator can render tiles @since 0.16 (KDE 4.10)
         SwapBackingFile,          ///< Whether the Generator can hot-swap the file it's reading from @since 1.3
         SupportsCancelling,       ///< Whether the Generator can cancel requests @since 1.4
-        SupportsDefaultPageLayout ///< Whether the Generator can supply a default page layout
+        SupportsDefaultPageLayout ///< Whether the Generator can supply a default page layout @since 24.12
     };
 
     /**
