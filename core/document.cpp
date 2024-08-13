@@ -595,14 +595,14 @@ bool DocumentPrivate::loadDocumentInfo(QFile &infoFile, LoadDocumentInfoFlags lo
     if (!infoFile.exists() || !infoFile.open(QIODevice::ReadOnly)) {
         // if Generator can provide a default page layout use it to set the view mode
         if ((loadWhat & LoadGeneralInfo) && m_generator->hasFeature(Generator::SupportsDefaultPageLayout)) {
-            Generator::PageLayout defaultValue = m_generator->defaultPageLayout();
-            if (defaultValue == Generator::NoLayout) {
+            Generator::PageLayout defaultViewMode = m_generator->defaultPageLayout();
+            if (defaultViewMode == Generator::NoLayout) {
                 return false;
             }
             const QString viewName = QStringLiteral("PageView");
             for (View *view : std::as_const(m_views)) {
                 if (view->name() == viewName) {
-                    setDefaultViewMode(view, defaultValue);
+                    setDefaultViewMode(view, defaultViewMode);
                     break;
                 }
             }
@@ -759,10 +759,14 @@ void DocumentPrivate::loadViewsInfo(View *view, const QDomElement &e)
     }
 }
 
-void DocumentPrivate::setDefaultViewMode(View *view, Generator::PageLayout defaultValue)
+void DocumentPrivate::setDefaultViewMode(View *view, Generator::PageLayout defaultViewMode)
 {
     if (view->supportsCapability(View::ViewModeModality) && (view->capabilityFlags(View::ViewModeModality) & (View::CapabilityRead | View::CapabilitySerializable))) {
-        view->setCapability(View::ViewModeModality, (int)defaultValue);
+        view->setCapability(View::ViewModeModality, (int)defaultViewMode);
+    }
+
+    if (view->supportsCapability(View::Continuous) && (view->capabilityFlags(View::Continuous) & (View::CapabilityRead | View::CapabilitySerializable))) {
+        view->setCapability(View::Continuous, (int)m_generator->defaultPageContinuous());
     }
 }
 

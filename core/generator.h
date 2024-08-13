@@ -369,14 +369,19 @@ public:
     enum PageLayout {
         NoLayout = -1, ///< Layout not specified
         SinglePage,    ///< Display a single page
-        TwoColumnLeft, ///< Display the pages in two columns, with odd-numbered pages on the left
-        TwoColumnRight ///< Display the pages in two columns, with odd-numbered pages on the right
+        TwoPageLeft,   ///< Display the pages in two columns, with odd-numbered pages on the left
+        TwoPageRight   ///< Display the pages in two columns, with odd-numbered pages on the right
     };
 
     /**
      * This method returns the default page layout.
      */
     virtual PageLayout defaultPageLayout() const;
+
+    /**
+     * This method returns if the default page layout is continuous.
+     */
+    virtual bool defaultPageContinuous() const;
 
     /**
      * This enum identifies the metric of the page size.

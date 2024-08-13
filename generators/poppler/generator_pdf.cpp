@@ -1156,24 +1156,38 @@ PDFGenerator::PageLayout PDFGenerator::defaultPageLayout() const
 {
     Poppler::Document::PageLayout defaultValue = pdfdoc->pageLayout();
     PDFGenerator::PageLayout retValue;
+
     switch (defaultValue) {
+    case Poppler::Document::OneColumn:
     case Poppler::Document::SinglePage:
         retValue = PDFGenerator::SinglePage;
         break;
+
     case Poppler::Document::TwoColumnLeft:
-        retValue = PDFGenerator::TwoColumnLeft;
+    case Poppler::Document::TwoPageLeft:
+        retValue = PDFGenerator::TwoPageLeft;
         break;
+
+    case Poppler::Document::TwoPageRight:
     case Poppler::Document::TwoColumnRight:
-        retValue = PDFGenerator::TwoColumnRight;
+        retValue = PDFGenerator::TwoPageRight;
         break;
-    case Poppler::Document::OneColumn:    // Fall through to No Layout
-    case Poppler::Document::TwoPageLeft:  // Fall through to No Layout
-    case Poppler::Document::TwoPageRight: // Fall through to No Layout
+
     case Poppler::Document::NoLayout:
         retValue = PDFGenerator::NoLayout;
         break;
     }
     return retValue;
+}
+
+bool PDFGenerator::defaultPageContinuous() const
+{
+    Poppler::Document::PageLayout defaultValue = pdfdoc->pageLayout();
+
+    if ((defaultValue == Poppler::Document::OneColumn) || (defaultValue == Poppler::Document::TwoColumnLeft) || (defaultValue == Poppler::Document::TwoColumnRight))
+        return true;
+    else
+        return false;
 }
 
 QAbstractItemModel *PDFGenerator::layersModel() const
