@@ -30,8 +30,8 @@ public:
     ~PopplerAnnotationProxy() override;
 
     bool supports(Capability capability) const override;
-    void notifyAddition(Okular::Annotation *okl_ann, int page) override;
-    void notifyModification(const Okular::Annotation *okl_ann, int page, bool appearanceChanged) override;
+    void notifyAddition(Okular::Annotation *okl_ann, int page, Okular::Rotation pageRotation) override;
+    void notifyModification(const Okular::Annotation *okl_ann, int page, bool appearanceChanged, Okular::Rotation pageRotation) override;
     void notifyRemoval(Okular::Annotation *okl_ann, int page) override;
 
 private:
