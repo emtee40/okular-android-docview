@@ -245,7 +245,7 @@ static KCompressionDevice::CompressionType compressionTypeFor(const QString &mim
             return KCompressionDevice::BZip2;
         } else if (supportXz && mime.inherits(app_xz)) {
             return KCompressionDevice::Xz;
-        } else if (supportZstd && mime.inherits(app_zstd)){
+        } else if (supportZstd && mime.inherits(app_zstd)) {
             return KCompressionDevice::Zstd;
         }
     }
