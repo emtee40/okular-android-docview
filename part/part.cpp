@@ -1586,7 +1586,12 @@ bool Part::openFile()
     if (m_showEmbeddedFiles) {
         m_showEmbeddedFiles->setEnabled(hasEmbeddedFiles);
     }
-    m_topMessage->setVisible(hasEmbeddedFiles && Okular::Settings::showEmbeddedContentMessages());
+
+    if (!m_warnedAboutEmbeddedFiles || m_topMessage->isVisible()) {
+        m_topMessage->setVisible(hasEmbeddedFiles && Okular::Settings::showEmbeddedContentMessages());
+        m_warnedAboutEmbeddedFiles = true;
+    }
+
     m_migrationMessage->setVisible(m_document->isDocdataMigrationNeeded());
 
     // Warn the user that XFA forms are not supported yet (NOTE: poppler generator only)

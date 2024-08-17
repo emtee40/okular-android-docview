@@ -350,6 +350,7 @@ private:
     bool m_documentOpenWithPassword;
     bool m_swapInsteadOfOpening; // if set, the next open operation will replace the backing file (used when reloading just saved files)
     bool m_warnedAboutModifyingUnsaveableDocument = false;
+    bool m_warnedAboutEmbeddedFiles = false;
 
     // main widgets
     Sidebar *m_sidebar;
