@@ -207,7 +207,6 @@ static KCompressionDevice::CompressionType compressionTypeFor(const QString &mim
     const QString app_bzip(QStringLiteral("application/x-bzip"));
     const QString app_xz(QStringLiteral("application/x-xz"));
     const QString app_zstd(QStringLiteral("application/zstd"));
-    
     if (compressedMimeMap.isEmpty()) {
         std::unique_ptr<KFilterBase> f;
         compressedMimeMap[QStringLiteral("image/x-gzeps")] = KCompressionDevice::GZip;
