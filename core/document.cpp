@@ -593,18 +593,15 @@ bool DocumentPrivate::loadDocumentInfo(LoadDocumentInfoFlags loadWhat)
 bool DocumentPrivate::loadDocumentInfo(QFile &infoFile, LoadDocumentInfoFlags loadWhat)
 {
     if (!infoFile.exists() || !infoFile.open(QIODevice::ReadOnly)) {
-        // if Generator can provide a default page layout use it to set the view mode
-        if ((loadWhat & LoadGeneralInfo) && m_generator->hasFeature(Generator::SupportsDefaultPageLayout)) {
+        // Use the default layout provided by the generator
+        if (loadWhat & LoadGeneralInfo) {
             Generator::PageLayout defaultViewMode = m_generator->defaultPageLayout();
             if (defaultViewMode == Generator::NoLayout) {
                 return false;
             }
-            const QString viewName = QStringLiteral("PageView");
+
             for (View *view : std::as_const(m_views)) {
-                if (view->name() == viewName) {
-                    setDefaultViewMode(view, defaultViewMode);
-                    break;
-                }
+                setDefaultViewMode(view, defaultViewMode);
             }
         }
         return false;

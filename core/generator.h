@@ -200,18 +200,17 @@ public:
      * provide.
      */
     enum GeneratorFeature {
-        Threaded,                 ///< Whether the Generator supports asynchronous generation of pictures or text pages
-        TextExtraction,           ///< Whether the Generator can extract text from the document in the form of TextPage's
-        ReadRawData,              ///< Whether the Generator can read a document directly from its raw data.
-        FontInfo,                 ///< Whether the Generator can provide information about the fonts used in the document
-        PageSizes,                ///< Whether the Generator can change the size of the document pages.
-        PrintNative,              ///< Whether the Generator supports native cross-platform printing (QPainter-based).
-        PrintPostscript,          ///< Whether the Generator supports postscript-based file printing.
-        PrintToFile,              ///< Whether the Generator supports export to PDF & PS through the Print Dialog
-        TiledRendering,           ///< Whether the Generator can render tiles @since 0.16 (KDE 4.10)
-        SwapBackingFile,          ///< Whether the Generator can hot-swap the file it's reading from @since 1.3
-        SupportsCancelling,       ///< Whether the Generator can cancel requests @since 1.4
-        SupportsDefaultPageLayout ///< Whether the Generator can supply a default page layout @since 24.12
+        Threaded,           ///< Whether the Generator supports asynchronous generation of pictures or text pages
+        TextExtraction,     ///< Whether the Generator can extract text from the document in the form of TextPage's
+        ReadRawData,        ///< Whether the Generator can read a document directly from its raw data.
+        FontInfo,           ///< Whether the Generator can provide information about the fonts used in the document
+        PageSizes,          ///< Whether the Generator can change the size of the document pages.
+        PrintNative,        ///< Whether the Generator supports native cross-platform printing (QPainter-based).
+        PrintPostscript,    ///< Whether the Generator supports postscript-based file printing.
+        PrintToFile,        ///< Whether the Generator supports export to PDF & PS through the Print Dialog
+        TiledRendering,     ///< Whether the Generator can render tiles @since 0.16 (KDE 4.10)
+        SwapBackingFile,    ///< Whether the Generator can hot-swap the file it's reading from @since 1.3
+        SupportsCancelling, ///< Whether the Generator can cancel requests @since 1.4
     };
 
     /**

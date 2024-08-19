@@ -683,7 +683,6 @@ PDFGenerator::PDFGenerator(QObject *parent, const QVariantList &args)
     setFeature(TiledRendering);
     setFeature(SwapBackingFile);
     setFeature(SupportsCancelling);
-    setFeature(SupportsDefaultPageLayout);
 
     // You only need to do it once not for each of the documents but it is cheap enough
     // so doing it all the time won't hurt either
