@@ -322,11 +322,8 @@ FormWidgetIface::FormWidgetIface(QWidget *w, Okular::FormField *ff)
     , m_widget(w)
     , m_pageItem(nullptr)
 {
-    // A FormButton without an activationAction and with a uiName is tooltip.
-    if (m_ff->type() == Okular::FormField::FormButton) {
-        if (m_ff->activationAction() == nullptr && !m_ff->uiName().isEmpty()) {
-            m_widget->setToolTip(m_ff->uiName());
-        }
+    if (!m_ff->uiName().isEmpty()) {
+        m_widget->setToolTip(m_ff->uiName());
     }
 }
 
