@@ -1589,7 +1589,6 @@ bool Part::openFile()
 
     if (m_lastOpenedDocument.isEmpty() || !m_lastOpenedDocument.matches(m_document->currentDocument(), QUrl::None) || m_topMessage->isVisible()) {
         m_lastOpenedDocument = m_document->currentDocument();
-        qWarning() << "the opened file is new";
         m_topMessage->setVisible(hasEmbeddedFiles && Okular::Settings::showEmbeddedContentMessages());
     }
 
