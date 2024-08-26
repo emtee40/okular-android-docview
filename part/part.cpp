@@ -838,8 +838,7 @@ void Part::setupActions()
     connect(m_selectCurrentPage, &QAction::triggered, m_pageView, &PageView::slotSelectPage);
     m_selectCurrentPage->setEnabled(false);
 
-    m_save = KStandardAction::save(
-        this, [this] { saveFile(); }, ac);
+    m_save = KStandardAction::save(this, [this] { saveFile(); }, ac);
     m_save->setEnabled(false);
 
     m_saveAs = KStandardAction::saveAs(this, SLOT(slotSaveFileAs()), ac);
@@ -1587,9 +1586,10 @@ bool Part::openFile()
         m_showEmbeddedFiles->setEnabled(hasEmbeddedFiles);
     }
 
-    if (!m_warnedAboutEmbeddedFiles || m_topMessage->isVisible()) {
+    if (m_lastOpenedDocument.isEmpty() || !m_lastOpenedDocument.matches(m_document->currentDocument(), QUrl::None) || m_topMessage->isVisible()) {
+        m_lastOpenedDocument = m_document->currentDocument();
+        qWarning() << "the opened file is new";
         m_topMessage->setVisible(hasEmbeddedFiles && Okular::Settings::showEmbeddedContentMessages());
-        m_warnedAboutEmbeddedFiles = true;
     }
 
     m_migrationMessage->setVisible(m_document->isDocdataMigrationNeeded());
