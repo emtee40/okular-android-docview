@@ -46,11 +46,6 @@
 #include <QToolBar>
 #include <QTreeView>
 #include <QUrl>
-#include <qdir.h>
-#include <qnamespace.h>
-#include <qtestcase.h>
-#include <qtestmouse.h>
-#include <qtestsupport_core.h>
 
 namespace Okular
 {
