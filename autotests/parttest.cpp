@@ -46,6 +46,11 @@
 #include <QToolBar>
 #include <QTreeView>
 #include <QUrl>
+#include <qdir.h>
+#include <qnamespace.h>
+#include <qtestcase.h>
+#include <qtestmouse.h>
+#include <qtestsupport_core.h>
 
 namespace Okular
 {
@@ -110,6 +115,7 @@ private Q_SLOTS:
     void testZoomInFacingPages();
     void testLinkWithCrop();
     void testFieldFormatting();
+    void testEmbeddedFileWarning();
 
 private:
     void simulateMouseSelection(double startX, double startY, double endX, double endY, QWidget *target);
@@ -162,6 +168,7 @@ void PartTest::init()
                               QUrl::fromUserInput(QStringLiteral("file://" KDESRCDIR "data/simple-multipage.pdf")),
                               QUrl::fromUserInput(QStringLiteral("file://" KDESRCDIR "data/tocreload.pdf")),
                               QUrl::fromUserInput(QStringLiteral("file://" KDESRCDIR "data/pdf_with_links.pdf")),
+                              QUrl::fromUserInput(QStringLiteral("file://" KDESRCDIR "data/embeddedfile.pdf")),
                               QUrl::fromUserInput(QStringLiteral("file://" KDESRCDIR "data/RequestFullScreen.pdf"))};
 
     for (const QUrl &url : urls) {
@@ -2345,6 +2352,58 @@ void PartTest::testFieldFormatting()
     QCOMPARE(ff_de->text(), QStringLiteral("1123234,567"));
     QCOMPARE(sumCurrencyWidget->text(), QStringLiteral("1.124.469,13€"));
     QCOMPARE(ff_sum->text(), QStringLiteral("1124469.1340000000782310962677002"));
+}
+
+void PartTest::testEmbeddedFileWarning()
+{
+    QVariantList dummyArgs;
+    Okular::Part part(nullptr, dummyArgs);
+    QFile testpdf(QStringLiteral(KDESRCDIR "data/embeddedfile.pdf"));
+    // Make a copy of the test pdf. We dont want to modify the original one.
+    QVERIFY(testpdf.copy(QStringLiteral(KDESRCDIR "data/embeddedfile_copy.pdf")));
+    QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/embeddedfile_copy.pdf")));
+
+    part.widget()->show();
+    QVERIFY(QTest::qWaitForWindowExposed(part.widget()));
+
+    // Check for presence of embedded file inside the pdf
+    bool hasEmbeddedFiles = part.m_document->embeddedFiles() && part.m_document->embeddedFiles()->count() > 0;
+    QVERIFY(hasEmbeddedFiles);
+    QVERIFY(part.m_topMessage->isVisible());
+    QVERIFY(part.m_topMessage->close());
+
+    // Modify the pdf by annotating
+    QVERIFY(QMetaObject::invokeMethod(part.m_pageView, "slotSetMouseNormal"));
+
+    auto annot = new Okular::HighlightAnnotation();
+    annot->setHighlightType(Okular::HighlightAnnotation::Highlight);
+    const Okular::NormalizedRect r(0.36, 0.16, 0.51, 0.17);
+    annot->setBoundingRectangle(r);
+    Okular::HighlightAnnotation::Quad q;
+    q.setCapStart(false);
+    q.setCapEnd(false);
+    q.setFeather(1.0);
+    q.setPoint(Okular::NormalizedPoint(r.left, r.bottom), 0);
+    q.setPoint(Okular::NormalizedPoint(r.right, r.bottom), 1);
+    q.setPoint(Okular::NormalizedPoint(r.right, r.top), 2);
+    q.setPoint(Okular::NormalizedPoint(r.left, r.top), 3);
+    annot->highlightQuads().append(q);
+
+    part.m_document->addPageAnnotation(0, annot);
+
+    // save the modified file
+    QVERIFY(part.saveFile());
+    QTest::qWait(100);
+    // bug 491221
+    QVERIFY(!part.m_topMessage->isVisible());
+    QVERIFY(part.closeUrl());
+
+    QTest::qWait(100);
+    QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/embeddedfile.pdf")));
+    QVERIFY(part.m_topMessage->isVisible());
+
+    QFile modifiedFile(QStringLiteral(KDESRCDIR "data/embeddedfile_copy.pdf"));
+    modifiedFile.remove();
 }
 
 } // namespace Okular

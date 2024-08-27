@@ -1943,6 +1943,7 @@ bool Part::closeUrl(bool promptToSave)
     m_generatorGuiClient = nullptr;
     m_document->closeDocument();
     m_fileLastModified = QDateTime();
+    m_lastOpenedDocument.clear();
     updateViewActions();
     delete m_tempfile;
     m_tempfile = nullptr;
