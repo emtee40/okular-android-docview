@@ -602,13 +602,11 @@ Part::Part(QObject *parent, const QVariantList &args)
 
 void Part::setupConfigSkeleton(const QVariantList &args)
 {
-    const QLatin1String configFileName("okularpartrc");
-
     // first, we check if a config file name has been specified
     QString configFilePath = detectConfigFileName(args);
 
     if (configFilePath.isEmpty()) {
-        configFilePath = QStandardPaths::writableLocation(QStandardPaths::ConfigLocation) + QLatin1Char('/') + configFileName;
+        configFilePath = QStringLiteral("okularpartrc");
     }
 
     KSharedConfigPtr config = KSharedConfig::openConfig(configFilePath);
