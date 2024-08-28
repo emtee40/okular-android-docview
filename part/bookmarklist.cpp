@@ -159,6 +159,7 @@ BookmarkList::BookmarkList(Okular::Document *document, QWidget *parent)
     m_searchLine->addTreeWidget(m_tree);
 
     connect(m_document->bookmarkManager(), &Okular::BookmarkManager::bookmarksChanged, this, &BookmarkList::slotBookmarksChanged);
+    connect(m_document->bookmarkManager(), &Okular::BookmarkManager::allBookmarksChanged, this, &BookmarkList::slotAllBookmarksChanged);
 
     rebuildTree(m_showForAllDocumentsCheckbox->isChecked());
 
@@ -221,6 +222,10 @@ void BookmarkList::slotExecuted(QTreeWidgetItem *item)
 
 void BookmarkList::slotChanged(QTreeWidgetItem *item)
 {
+    // BookmarkManager::save may trigger one of these, but only in response to our changes
+    disconnect(m_document->bookmarkManager(), &Okular::BookmarkManager::bookmarksChanged, this, &BookmarkList::slotBookmarksChanged);
+    disconnect(m_document->bookmarkManager(), &Okular::BookmarkManager::allBookmarksChanged, this, &BookmarkList::slotAllBookmarksChanged);
+
     BookmarkItem *bmItem = dynamic_cast<BookmarkItem *>(item);
     if (bmItem && bmItem->viewport().isValid()) {
         bmItem->bookmark().setFullText(bmItem->text(0));
@@ -233,6 +238,9 @@ void BookmarkList::slotChanged(QTreeWidgetItem *item)
         m_document->bookmarkManager()->renameBookmark(url, fItem->text(0));
         m_document->bookmarkManager()->save();
     }
+
+    connect(m_document->bookmarkManager(), &Okular::BookmarkManager::bookmarksChanged, this, &BookmarkList::slotBookmarksChanged);
+    connect(m_document->bookmarkManager(), &Okular::BookmarkManager::allBookmarksChanged, this, &BookmarkList::slotAllBookmarksChanged);
 }
 
 void BookmarkList::slotContextMenu(const QPoint p)
@@ -323,6 +331,31 @@ void BookmarkList::slotBookmarksChanged(const QUrl &url)
 
     QTreeWidgetItem *item = itemForUrl(url);
     selectiveUrlUpdate(url, item);
+}
+
+void BookmarkList::slotAllBookmarksChanged()
+{
+    if (m_showForAllDocumentsCheckbox->isChecked()) {
+        // rebuildTree starts from scratch, so take note of expanded documents to restore later
+        QSet<QUrl> expandedUrls;
+        for (int i = 0; i < m_tree->topLevelItemCount(); i++) {
+            const QTreeWidgetItem *item = m_tree->topLevelItem(i);
+            const QUrl itemurl = item->data(0, UrlRole).value<QUrl>();
+            if (item->isExpanded() && itemurl.isValid()) {
+                expandedUrls.insert(itemurl);
+            }
+        }
+
+        rebuildTree(true);
+
+        for (int i = 0; i < m_tree->topLevelItemCount(); i++) {
+            QTreeWidgetItem *item = m_tree->topLevelItem(i);
+            const QUrl itemurl = item->data(0, UrlRole).value<QUrl>();
+            item->setExpanded(expandedUrls.contains(itemurl));
+        }
+    } else {
+        rebuildTree(false);
+    }
 }
 
 QList<QTreeWidgetItem *> createItems(const QUrl &baseurl, const KBookmark::List &bmlist)

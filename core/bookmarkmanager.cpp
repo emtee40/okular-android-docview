@@ -203,39 +203,39 @@ void BookmarkManager::Private::openBookmark(const KBookmark &bm, Qt::MouseButton
 
 void BookmarkManager::Private::_o_changed(const QString &groupAddress)
 {
-    if (groupAddress.isEmpty()) {
-        return;
-    }
-
     QUrl referurl;
-    // first, try to find the bookmark group whom change notification was just received
-    QHash<QUrl, QString>::iterator it = knownFiles.begin(), itEnd = knownFiles.end();
-    for (; it != itEnd; ++it) {
-        if (it.value() == groupAddress) {
-            referurl = it.key();
-            knownFiles.erase(it);
-            break;
+    if (groupAddress.isEmpty()) {
+        Q_EMIT q->allBookmarksChanged();
+    } else {
+        // first, try to find the bookmark group whom change notification was just received
+        QHash<QUrl, QString>::iterator it = knownFiles.begin(), itEnd = knownFiles.end();
+        for (; it != itEnd; ++it) {
+            if (it.value() == groupAddress) {
+                referurl = it.key();
+                knownFiles.erase(it);
+                break;
+            }
         }
-    }
-    if (!referurl.isValid()) {
-        const KBookmark bm = manager.findByAddress(groupAddress);
-        // better be safe than sorry
-        if (bm.isNull()) {
-            return;
+        if (!referurl.isValid()) {
+            const KBookmark bm = manager.findByAddress(groupAddress);
+            // better be safe than sorry
+            if (bm.isNull()) {
+                return;
+            }
+            Q_ASSERT(bm.isGroup());
+            referurl = urlForGroup(bm);
         }
-        Q_ASSERT(bm.isGroup());
-        referurl = urlForGroup(bm);
+        Q_ASSERT(referurl.isValid());
+        Q_EMIT q->bookmarksChanged(referurl);
     }
-    Q_ASSERT(referurl.isValid());
-    Q_EMIT q->bookmarksChanged(referurl);
     // case for the url representing the current document
     // (this might happen if the same document is open in another place;
     // in such case, make really sure to be in sync)
-    if (referurl == url) {
+    if (groupAddress.isEmpty() || referurl == url) {
         // save the old bookmarks for the current url
         const QHash<int, int> oldUrlBookmarks = urlBookmarks;
         // set the same url again, so we reload the information we have about it
-        q->setUrl(referurl);
+        q->setUrl(url);
         // then notify the observers about the changes in the bookmarks
         for (int i = 0; i < qMax(oldUrlBookmarks.size(), urlBookmarks.size()); i++) {
             bool oldContains = oldUrlBookmarks.contains(i) && oldUrlBookmarks[i] > 0;

@@ -185,6 +185,11 @@ Q_SIGNALS:
      */
     void bookmarksChanged(const QUrl &url);
 
+    /**
+     * Bookmarks may have changed across all documents.
+     */
+    void allBookmarksChanged();
+
 private:
     class Private;
     Private *const d;
