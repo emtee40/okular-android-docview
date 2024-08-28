@@ -89,9 +89,12 @@ void DocumentTest::testDocdataMigration()
     const QMimeType mime = db.mimeTypeForFile(testFilePath);
     QCOMPARE(m_document->openDocument(testFilePath, testFileUrl, mime), Okular::Document::OpenSuccess);
 
-    // Check that the annotation from file1-docdata.xml was loaded
+    // Check that the annotation from file1-docdata.xml was loaded and has same uniqueName, author, create, and modify time
     QCOMPARE(m_document->page(0)->annotations().size(), 1);
     QCOMPARE(m_document->page(0)->annotations().first()->uniqueName(), QStringLiteral("testannot"));
+    QCOMPARE(m_document->page(0)->annotations().first()->author(), QStringLiteral("someone"));
+    QCOMPARE(m_document->page(0)->annotations().first()->creationDate().toString(Qt::ISODate), (QDateTime::QDateTime::fromString(QStringLiteral("2017-09-11T19:40:57"), Qt::ISODate)).toString(Qt::ISODate));
+    QCOMPARE(m_document->page(0)->annotations().first()->modificationDate().toString(Qt::ISODate), (QDateTime::QDateTime::fromString(QStringLiteral("2017-09-11T19:40:57"), Qt::ISODate)).toString(Qt::ISODate));
 
     // Check that we detect that it must be migrated
     QVERIFY(m_document->isDocdataMigrationNeeded());
@@ -119,9 +122,15 @@ void DocumentTest::testDocdataMigration()
     QVERIFY(!m_document->isDocdataMigrationNeeded());
     m_document->closeDocument();
 
-    // And the new file should have 1 annotation, let's check
+    // And the new file should have 1 annotation with the same uniqueName, author, and timestamps, let's check
     QCOMPARE(m_document->openDocument(migratedSaveFile.fileName(), QUrl::fromLocalFile(migratedSaveFile.fileName()), mime), Okular::Document::OpenSuccess);
     QCOMPARE(m_document->page(0)->annotations().size(), 1);
+    QCOMPARE(m_document->page(0)->annotations().first()->uniqueName(), QStringLiteral("testannot"));
+    QCOMPARE(m_document->page(0)->annotations().first()->author(), QStringLiteral("someone"));
+#if POPPLER_VERSION_MACRO >= QT_VERSION_CHECK(20, 9, 0)
+    QCOMPARE(m_document->page(0)->annotations().first()->creationDate().toString(Qt::ISODate), (QDateTime::QDateTime::fromString(QStringLiteral("2017-09-11T19:40:57Z"), Qt::ISODate)).toString(Qt::ISODate));
+    QCOMPARE(m_document->page(0)->annotations().first()->modificationDate().toString(Qt::ISODate), (QDateTime::QDateTime::fromString(QStringLiteral("2017-09-11T19:40:57Z"), Qt::ISODate)).toString(Qt::ISODate));
+#endif
     QVERIFY(!m_document->isDocdataMigrationNeeded());
     m_document->closeDocument();
 
