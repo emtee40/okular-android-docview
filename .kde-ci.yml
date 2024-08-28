@@ -17,6 +17,7 @@ Dependencies:
     'frameworks/kxmlgui': '@latest-kf6'
     'libraries/phonon': '@latest-kf6'
     'graphics/kdegraphics-mobipocket': '@same'
+    'third-party/poppler' : '@latest'
 
 - 'on': ['Linux', 'FreeBSD', 'Windows']
   'require':
