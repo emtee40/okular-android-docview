@@ -29,6 +29,10 @@ Dependencies:
     'plasma/plasma-activities': '@latest-kf6'
     'frameworks/kpty': '@latest-kf6'
 
+- 'on': ['Linux']
+  'require':
+    'sdk/selenium-webdriver-at-spi': '@latest-kf6'
+
 - 'on': ['Android']
   'require':
     'frameworks/kirigami': '@latest-kf6'
