@@ -22,6 +22,7 @@
 #include <QApplication>
 #include <QCommandLineOption>
 #include <QCommandLineParser>
+#include <QImageReader>
 #include <QStringList>
 #include <QTextStream>
 #include <QtGlobal>
@@ -53,6 +54,12 @@ int main(int argc, char **argv)
      * allow fractional scaling
      */
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
+
+    /**
+     * Disable allocation limit.
+     * https://invent.kde.org/graphics/okular/-/issues/83
+     */
+    QImageReader::setAllocationLimit(0);
 
     QCoreApplication::setAttribute(Qt::AA_CompressTabletEvents);
 
