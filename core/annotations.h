@@ -732,7 +732,7 @@ public:
      *
      * @note Only called if supports(Addition) == true
      */
-    virtual void notifyAddition(Annotation *annotation, int page) = 0;
+    virtual void notifyAddition(Annotation *annotation, int page, Rotation pageRotation) = 0;
 
     /**
      * Called after an existing @p annotation at a given @p page is modified.
@@ -742,7 +742,7 @@ public:
      *
      * @note Only called if supports(Modification) == true
      */
-    virtual void notifyModification(const Annotation *annotation, int page, bool appearanceChanged) = 0;
+    virtual void notifyModification(const Annotation *annotation, int page, bool appearanceChanged, Rotation pageRotation) = 0;
 
     /**
      * Called when an existing @p annotation at a given @p page is removed.

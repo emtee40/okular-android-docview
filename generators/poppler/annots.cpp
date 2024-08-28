@@ -280,13 +280,33 @@ static void setSharedAnnotationPropertiesToPopplerAnnotation(const Okular::Annot
     popplerAnnotation->setModificationDate(okularAnnotation->modificationDate());
 }
 
-static void setPopplerStampAnnotationCustomImage(const Poppler::Page *page, Poppler::StampAnnotation *pStampAnnotation, const Okular::StampAnnotation *oStampAnnotation)
+static void setPopplerStampAnnotationCustomImage(const Poppler::Page *page, Poppler::StampAnnotation *pStampAnnotation, const Okular::StampAnnotation *oStampAnnotation, Okular::Rotation pageRotation)
 {
     const QSize size = page->pageSize();
     const QRect rect = Okular::AnnotationUtils::annotationGeometry(oStampAnnotation, size.width(), size.height());
 
-    QImage image = Okular::AnnotationUtils::loadStamp(oStampAnnotation->stampIconName(), qMax(rect.width(), rect.height())).toImage();
-
+    auto pixmap = Okular::AnnotationUtils::loadStamp(oStampAnnotation->stampIconName(), qMax(rect.width(), rect.height()));
+    qreal angle = 0;
+    switch (pageRotation) {
+    case Okular::Rotation90:
+        angle = 270;
+        break;
+    case Okular::Rotation180:
+        angle = 180;
+        break;
+    case Okular::Rotation270:
+        angle = 90;
+        break;
+    case Okular::Rotation0:
+    default:
+        break;
+    }
+    if (!qFuzzyIsNull(angle)) {
+        QTransform transform;
+        transform.rotate(angle);
+        pixmap = pixmap.transformed(transform);
+    }
+    const auto image = pixmap.toImage();
     if (!image.isNull()) {
         pStampAnnotation->setStampCustomImage(image);
     }
@@ -346,9 +366,9 @@ static void updatePopplerAnnotationFromOkularAnnotation(const Okular::HighlightA
     pHighlightAnnotation->setHighlightQuads(pQuads);
 }
 
-static void updatePopplerAnnotationFromOkularAnnotation(const Okular::StampAnnotation *oStampAnnotation, Poppler::StampAnnotation *pStampAnnotation, const Poppler::Page *page)
+static void updatePopplerAnnotationFromOkularAnnotation(const Okular::StampAnnotation *oStampAnnotation, Poppler::StampAnnotation *pStampAnnotation, const Poppler::Page *page, Okular::Rotation pageRotation)
 {
-    setPopplerStampAnnotationCustomImage(page, pStampAnnotation, oStampAnnotation);
+    setPopplerStampAnnotationCustomImage(page, pStampAnnotation, oStampAnnotation, pageRotation);
 }
 
 static void updatePopplerAnnotationFromOkularAnnotation(const Okular::InkAnnotation *oInkAnnotation, Poppler::InkAnnotation *pInkAnnotation)
@@ -411,12 +431,12 @@ static Poppler::Annotation *createPopplerAnnotationFromOkularAnnotation(const Ok
     return pHighlightAnnotation;
 }
 
-static Poppler::Annotation *createPopplerAnnotationFromOkularAnnotation(const Okular::StampAnnotation *oStampAnnotation, const Poppler::Page *page)
+static Poppler::Annotation *createPopplerAnnotationFromOkularAnnotation(const Okular::StampAnnotation *oStampAnnotation, const Poppler::Page *page, Okular::Rotation pageRotation)
 {
     Poppler::StampAnnotation *pStampAnnotation = new Poppler::StampAnnotation();
 
     setSharedAnnotationPropertiesToPopplerAnnotation(oStampAnnotation, pStampAnnotation);
-    updatePopplerAnnotationFromOkularAnnotation(oStampAnnotation, pStampAnnotation, page);
+    updatePopplerAnnotationFromOkularAnnotation(oStampAnnotation, pStampAnnotation, page, pageRotation);
 
     return pStampAnnotation;
 }
@@ -440,7 +460,7 @@ static Poppler::Annotation *createPopplerAnnotationFromOkularAnnotation(const Ok
 
     return pCaretAnnotation;
 }
-void PopplerAnnotationProxy::notifyAddition(Okular::Annotation *okl_ann, int page)
+void PopplerAnnotationProxy::notifyAddition(Okular::Annotation *okl_ann, int page, Okular::Rotation pageRotation)
 {
     QMutexLocker ml(mutex);
 
@@ -468,7 +488,7 @@ void PopplerAnnotationProxy::notifyAddition(Okular::Annotation *okl_ann, int pag
             okl_ann->setFlags(okl_ann->flags() & ~Okular::Annotation::DenyWrite);
         }
 
-        ppl_ann = createPopplerAnnotationFromOkularAnnotation(static_cast<Okular::StampAnnotation *>(okl_ann), ppl_page.get());
+        ppl_ann = createPopplerAnnotationFromOkularAnnotation(static_cast<Okular::StampAnnotation *>(okl_ann), ppl_page.get(), pageRotation);
         if (deletedStampsAnnotationAppearance.find(static_cast<Okular::StampAnnotation *>(okl_ann)) != deletedStampsAnnotationAppearance.end()) {
             ppl_ann->setAnnotationAppearance(*deletedStampsAnnotationAppearance[static_cast<Okular::StampAnnotation *>(okl_ann)].get());
             deletedStampsAnnotationAppearance.erase(static_cast<Okular::StampAnnotation *>(okl_ann));
@@ -501,7 +521,7 @@ void PopplerAnnotationProxy::notifyAddition(Okular::Annotation *okl_ann, int pag
     qCDebug(OkularPdfDebug) << okl_ann->uniqueName();
 }
 
-void PopplerAnnotationProxy::notifyModification(const Okular::Annotation *okl_ann, int page, bool appearanceChanged)
+void PopplerAnnotationProxy::notifyModification(const Okular::Annotation *okl_ann, int page, bool appearanceChanged, Okular::Rotation pageRotation)
 {
     Q_UNUSED(page);
     Q_UNUSED(appearanceChanged);
@@ -561,7 +581,7 @@ void PopplerAnnotationProxy::notifyModification(const Okular::Annotation *okl_an
         const Okular::StampAnnotation *okl_stampann = static_cast<const Okular::StampAnnotation *>(okl_ann);
         Poppler::StampAnnotation *ppl_stampann = static_cast<Poppler::StampAnnotation *>(ppl_ann);
         std::unique_ptr<Poppler::Page> ppl_page = ppl_doc->page(page);
-        updatePopplerAnnotationFromOkularAnnotation(okl_stampann, ppl_stampann, ppl_page.get());
+        updatePopplerAnnotationFromOkularAnnotation(okl_stampann, ppl_stampann, ppl_page.get(), pageRotation);
         break;
     }
     case Poppler::Annotation::AInk: {
@@ -1057,7 +1077,7 @@ Okular::Annotation *createAnnotationFromPopplerAnnotation(Poppler::Annotation *p
             Poppler::StampAnnotation *pStampAnn = static_cast<Poppler::StampAnnotation *>(popplerAnnotation);
             QFileInfo stampIconFile {oStampAnn->stampIconName()};
             if (stampIconFile.exists() && stampIconFile.isFile()) {
-                setPopplerStampAnnotationCustomImage(&popplerPage, pStampAnn, oStampAnn);
+                setPopplerStampAnnotationCustomImage(&popplerPage, pStampAnn, oStampAnn, Okular::Rotation0);
             }
 
             oStampAnn->setFlags(okularAnnotation->flags() | Okular::Annotation::Flag::DenyWrite);

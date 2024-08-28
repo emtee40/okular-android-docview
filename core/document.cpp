@@ -1072,7 +1072,7 @@ void DocumentPrivate::performAddPageAnnotation(int page, Annotation *annotation)
 
     // tell the annotation proxy
     if (proxy && proxy->supports(AnnotationProxy::Addition)) {
-        proxy->notifyAddition(annotation, page);
+        proxy->notifyAddition(annotation, page, kp->rotation());
     }
 
     // notify observers about the change
@@ -1134,7 +1134,7 @@ void DocumentPrivate::performModifyPageAnnotation(int page, Annotation *annotati
 
     // tell the annotation proxy
     if (proxy && proxy->supports(AnnotationProxy::Modification)) {
-        proxy->notifyModification(annotation, page, appearanceChanged);
+        proxy->notifyModification(annotation, page, appearanceChanged, kp->rotation());
     }
 
     // notify observers about the change
