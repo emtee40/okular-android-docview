@@ -10,6 +10,7 @@ include:
       - /gitlab-templates/windows-qt6.yml
       - /gitlab-templates/cppcheck.yml
       - /gitlab-templates/xml-lint.yml
+#      - /gitlab-templates/codespell.yml
       - /gitlab-templates/craft-windows-x86-64-qt6.yml
       - /gitlab-templates/craft-android-qt6-apks.yml
       - /gitlab-templates/craft-macos-arm64-qt6.yml
@@ -39,6 +40,24 @@ build_ubuntu_24_10:
    - sed -i 's/PlasmaActivities REQUIRED/PlasmaActivities/' ../CMakeLists.txt
    - cmake -DOKULAR_UI=desktop -G Ninja .. -DFORCE_NOT_REQUIRED_DEPENDENCIES="KExiv2Qt6"
    - ninja
+
+codespell:
+  stage: build
+  image: invent-registry.kde.org/sysadmin/ci-images/suse-qt67:latest
+  tags:
+    - Linux
+  interruptible: true
+  before_script:
+    - git clone --branch work/nico/codespell https://invent.kde.org/nicolasfella/ci-utilities.git --depth=1
+  script:
+    - ls -l ./ci-utilities/*
+    - codespell -i 0 --skip "*.json,*.po,*.desktop,*.docbook,*.xml,*.desktop.in,*.pdf" --ignore-regex "SPDX-FileCopyrightText.*" | python3 ./ci-utilities/codespell-to-codeclimate.py || true
+  artifacts:
+    expire_in: 1 week
+    reports:
+      codequality: codespell.json
+
+
 
 build_clazy_clang_tidy:
   stage: build
