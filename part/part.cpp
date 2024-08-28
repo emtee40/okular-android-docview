@@ -513,6 +513,7 @@ Part::Part(QObject *parent, const QVariantList &args)
     connect(m_findBar, &FindBar::onCloseButtonPressed, m_pageView, QOverload<>::of(&PageView::setFocus));
     connect(m_miniBar, &MiniBar::forwardKeyPressEvent, m_pageView, &PageView::externalKeyPressEvent);
     connect(m_pageView.data(), &PageView::escPressed, m_findBar, &FindBar::resetSearch);
+    connect(m_pageView.data(), &PageView::escPressed, m_document, [this] { m_document->resetSearch(SYNCTEX_SEARCH_ID); });
     connect(m_pageNumberTool, &MiniBar::forwardKeyPressEvent, m_pageView, &PageView::externalKeyPressEvent);
     connect(m_pageView.data(), &PageView::requestOpenNewlySignedFile, this, &Part::requestOpenNewlySignedFile);
 
@@ -1029,9 +1030,7 @@ QUrl Part::realUrl() const
 
 void Part::showSourceLocation(const QString &fileName, int line, int column, bool showGraphically)
 {
-    Q_UNUSED(column);
-
-    const QString u = QStringLiteral("src:%1 %2").arg(line + 1).arg(fileName);
+    const QString u = QStringLiteral("src:%1:%2:%3").arg(line + 1).arg(column + 1).arg(fileName);
     GotoAction action(QString(), u);
     m_document->processAction(&action);
     if (showGraphically) {
