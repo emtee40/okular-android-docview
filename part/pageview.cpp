@@ -228,6 +228,9 @@ public:
     // left click depress
     QTimer leftClickTimer;
 
+    // triple click
+    QTimer tripleClickTimer;
+
     // actions
     QAction *aRotateClockwise = nullptr;
     QAction *aRotateCounterClockwise = nullptr;
@@ -433,6 +436,8 @@ PageView::PageView(QWidget *parent, Okular::Document *document)
 
     d->leftClickTimer.setSingleShot(true);
     connect(&d->leftClickTimer, &QTimer::timeout, this, &PageView::slotShowSizeAllCursor);
+
+    d->tripleClickTimer.setSingleShot(true);
 
     // set a corner button to resize the view to the page size
     //    QPushButton * resizeButton = new QPushButton( viewport() );
@@ -2521,6 +2526,34 @@ void PageView::mousePressEvent(QMouseEvent *e)
         if (!rightButton) {
             textSelectionClear();
         }
+
+        if (d->tripleClickTimer.isActive()) { // just double clicked AND clicked once more => triple click
+            d->tripleClickTimer.stop();
+
+            PageViewItem *pageItem = pickItemOnPoint(eventPos.x(), eventPos.y());
+            if (pageItem) {
+                // get the point that was triple clicked
+                Okular::NormalizedPoint point = Okular::NormalizedPoint(pageItem->absToPageX(eventPos.x()), pageItem->absToPageY(eventPos.y()));
+
+                // get the text selection
+                Okular::RegularAreaRect *area = pageItem->page()->textAreaLine(point);
+
+                // if the text selection is valid, set it
+                if (area != nullptr) {
+                    d->document->setPageTextSelection(pageItem->pageNumber(), area, palette().color(QPalette::Active, QPalette::Highlight));
+                    d->pagesWithTextSelection << pageItem->pageNumber();
+                    if (d->document->isAllowed(Okular::AllowCopy)) {
+                        const QString text = d->selectedText();
+                        if (!text.isEmpty()) {
+                            QClipboard *cb = QApplication::clipboard();
+                            if (cb->supportsSelection()) {
+                                cb->setText(text, QClipboard::Selection);
+                            }
+                        }
+                    }
+                }
+            }
+        }
         break;
     }
 }
@@ -3183,6 +3216,9 @@ void PageView::mouseDoubleClickEvent(QMouseEvent *e)
             double nY = pageItem->absToPageY(eventPos.y());
 
             if (d->mouseMode == Okular::Settings::EnumMouseMode::TextSelect) {
+                // start an interval where it's possible to triple click
+                d->tripleClickTimer.start(QApplication::doubleClickInterval() + 10);
+
                 textSelectionClear();
 
                 std::unique_ptr<Okular::RegularAreaRect> wordRect = pageItem->page()->wordAt(Okular::NormalizedPoint(nX, nY));
