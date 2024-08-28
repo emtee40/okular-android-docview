@@ -1529,6 +1529,7 @@ void DocumentPrivate::sendGeneratorPixmapRequest()
         // we can not really know if the generator can do async requests
         m_executingPixmapRequests.push_back(request);
         m_pixmapRequestsMutex.unlock();
+        foreachObserverD(notifyPixmapGenerationStarted());
         m_generator->generatePixmap(request);
     } else {
         m_pixmapRequestsMutex.unlock();
@@ -3482,6 +3483,7 @@ void Document::requestTextPage(uint pageNumber)
 
     // Memory management for TextPages
 
+    foreachObserver(notifyTextGenerationStarted());
     d->m_generator->generateTextPage(kp);
 }
 
@@ -5628,6 +5630,8 @@ void DocumentPrivate::requestDone(PixmapRequest *req)
             qCWarning(OkularCoreDebug) << "Receiving a done request for the defunct observer" << observer;
         }
 #endif
+
+        foreachObserverD(notifyPixmapGenerationFinished());
     }
 
     // 3. delete request
@@ -5705,6 +5709,8 @@ void DocumentPrivate::textGenerationDone(Page *page)
 
     // 2. Add the page to the fifo of generated text pages
     m_allocatedTextPagesFifo.append(page->number());
+
+    foreachObserverD(notifyTextGenerationFinished());
 }
 
 void Document::setRotation(int r)
