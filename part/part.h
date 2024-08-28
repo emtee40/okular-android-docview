@@ -77,6 +77,10 @@ class BookmarkList;
 class DrawingToolActions;
 class Layers;
 class SignaturePanel;
+namespace KIO
+{
+class RenameFileDialog;
+}
 
 #if HAVE_PURPOSE
 namespace Purpose
@@ -250,6 +254,7 @@ protected Q_SLOTS:
     void slotUpdateHamburgerMenu();
     void slotExportAs(QAction *);
     bool slotImportPSFile();
+    void slotRenameFile();
     void slotAboutBackend();
     void slotReload();
     void close();
@@ -384,6 +389,7 @@ private:
     Okular::DocumentViewport m_viewportDirty;
     bool m_isReloading;
     bool m_wasPresentationOpen;
+    KIO::RenameFileDialog *renameDialog;
     QWidget *m_dirtyToolboxItem;
     bool m_wasSidebarVisible;
     bool m_fileWasRemoved;
