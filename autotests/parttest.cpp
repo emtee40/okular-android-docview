@@ -2354,9 +2354,18 @@ void PartTest::testEmbeddedFileWarning()
     QVariantList dummyArgs;
     Okular::Part part(nullptr, dummyArgs);
     QFile testpdf(QStringLiteral(KDESRCDIR "data/embeddedfile.pdf"));
-    // Make a copy of the test pdf. We dont want to modify the original one.
-    QVERIFY(testpdf.copy(QStringLiteral(KDESRCDIR "data/embeddedfile_copy.pdf")));
-    QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/embeddedfile_copy.pdf")));
+    // generate a unique filename to create a temp file in temp dir
+    QString tempFileName;
+
+    // More of a hack!! We create a temporary file, delete it, steal its name
+    {
+        QTemporaryFile tempFile;
+        QVERIFY(tempFile.open());
+        tempFileName = tempFile.fileName();
+    }
+    // We dont want to modify the original one.
+    QVERIFY(testpdf.copy(tempFileName));
+    QVERIFY(openDocument(&part, tempFileName));
 
     part.widget()->show();
     QVERIFY(QTest::qWaitForWindowExposed(part.widget()));
@@ -2372,6 +2381,7 @@ void PartTest::testEmbeddedFileWarning()
 
     auto annot = new Okular::HighlightAnnotation();
     annot->setHighlightType(Okular::HighlightAnnotation::Highlight);
+    annot->style().setColor(QColor("yellow"));
     const Okular::NormalizedRect r(0.36, 0.16, 0.51, 0.17);
     annot->setBoundingRectangle(r);
     Okular::HighlightAnnotation::Quad q;
@@ -2393,12 +2403,24 @@ void PartTest::testEmbeddedFileWarning()
     QVERIFY(!part.m_topMessage->isVisible());
     QVERIFY(part.closeUrl());
 
+    // open the modified file again
     QTest::qWait(100);
-    QVERIFY(openDocument(&part, QStringLiteral(KDESRCDIR "data/embeddedfile.pdf")));
+    QVERIFY(openDocument(&part, tempFileName));
     QVERIFY(part.m_topMessage->isVisible());
 
-    QFile modifiedFile(QStringLiteral(KDESRCDIR "data/embeddedfile_copy.pdf"));
-    modifiedFile.remove();
+    annot = new Okular::HighlightAnnotation();
+    annot->setHighlightType(Okular::HighlightAnnotation::Highlight);
+    annot->style().setColor(QColor("red"));
+    annot->setBoundingRectangle(r);
+    annot->highlightQuads().append(q);
+
+    part.m_document->addPageAnnotation(0, annot);
+    // save the modified file
+    QVERIFY(part.saveFile());
+    QTest::qWait(100);
+    QVERIFY(part.m_topMessage->isVisible());
+    QFile tempFile(tempFileName);
+    tempFile.remove();
 }
 
 } // namespace Okular

@@ -1587,7 +1587,7 @@ bool Part::openFile()
         m_showEmbeddedFiles->setEnabled(hasEmbeddedFiles);
     }
 
-    if (m_lastOpenedDocument.isEmpty() || !m_lastOpenedDocument.matches(m_document->currentDocument(), QUrl::None) || m_topMessage->isVisible()) {
+    if (!m_lastOpenedDocument.matches(m_document->currentDocument(), QUrl::None) || m_topMessage->isVisible()) {
         m_lastOpenedDocument = m_document->currentDocument();
         m_topMessage->setVisible(hasEmbeddedFiles && Okular::Settings::showEmbeddedContentMessages());
     }
