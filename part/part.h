@@ -147,6 +147,8 @@ public:
     void clearLastShownSourceLocation() override;
     bool isWatchFileModeEnabled() const override;
     void setWatchFileModeEnabled(bool enable) override;
+    std::chrono::milliseconds watchFileDelay() const;
+    void setWatchFileDelay(std::chrono::milliseconds delay);
     bool areSourceLocationsShownGraphically() const override;
     void setShowSourceLocationsGraphically(bool show) override;
     bool openNewFilesInTabs() const override;
@@ -388,6 +390,7 @@ private:
     bool m_wasSidebarVisible;
     bool m_fileWasRemoved;
     Rotation m_dirtyPageRotation;
+    std::chrono::milliseconds m_watchFileDelay;
 
     // Remember the search history
     QStringList m_searchHistory;

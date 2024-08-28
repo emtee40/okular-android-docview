@@ -1065,6 +1065,16 @@ void Part::setWatchFileModeEnabled(bool enabled)
     }
 }
 
+std::chrono::milliseconds Part::watchFileDelay() const
+{
+    return m_watchFileDelay;
+}
+
+void Part::setWatchFileDelay(std::chrono::milliseconds delay)
+{
+    m_watchFileDelay = delay;
+}
+
 bool Part::areSourceLocationsShownGraphically() const
 {
     return m_pageView->areSourceLocationsShownGraphically();
@@ -2012,13 +2022,13 @@ void Part::slotFileDirty(const QString &path)
 {
     // The beauty of this is that each start cancels the previous one.
     // This means that timeout() is only fired when there have
-    // no changes to the file for the last 750 millisecs.
+    // no changes to the file for the last `watchFileDelay()` millisecs.
     // This ensures that we don't update on every other byte that gets
     // written to the file.
     if (path == localFilePath()) {
         // Only start watching the file in case if it wasn't removed
         if (QFile::exists(localFilePath())) {
-            m_dirtyHandler->start(750);
+            m_dirtyHandler->start(watchFileDelay());
         } else {
             m_fileWasRemoved = true;
         }
@@ -2032,11 +2042,11 @@ void Part::slotFileDirty(const QString &path)
                 // we need to watch the new file
                 unsetFileToWatch();
                 setFileToWatch(localFilePath());
-                m_dirtyHandler->start(750);
+                m_dirtyHandler->start(watchFileDelay());
             }
         } else if (fi.isSymLink() && fi.symLinkTarget() == path) {
             if (QFile::exists(fi.symLinkTarget())) {
-                m_dirtyHandler->start(750);
+                m_dirtyHandler->start(watchFileDelay());
             } else {
                 m_fileWasRemoved = true;
             }
@@ -2125,7 +2135,7 @@ bool Part::slotAttemptReload(bool oneShot, const QUrl &newUrl)
     } else if (!oneShot) {
         // start watching the file again (since we dropped it on close)
         setFileToWatch(localFilePath());
-        m_dirtyHandler->start(750);
+        m_dirtyHandler->start(watchFileDelay());
     }
 
     return reloadSucceeded;
@@ -3024,6 +3034,7 @@ void Part::slotNewConfig()
     // changed before applying changes.
 
     // Watch File
+    setWatchFileDelay(std::chrono::milliseconds(Okular::Settings::watchFileDelay()));
     setWatchFileModeEnabled(Okular::Settings::watchFile());
 
     // Main View (pageView)

@@ -213,6 +213,9 @@
   <entry key="WatchFile" type="Bool" >
    <default>true</default>
   </entry>
+  <entry key="WatchFileDelay" type="Int" >
+   <default>750</default>
+  </entry>
  </group>
  <group name="Dlg Presentation" >
   <entry key="SlidesBackgroundColor" type="Color" >
