@@ -2420,7 +2420,7 @@ void PartTest::testEmbeddedFileWarning()
     QTest::qWait(100);
     QVERIFY(part.m_topMessage->isVisible());
     QFile tempFile(tempFileName);
-    tempFile.remove();
+    QVERIFY(tempFile.remove());
 }
 
 } // namespace Okular
