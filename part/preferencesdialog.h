@@ -33,7 +33,9 @@ public:
     void switchToAccessibilityPage();
     void switchToAnnotationsPage();
 
+
 protected:
+    QSize sizeHint() const override;
     //      void updateSettings(); // Called when OK/Apply is pressed.
     //      void updateWidgets(); // Called upon construction or when Reset is pressed
     //      void updateWidgetsDefault(); // Called when Defaults button is pressed
