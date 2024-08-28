@@ -603,6 +603,7 @@ bool FormLineEdit::event(QEvent *e)
         if (const Okular::Action *action = m_ff->additionalAction(Okular::Annotation::FocusOut)) {
             m_controller->document()->processFocusAction(action, static_cast<Okular::FormFieldText *>(m_ff));
         }
+        m_controller->document()->recalculateForms();
     }
     return QLineEdit::event(e);
 }

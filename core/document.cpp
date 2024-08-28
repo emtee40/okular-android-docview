@@ -3495,6 +3495,11 @@ void DocumentPrivate::notifyFormChanges(int /*page*/)
     recalculateForms();
 }
 
+void Document::recalculateForms()
+{
+    d->recalculateForms();
+}
+
 void Document::addPageAnnotation(int page, Annotation *annotation)
 {
     // Transform annotation's base boundary rectangle into unrotated coordinates

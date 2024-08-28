@@ -787,6 +787,8 @@ public:
      */
     void processDocumentAction(const Action *action, DocumentAdditionalActionType type);
 
+    void recalculateForms();
+
     /**
      * Returns a list of the bookmarked.pages
      */
