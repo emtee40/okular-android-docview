@@ -1586,7 +1586,12 @@ bool Part::openFile()
     if (m_showEmbeddedFiles) {
         m_showEmbeddedFiles->setEnabled(hasEmbeddedFiles);
     }
-    m_topMessage->setVisible(hasEmbeddedFiles && Okular::Settings::showEmbeddedContentMessages());
+
+    if (!m_lastOpenedDocument.matches(m_document->currentDocument(), QUrl::None) || m_topMessage->isVisible()) {
+        m_lastOpenedDocument = m_document->currentDocument();
+        m_topMessage->setVisible(hasEmbeddedFiles && Okular::Settings::showEmbeddedContentMessages());
+    }
+
     m_migrationMessage->setVisible(m_document->isDocdataMigrationNeeded());
 
     // Warn the user that XFA forms are not supported yet (NOTE: poppler generator only)
@@ -1938,6 +1943,7 @@ bool Part::closeUrl(bool promptToSave)
     m_generatorGuiClient = nullptr;
     m_document->closeDocument();
     m_fileLastModified = QDateTime();
+    m_lastOpenedDocument.clear();
     updateViewActions();
     delete m_tempfile;
     m_tempfile = nullptr;

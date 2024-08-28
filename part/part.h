@@ -344,6 +344,7 @@ private:
 
     // the document
     Okular::Document *m_document;
+    QUrl m_lastOpenedDocument;
     QDateTime m_fileLastModified;
     QString m_temporaryLocalFile;
     bool isDocumentArchive;

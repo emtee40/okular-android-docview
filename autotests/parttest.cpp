@@ -110,6 +110,7 @@ private Q_SLOTS:
     void testZoomInFacingPages();
     void testLinkWithCrop();
     void testFieldFormatting();
+    void testEmbeddedFileWarning();
 
 private:
     void simulateMouseSelection(double startX, double startY, double endX, double endY, QWidget *target);
@@ -162,6 +163,7 @@ void PartTest::init()
                               QUrl::fromUserInput(QStringLiteral("file://" KDESRCDIR "data/simple-multipage.pdf")),
                               QUrl::fromUserInput(QStringLiteral("file://" KDESRCDIR "data/tocreload.pdf")),
                               QUrl::fromUserInput(QStringLiteral("file://" KDESRCDIR "data/pdf_with_links.pdf")),
+                              QUrl::fromUserInput(QStringLiteral("file://" KDESRCDIR "data/embeddedfile.pdf")),
                               QUrl::fromUserInput(QStringLiteral("file://" KDESRCDIR "data/RequestFullScreen.pdf"))};
 
     for (const QUrl &url : urls) {
@@ -2345,6 +2347,80 @@ void PartTest::testFieldFormatting()
     QCOMPARE(ff_de->text(), QStringLiteral("1123234,567"));
     QCOMPARE(sumCurrencyWidget->text(), QStringLiteral("1.124.469,13€"));
     QCOMPARE(ff_sum->text(), QStringLiteral("1124469.1340000000782310962677002"));
+}
+
+void PartTest::testEmbeddedFileWarning()
+{
+    QVariantList dummyArgs;
+    Okular::Part part(nullptr, dummyArgs);
+    QFile testpdf(QStringLiteral(KDESRCDIR "data/embeddedfile.pdf"));
+    // generate a unique filename to create a temp file in temp dir
+    QString tempFileName;
+
+    // More of a hack!! We create a temporary file, delete it, steal its name
+    {
+        QTemporaryFile tempFile;
+        QVERIFY(tempFile.open());
+        tempFileName = tempFile.fileName();
+    }
+    // We dont want to modify the original one.
+    QVERIFY(testpdf.copy(tempFileName));
+    QVERIFY(openDocument(&part, tempFileName));
+
+    part.widget()->show();
+    QVERIFY(QTest::qWaitForWindowExposed(part.widget()));
+
+    // Check for presence of embedded file inside the pdf
+    bool hasEmbeddedFiles = part.m_document->embeddedFiles() && part.m_document->embeddedFiles()->count() > 0;
+    QVERIFY(hasEmbeddedFiles);
+    QVERIFY(part.m_topMessage->isVisible());
+    QVERIFY(part.m_topMessage->close());
+
+    // Modify the pdf by annotating
+    QVERIFY(QMetaObject::invokeMethod(part.m_pageView, "slotSetMouseNormal"));
+
+    auto annot = new Okular::HighlightAnnotation();
+    annot->setHighlightType(Okular::HighlightAnnotation::Highlight);
+    annot->style().setColor(QColor("yellow"));
+    const Okular::NormalizedRect r(0.36, 0.16, 0.51, 0.17);
+    annot->setBoundingRectangle(r);
+    Okular::HighlightAnnotation::Quad q;
+    q.setCapStart(false);
+    q.setCapEnd(false);
+    q.setFeather(1.0);
+    q.setPoint(Okular::NormalizedPoint(r.left, r.bottom), 0);
+    q.setPoint(Okular::NormalizedPoint(r.right, r.bottom), 1);
+    q.setPoint(Okular::NormalizedPoint(r.right, r.top), 2);
+    q.setPoint(Okular::NormalizedPoint(r.left, r.top), 3);
+    annot->highlightQuads().append(q);
+
+    part.m_document->addPageAnnotation(0, annot);
+
+    // save the modified file
+    QVERIFY(part.saveFile());
+    QTest::qWait(100);
+    // bug 491221
+    QVERIFY(!part.m_topMessage->isVisible());
+    QVERIFY(part.closeUrl());
+
+    // open the modified file again
+    QTest::qWait(100);
+    QVERIFY(openDocument(&part, tempFileName));
+    QVERIFY(part.m_topMessage->isVisible());
+
+    annot = new Okular::HighlightAnnotation();
+    annot->setHighlightType(Okular::HighlightAnnotation::Highlight);
+    annot->style().setColor(QColor("red"));
+    annot->setBoundingRectangle(r);
+    annot->highlightQuads().append(q);
+
+    part.m_document->addPageAnnotation(0, annot);
+    // save the modified file
+    QVERIFY(part.saveFile());
+    QTest::qWait(100);
+    QVERIFY(part.m_topMessage->isVisible());
+    QFile tempFile(tempFileName);
+    QVERIFY(tempFile.remove());
 }
 
 } // namespace Okular
