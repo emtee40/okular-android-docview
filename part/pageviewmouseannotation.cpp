@@ -482,6 +482,16 @@ void MouseAnnotation::performCommand(const QPoint newPos)
     } else if (isResized()) {
         QPointF delta1, delta2;
         handleToAdjust(normalizedRotatedMouseDelta, delta1, delta2, m_handle, m_focusedAnnotation.pageViewItem->page()->rotation());
+
+        const Okular::NormalizedRect annotRect = m_focusedAnnotation.annotation->boundingRectangle();
+
+        // make sure that left edge of annotRect stays between left edge of the page and right edge of annotRect
+        delta1.setX(qBound(-annotRect.left, delta1.x(), annotRect.right - annotRect.left));
+        // similar checks for top, right and bottom
+        delta1.setY(qBound(-annotRect.top, delta1.y(), annotRect.bottom - annotRect.top));
+        delta2.setX(qBound(annotRect.left - annotRect.right, delta2.x(), 1. - annotRect.right));
+        delta2.setY(qBound(annotRect.top - annotRect.bottom, delta2.y(), 1. - annotRect.bottom));
+
         m_document->adjustPageAnnotation(m_focusedAnnotation.pageNumber, m_focusedAnnotation.annotation, Okular::NormalizedPoint(delta1.x(), delta1.y()), Okular::NormalizedPoint(delta2.x(), delta2.y()));
     }
 }
